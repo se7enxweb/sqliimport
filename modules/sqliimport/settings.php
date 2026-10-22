@@ -59,6 +59,9 @@ foreach ( array( 'RunSettings' => array( 'ChunkSize', 'DryRunRows', 'LogLevel', 
                  'CouchDbSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
                  'CouchbaseSourceSettings' => array( 'AllowedHosts', 'QueryTimeout', 'MaxPages' ),
                  'CosmosDbSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
+                 'DynamoDbSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
+                 'GoogleCloudSourceSettings' => array( 'MaxPages', 'MaximumBytesBilled', 'AllowedHosts' ),
+                 'CassandraSourceSettings' => array( 'AllowedHosts', 'Client', 'Timeout', 'MaxFrameMegabytes', 'MaxPages' ),
                  'ImportSettings' => array( 'DefaultParentNodeID', 'ViewCaching', 'ObjectIndexing', 'StreamTimeout' ),
                  'AdminSettings' => array( 'ListLimit' ) ) as $section => $names )
     foreach ( $names as $name )

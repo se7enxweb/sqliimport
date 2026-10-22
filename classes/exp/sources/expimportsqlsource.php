@@ -60,7 +60,7 @@ class expImportSqlSource extends expImportJsonSource
     );
 
     /** The other formats whose drivers the job queue's workers note too (recordWorkerPhp(), their localDrivers()). */
-    const WORKER_SOURCES = array( 'expImportMongoDbSource', 'expImportRedisSource' );
+    const WORKER_SOURCES = array( 'expImportMongoDbSource', 'expImportRedisSource', 'expImportCassandraSource' );
 
     /** The ODBC driver for SQL Server when [SqlSourceSettings] OdbcDriver is not set. */
     const DEFAULT_ODBC_DRIVER = 'ODBC Driver 18 for SQL Server';

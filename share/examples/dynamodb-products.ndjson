@@ -1,0 +1,3 @@
+{"sku":"tea-1001","title":"Sencha Morning","price":"12.50","in_stock":true,"tags":"green, japan","dimensions.weight_g":"100","dimensions.box":"tin","variants":"[{\"size\":\"50g\",\"price\":\"6.90\"},{\"size\":\"100g\",\"price\":\"12.50\"}]","discontinued":null}
+{"sku":"tea-1002","title":"Assam Breakfast","price":"9.80","in_stock":true,"tags":"black, india","dimensions.weight_g":"250","dimensions.box":"bag","variants":"[]","discontinued":null}
+{"sku":"tea-1003","title":"Oolong Mountain","price":"18.00","in_stock":false,"tags":"oolong","dimensions.weight_g":"75","dimensions.box":"tin","variants":"[{\"size\":\"75g\",\"price\":\"18.00\"}]","discontinued":"2026-03-01"}
