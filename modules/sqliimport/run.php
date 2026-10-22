@@ -61,6 +61,7 @@ $tpl->setVariable( 'run', expImportAdmin::runRow( $run ) );
 $tpl->setVariable( 'import', $import );
 $tpl->setVariable( 'rows', $rows );
 $tpl->setVariable( 'row_count', $rowCount );
+$tpl->setVariable( 'report_url', '/sqliimport/report/' . (int)$run->attribute( 'id' ) . ( $outcome !== '' ? '/(outcome)/' . $outcome : '' ) );
 $tpl->setVariable( 'outcome_links', $outcomeLinks );
 $tpl->setVariable( 'log', $log );
 $tpl->setVariable( 'last_log_id', $log ? (int)end( $logIDs ) : 0 );

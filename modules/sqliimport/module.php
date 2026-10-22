@@ -42,6 +42,14 @@ $ViewList['run'] = array(
     'functions' => $canView,
 );
 
+$ViewList['report'] = array(
+    'script' => 'report.php',
+    'params' => array( 'RunID' ),
+    'unordered_params' => array( 'outcome' => 'Outcome' ),
+    'default_navigation_part' => 'sqliimportnavigationpart',
+    'functions' => $canView,
+);
+
 $ViewList['action'] = array(
     'script' => 'action.php',
     'params' => array(),

@@ -48,6 +48,9 @@ class expImportCommand
                                    'max-rows' => 'stop after this many records', 'json' => 'print JSON' ) ),
             'status' => array( 'The recent runs, or one run with its log: status [<run id>].', '[limit:][json]',
                                array( 'limit' => 'runs or log lines to show (default 20)', 'json' => 'print JSON' ) ),
+            'report' => array( 'Writes the CSV report of a run, one line per record: report <run id>.', '[outcome:][output:]',
+                               array( 'outcome' => 'only the records with this outcome (created, updated, unchanged, skipped, failed, undone)',
+                                      'output' => 'the file to write (default: the standard output)' ) ),
             'cancel' => array( 'Cancels a run: cancel <run id>.', '', array() ),
             'undo' => array( 'Undoes a run: undo <run id> (what it created to the trash, what it updated back to the version before).', '[wait]',
                              array( 'wait' => 'process the undo here and print its result' ) ),
@@ -201,6 +204,23 @@ class expImportCommand
             return 2;
         }
         $this->cli->output( 'PASS run #' . $run->attribute( 'id' ) . ' cancelled' );
+        return 0;
+    }
+
+    protected function cmdReport()
+    {
+        $run = $this->runArgument();
+        $outcome = !empty( $this->options['outcome'] ) ? (string)$this->options['outcome'] : '';
+        if ( $outcome !== '' && !in_array( $outcome, array( 'created', 'updated', 'unchanged', 'skipped', 'failed', 'processed', 'undone' ), true ) )
+            throw new expImportException( "unknown outcome $outcome" );
+        $file = !empty( $this->options['output'] ) ? (string)$this->options['output'] : '';
+        $handle = $file !== '' ? @fopen( $file, 'wb' ) : fopen( 'php://stdout', 'wb' );
+        if ( !$handle )
+            throw new expImportException( "cannot write $file" );
+        $count = expImportReport::write( $run, $handle, $outcome, $file !== '' );
+        fclose( $handle );
+        if ( $file !== '' )
+            $this->cli->output( "PASS $count records written to $file" );
         return 0;
     }
 
