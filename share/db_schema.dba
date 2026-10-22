@@ -1,213 +1,1082 @@
 <?php
-// This array contains the database schema
+// The database schema of 7x SQLI Import: generated from expImportSchema::definition() by
+// ./console ext:sqliimport:install-schema --write-files. Do not edit by hand.
 $schema = array (
-  'sqliimport_item' =>
+  'sqliimport_definition' => 
+  array (
+    'name' => 'sqliimport_definition',
+    'fields' => 
+    array (
+      'behaviour_json' => 
+      array (
+        'type' => 'longtext',
+        'default' => false,
+      ),
+      'created' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'creator_id' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'def_version' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'description' => 
+      array (
+        'type' => 'longtext',
+        'default' => false,
+      ),
+      'handler' => 
+      array (
+        'length' => 100,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => 'mapping',
+      ),
+      'id' => 
+      array (
+        'type' => 'auto_increment',
+        'default' => false,
+      ),
+      'identifier' => 
+      array (
+        'length' => 100,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'is_enabled' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'legacy_scheduled_id' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'mapping_id' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'modified' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'modifier_id' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'name' => 
+      array (
+        'length' => 255,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'options_json' => 
+      array (
+        'type' => 'longtext',
+        'default' => false,
+      ),
+      'source_config' => 
+      array (
+        'type' => 'longtext',
+        'default' => false,
+      ),
+      'source_type' => 
+      array (
+        'length' => 40,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'target_json' => 
+      array (
+        'type' => 'longtext',
+        'default' => false,
+      ),
+    ),
+    'indexes' => 
+    array (
+      'PRIMARY' => 
+      array (
+        'type' => 'primary',
+        'fields' => 
+        array (
+          0 => 'id',
+        ),
+      ),
+      'sqliimport_def_identifier' => 
+      array (
+        'type' => 'unique',
+        'fields' => 
+        array (
+          0 => 'identifier',
+        ),
+      ),
+      'sqliimport_def_handler' => 
+      array (
+        'type' => 'non-unique',
+        'fields' => 
+        array (
+          0 => 'handler',
+        ),
+      ),
+    ),
+  ),
+  'sqliimport_item' => 
   array (
     'name' => 'sqliimport_item',
-    'fields' =>
+    'fields' => 
     array (
-      'handler' =>
+      'handler' => 
       array (
         'length' => 50,
         'type' => 'varchar',
         'default' => NULL,
       ),
-      'id' =>
+      'id' => 
       array (
         'type' => 'auto_increment',
         'default' => false,
       ),
-      'options_serialized' =>
+      'options_serialized' => 
       array (
         'type' => 'longtext',
         'default' => false,
       ),
-      'percentage_int' =>
+      'percentage_int' => 
       array (
         'length' => 6,
         'type' => 'smallint',
         'default' => '0',
       ),
-      'process_time' =>
+      'process_time' => 
       array (
         'length' => 11,
         'type' => 'int',
         'default' => 0,
       ),
-      'progression_notes' =>
+      'progression_notes' => 
       array (
         'type' => 'longtext',
         'default' => false,
       ),
-      'requested_time' =>
+      'requested_time' => 
       array (
         'length' => 11,
         'type' => 'int',
         'default' => 0,
       ),
-      'scheduled_id' =>
+      'scheduled_id' => 
       array (
         'length' => 11,
         'type' => 'int',
         'default' => NULL,
       ),
-      'status' =>
+      'status' => 
       array (
         'length' => 4,
         'type' => 'tinyint',
         'default' => '0',
       ),
-      'type' =>
+      'type' => 
       array (
         'length' => 4,
         'type' => 'tinyint',
         'default' => '1',
       ),
-      'user_id' =>
+      'user_id' => 
       array (
         'length' => 11,
         'type' => 'int',
         'default' => NULL,
       ),
     ),
-    'indexes' =>
+    'indexes' => 
     array (
-      'PRIMARY' =>
+      'PRIMARY' => 
       array (
         'type' => 'primary',
-        'fields' =>
+        'fields' => 
         array (
           0 => 'id',
         ),
       ),
-      'import_item_handler' =>
+      'import_item_handler' => 
       array (
         'type' => 'non-unique',
-        'fields' =>
+        'fields' => 
         array (
           0 => 'handler',
         ),
       ),
-      'import_item_status' =>
+      'import_item_status' => 
       array (
         'type' => 'non-unique',
-        'fields' =>
+        'fields' => 
         array (
           0 => 'status',
         ),
       ),
-      'import_item_user' =>
+      'import_item_user' => 
       array (
         'type' => 'non-unique',
-        'fields' =>
+        'fields' => 
         array (
           0 => 'user_id',
         ),
       ),
-      'import_scheduled_id' =>
+      'import_scheduled_id' => 
       array (
         'type' => 'non-unique',
-        'fields' =>
+        'fields' => 
         array (
           0 => 'scheduled_id',
         ),
       ),
     ),
   ),
-  'sqliimport_scheduled' =>
+  'sqliimport_mapping' => 
+  array (
+    'name' => 'sqliimport_mapping',
+    'fields' => 
+    array (
+      'class_identifier' => 
+      array (
+        'length' => 100,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'created' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'id' => 
+      array (
+        'type' => 'auto_increment',
+        'default' => false,
+      ),
+      'import_id' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'language' => 
+      array (
+        'length' => 20,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'location_json' => 
+      array (
+        'type' => 'longtext',
+        'default' => false,
+      ),
+      'match_key' => 
+      array (
+        'length' => 255,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'modified' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+    ),
+    'indexes' => 
+    array (
+      'PRIMARY' => 
+      array (
+        'type' => 'primary',
+        'fields' => 
+        array (
+          0 => 'id',
+        ),
+      ),
+      'sqliimport_map_import' => 
+      array (
+        'type' => 'non-unique',
+        'fields' => 
+        array (
+          0 => 'import_id',
+        ),
+      ),
+    ),
+  ),
+  'sqliimport_mapping_field' => 
+  array (
+    'name' => 'sqliimport_mapping_field',
+    'fields' => 
+    array (
+      'attribute' => 
+      array (
+        'length' => 100,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'default_value' => 
+      array (
+        'type' => 'longtext',
+        'default' => false,
+      ),
+      'id' => 
+      array (
+        'type' => 'auto_increment',
+        'default' => false,
+      ),
+      'is_required' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'language' => 
+      array (
+        'length' => 20,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'mapping_id' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'sort_order' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'source_path' => 
+      array (
+        'length' => 255,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'transforms_json' => 
+      array (
+        'type' => 'longtext',
+        'default' => false,
+      ),
+    ),
+    'indexes' => 
+    array (
+      'PRIMARY' => 
+      array (
+        'type' => 'primary',
+        'fields' => 
+        array (
+          0 => 'id',
+        ),
+      ),
+      'sqliimport_mapf_mapping' => 
+      array (
+        'type' => 'non-unique',
+        'fields' => 
+        array (
+          0 => 'mapping_id',
+          1 => 'sort_order',
+        ),
+      ),
+    ),
+  ),
+  'sqliimport_run' => 
+  array (
+    'name' => 'sqliimport_run',
+    'fields' => 
+    array (
+      'created_count' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'cursor_json' => 
+      array (
+        'type' => 'longtext',
+        'default' => false,
+      ),
+      'def_version' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'failed_count' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'finished_at' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'id' => 
+      array (
+        'type' => 'auto_increment',
+        'default' => false,
+      ),
+      'import_id' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'legacy_item_id' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'memory_peak' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'parent_run_id' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'processed_count' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'queue_group' => 
+      array (
+        'length' => 40,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'queue_job' => 
+      array (
+        'length' => 40,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'queued_at' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'read_count' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'run_kind' => 
+      array (
+        'length' => 20,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => 'import',
+      ),
+      'schedule_id' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'skipped_count' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'source_ref' => 
+      array (
+        'length' => 255,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'started_at' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'status' => 
+      array (
+        'length' => 30,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => 'queued',
+      ),
+      'summary' => 
+      array (
+        'type' => 'longtext',
+        'default' => false,
+      ),
+      'total_count' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'trigger_kind' => 
+      array (
+        'length' => 20,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => 'manual',
+      ),
+      'unchanged_count' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'updated_count' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'user_id' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+    ),
+    'indexes' => 
+    array (
+      'PRIMARY' => 
+      array (
+        'type' => 'primary',
+        'fields' => 
+        array (
+          0 => 'id',
+        ),
+      ),
+      'sqliimport_run_import' => 
+      array (
+        'type' => 'non-unique',
+        'fields' => 
+        array (
+          0 => 'import_id',
+          1 => 'id',
+        ),
+      ),
+      'sqliimport_run_status' => 
+      array (
+        'type' => 'non-unique',
+        'fields' => 
+        array (
+          0 => 'status',
+        ),
+      ),
+    ),
+  ),
+  'sqliimport_run_log' => 
+  array (
+    'name' => 'sqliimport_run_log',
+    'fields' => 
+    array (
+      'context_json' => 
+      array (
+        'type' => 'longtext',
+        'default' => false,
+      ),
+      'created' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'id' => 
+      array (
+        'type' => 'auto_increment',
+        'default' => false,
+      ),
+      'message' => 
+      array (
+        'type' => 'longtext',
+        'default' => false,
+      ),
+      'row_ref' => 
+      array (
+        'length' => 255,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'run_id' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'severity' => 
+      array (
+        'length' => 10,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => 'info',
+      ),
+    ),
+    'indexes' => 
+    array (
+      'PRIMARY' => 
+      array (
+        'type' => 'primary',
+        'fields' => 
+        array (
+          0 => 'id',
+        ),
+      ),
+      'sqliimport_log_run' => 
+      array (
+        'type' => 'non-unique',
+        'fields' => 
+        array (
+          0 => 'run_id',
+          1 => 'id',
+        ),
+      ),
+    ),
+  ),
+  'sqliimport_run_row' => 
+  array (
+    'name' => 'sqliimport_run_row',
+    'fields' => 
+    array (
+      'created' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'data_json' => 
+      array (
+        'type' => 'longtext',
+        'default' => false,
+      ),
+      'id' => 
+      array (
+        'type' => 'auto_increment',
+        'default' => false,
+      ),
+      'message' => 
+      array (
+        'type' => 'longtext',
+        'default' => false,
+      ),
+      'nodes_json' => 
+      array (
+        'type' => 'longtext',
+        'default' => false,
+      ),
+      'object_id' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'outcome' => 
+      array (
+        'length' => 20,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'remote_id' => 
+      array (
+        'length' => 100,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'row_index' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'row_ref' => 
+      array (
+        'length' => 255,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'run_id' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'status' => 
+      array (
+        'length' => 20,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'version_after' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'version_before' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+    ),
+    'indexes' => 
+    array (
+      'PRIMARY' => 
+      array (
+        'type' => 'primary',
+        'fields' => 
+        array (
+          0 => 'id',
+        ),
+      ),
+      'sqliimport_row_ref' => 
+      array (
+        'type' => 'unique',
+        'fields' => 
+        array (
+          0 => 'run_id',
+          1 => 'row_ref',
+        ),
+      ),
+      'sqliimport_row_outcome' => 
+      array (
+        'type' => 'non-unique',
+        'fields' => 
+        array (
+          0 => 'run_id',
+          1 => 'outcome',
+        ),
+      ),
+      'sqliimport_row_object' => 
+      array (
+        'type' => 'non-unique',
+        'fields' => 
+        array (
+          0 => 'object_id',
+        ),
+      ),
+    ),
+  ),
+  'sqliimport_schedule' => 
+  array (
+    'name' => 'sqliimport_schedule',
+    'fields' => 
+    array (
+      'catch_up' => 
+      array (
+        'length' => 20,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => 'one',
+      ),
+      'created' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'creator_id' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'cron_expr' => 
+      array (
+        'length' => 100,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => '',
+      ),
+      'id' => 
+      array (
+        'type' => 'auto_increment',
+        'default' => false,
+      ),
+      'import_id' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'interval_minutes' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'is_active' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'kind' => 
+      array (
+        'length' => 20,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => 'once',
+      ),
+      'last_run' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'modified' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'next_run' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'notify_json' => 
+      array (
+        'type' => 'longtext',
+        'default' => false,
+      ),
+      'run_at' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
+      'timezone' => 
+      array (
+        'length' => 64,
+        'type' => 'varchar',
+        'not_null' => '1',
+        'default' => 'UTC',
+      ),
+    ),
+    'indexes' => 
+    array (
+      'PRIMARY' => 
+      array (
+        'type' => 'primary',
+        'fields' => 
+        array (
+          0 => 'id',
+        ),
+      ),
+      'sqliimport_sched_import' => 
+      array (
+        'type' => 'non-unique',
+        'fields' => 
+        array (
+          0 => 'import_id',
+        ),
+      ),
+      'sqliimport_sched_due' => 
+      array (
+        'type' => 'non-unique',
+        'fields' => 
+        array (
+          0 => 'is_active',
+          1 => 'next_run',
+        ),
+      ),
+    ),
+  ),
+  'sqliimport_scheduled' => 
   array (
     'name' => 'sqliimport_scheduled',
-    'fields' =>
+    'fields' => 
     array (
-      'frequency' =>
+      'frequency' => 
       array (
         'length' => 30,
         'type' => 'varchar',
         'not_null' => '1',
         'default' => '',
       ),
-      'handler' =>
+      'handler' => 
       array (
         'length' => 50,
         'type' => 'varchar',
         'default' => NULL,
       ),
-      'id' =>
+      'id' => 
       array (
         'type' => 'auto_increment',
         'default' => false,
       ),
-      'is_active' =>
+      'is_active' => 
       array (
         'length' => 4,
         'type' => 'tinyint',
         'default' => '0',
       ),
-      'label' =>
+      'label' => 
       array (
         'length' => 255,
         'type' => 'varchar',
         'default' => NULL,
       ),
-      'manual_frequency' =>
+      'manual_frequency' => 
       array (
         'length' => 11,
         'type' => 'int',
         'default' => 0,
       ),
-      'next' =>
+      'next' => 
       array (
         'length' => 11,
         'type' => 'int',
         'default' => 0,
       ),
-      'options_serialized' =>
+      'options_serialized' => 
       array (
         'type' => 'longtext',
         'default' => false,
       ),
-      'requested_time' =>
+      'requested_time' => 
       array (
         'length' => 11,
         'type' => 'int',
         'default' => NULL,
       ),
-      'user_id' =>
+      'user_id' => 
       array (
         'length' => 11,
         'type' => 'int',
         'default' => NULL,
       ),
     ),
-    'indexes' =>
+    'indexes' => 
     array (
-      'PRIMARY' =>
+      'PRIMARY' => 
       array (
         'type' => 'primary',
-        'fields' =>
+        'fields' => 
         array (
           0 => 'id',
         ),
       ),
-      'import_handler' =>
+      'import_handler' => 
       array (
         'type' => 'non-unique',
-        'fields' =>
+        'fields' => 
         array (
           0 => 'handler',
         ),
       ),
-      'next_import' =>
+      'next_import' => 
       array (
         'type' => 'non-unique',
-        'fields' =>
+        'fields' => 
         array (
           0 => 'next',
         ),
       ),
     ),
   ),
-  '_info' =>
+  '_info' => 
   array (
     'format' => 'generic',
   ),

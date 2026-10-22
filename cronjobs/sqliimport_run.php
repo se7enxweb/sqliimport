@@ -8,6 +8,17 @@
  * @package sqliimport
  */
 
+// 2.x: with the job queue installed, the pending and scheduled 1.x imports are handed to the 2.x engine (one run per
+// item, in a worker of the job queue) instead of being run here; this cron part is deprecated in favour of
+// "sqliimport" (cronjobs/sqliimport_schedule.php), which does the same and more.
+if ( class_exists( 'expImportScheduler' ) && expImport::queueReady() && expImportSchema::installed() )
+{
+    $cli->warning( 'sqliimport_run is deprecated: run the cron part "sqliimport" every minute instead' );
+    $stats = expImportScheduler::tick( function ( $line ) use ( $cli ) { $cli->output( $line ); } );
+    $cli->output( sprintf( '%d 1.x imports handed to the 2.x engine, %d scheduled runs queued', $stats['legacy'], $stats['started'] ) );
+    return;
+}
+
 include_once __DIR__ . '/../modules/sqliimport/sigtermhandler.php';
 include_once __DIR__ . '/../modules/sqliimport/fatalerrorhandler.php';
 
