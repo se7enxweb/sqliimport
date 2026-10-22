@@ -37,9 +37,13 @@ foreach ( expImportRunRow::fetchByRun( $run->attribute( 'id' ), $conds, $offset,
 }
 $rowCount = expImportRunRow::countByRun( $run->attribute( 'id' ), $conds );
 $log = array();
+$logIDs = array();
 foreach ( expImportRunLog::fetchByRun( $run->attribute( 'id' ), 0, array(), 0, 500 ) as $line )
+{
+    $logIDs[] = (int)$line->attribute( 'id' );
     $log[] = array( 'time' => (int)$line->attribute( 'created' ), 'severity' => $line->attribute( 'severity' ), 'ref' => $line->attribute( 'row_ref' ),
                     'message' => $line->attribute( 'message' ) );
+}
 
 $base = '/sqliimport/run/' . (int)$run->attribute( 'id' );
 $outcomeLinks = array( array( 'name' => '', 'url' => $base, 'current' => $outcome === '' ) );
@@ -59,6 +63,7 @@ $tpl->setVariable( 'rows', $rows );
 $tpl->setVariable( 'row_count', $rowCount );
 $tpl->setVariable( 'outcome_links', $outcomeLinks );
 $tpl->setVariable( 'log', $log );
+$tpl->setVariable( 'last_log_id', $log ? (int)end( $logIDs ) : 0 );
 $tpl->setVariable( 'here', $here );
 $tpl->setVariable( 'offset', $offset );
 $tpl->setVariable( 'prev_url', $offset > 0 ? $here . ( $offset - $limit > 0 ? '/(offset)/' . ( $offset - $limit ) : '' ) : '' );
