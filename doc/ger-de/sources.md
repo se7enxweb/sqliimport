@@ -574,6 +574,99 @@ spricht die Quelle IMAP selbst über einen TLS-Socket (`LOGIN`, `EXAMINE`/`SELEC
 Die Vorlage bildet eine Nachricht auf einen Artikel ab, der über die Remote-ID `mail-{message_id}` wiedergefunden
 wird (bei langen IDs mit einem Hash gekürzt): Titel aus `subject`, Einleitung aus `summary`, Text aus `body` (beide
 als Rich Text), Veröffentlichungsdatum aus `date`.
+## Seiten einer Website über ihre Sitemap (`sitemap`) und der Webseiten-Scraper (`webpage`)
+
+Gruppe: Plattformen. Diese beiden Formate lesen öffentliche Webseiten selbst (der Ursprung `remote`): einmal pro
+Lauf durchsuchen sie die Website und schreiben eine Momentaufnahme des Gelesenen (ein JSON-Objekt je Zeile im
+Verzeichnis des Laufs), die dann jeder Abschnitt des Laufs liest. Stichprobe und Vorschau des Import-Editors lesen
+nur die ersten Seiten (`[RunSettings] DryRunRows`).
+
+**Es gelten die Nutzungsbedingungen der Website und ihre robots.txt. Lesen Sie nur öffentliche Seiten, die Sie
+verwenden dürfen.** Das Lesen ist von Grund auf rücksichtsvoll und sicher:
+
+- **robots.txt wird befolgt.** Sie wird einmal pro Host gelesen; es entscheidet die Gruppe des User-Agents (oder
+  `*`) mit ihren Regeln `Allow` und `Disallow` (die längste passende Regel gewinnt, bei Gleichstand `Allow`; `*` und
+  ein abschließendes `$` in Mustern) und ihrem `Crawl-delay`. Antwortet robots.txt mit 4xx, ist alles erlaubt; kann
+  sie nicht gelesen werden (5xx, keine Antwort), ist nichts erlaubt. Eine nicht erlaubte Seite wird nie angefragt:
+  sie wird eine fehlgeschlagene Zeile des Laufs mit dem Grund, und der Lauf endet *mit Fehlern abgeschlossen*.
+- **Anfragen haben Abstand.** Zwischen zwei Anfragen an einen Host wartet das Lesen die Pause `delay` des Imports
+  (1 Sekunde als Vorgabe), mindestens `[CrawlSettings] MinDelay`, und länger, wenn robots.txt ein längeres
+  `Crawl-delay` verlangt.
+- **Grenzen.** Ein Lauf liest höchstens `max_pages` Seiten, nie mehr als `[CrawlSettings] MaxPages` (2000). Jede
+  Seite wird mit den Prüfungen und Grenzen einer Adressquelle gelesen: keine privaten oder reservierten Netze ohne
+  `[SourceSettings] AllowPrivateHosts`, das Zeitlimit `[ImportSettings] StreamTimeout` und das Größenlimit
+  `[SourceSettings] MaxSourceMegabytes`. Weiterleitungen verfolgt das Lesen selbst (höchstens drei), jedes Ziel wird
+  erneut geprüft.
+- **Gesendet wird nur die Anfrage.** Keine Cookies, keine Zugangsdaten (eine Adresse mit Benutzername oder Passwort
+  wird abgelehnt) und der User-Agent aus `[CrawlSettings] UserAgent` (als Vorgabe
+  `7x SQLI Import (Exponential; +<SiteURL>)`, damit der Betreiber einer Website sieht, wer liest).
+- **Es wird kein JavaScript ausgeführt.** Eine Seite wird als HTML-Text geparst (DOMDocument ohne Netzzugriff, in
+  UTF-8 nach dem Zeichensatz der Antwort oder der Seite); Skripte, Styles, Frames und Event-Attribute werden entfernt,
+  bevor etwas daraus genommen wird. Eine Seite, deren Inhalt JavaScript aufbaut, bietet wenig zu lesen.
+
+**Picks** (Option `picks`, einer je Zeile) benennen die Felder, die einer Seite entnommen werden: `feld=selektor`.
+Ein Selektor ist CSS, eine praktische Teilmenge: ein Tag oder `*`, `#id`, `.klasse`, `[attr]`, `[attr=wert]` (und
+`~=`, `^=`, `$=`, `*=`, `|=`), die Kombinatoren Nachfahre (ein Leerzeichen), `>`, `+`, `~` und `,` sowie
+`:first-child`, `:last-child`, `:only-child`, `:nth-child(n)`, `:first-of-type`, `:last-of-type`. Am Ende nimmt
+`::attr(name)` oder `@name` ein Attribut, `::html` das innere HTML und `::text` den Text (die Vorgabe). Ein Selektor,
+der mit `xpath:` beginnt, ist XPath. Findet ein Pick mehrere Elemente, ergibt er eine Liste, findet er keines, einen
+leeren Text. Relative Adressen in `href`, `src` und ähnlichen Attributen werden absolut gemacht. Ein Pick namens
+`body` behält das innere HTML des Gefundenen (für ein Rich-Text-Feld) und ergänzt `body_text` mit dessen Text.
+
+```
+title=h1
+image=meta[property=og:image]::attr(content)
+body=article .content
+author=xpath://span[@itemprop='author']
+```
+
+### `sitemap`
+
+Die Seiten, die eine Sitemap aufführt (`sitemap.xml`, mit gzip komprimiert oder nicht, oder eine Textdatei mit
+Adressen), auch über einen Sitemap-Index; für die Wurzel einer Website (`https://example.org/`) oder ihre
+`robots.txt` die Zeilen `Sitemap:` der robots.txt (sonst `/sitemap.xml`). Gelesen werden nur Seiten und Sitemaps
+derselben Website wie die Sitemap (ihr Host, mit oder ohne `www.`). Ein Datensatz je Seite: `url` (der Schlüssel), `url_hash` (der SHA-1 der Adresse,
+für die Remote-ID), `lastmod`, `priority` und `changefreq` aus der Sitemap, `status` (HTTP), `title` (aus
+`<title>`), `description` (die Meta-Beschreibung), `canonical`, `language` (aus `<html lang>`) und jeder Pick (ein
+Pick `title` ersetzt den Seitentitel).
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `sitemap` | die Sitemap, ein Sitemap-Index oder die Wurzel einer Website (Pflicht) | |
+| `include` | Muster der zu lesenden Adressen, eines je Zeile: ein Glob (`https://example.org/blog/*`, `/blog/*` für Pfad und Abfrage) oder `regex:<Ausdruck>` | jede Seite |
+| `exclude` | Muster der Adressen, die nie gelesen werden (sie haben Vorrang vor `include`) | keine |
+| `picks` | Zeilen `feld=selektor` | keine |
+| `max_pages` | die meisten Seiten, die ein Lauf liest | `200` |
+| `delay` | Sekunden zwischen zwei Anfragen | `1` |
+| `key` | das Schlüsselfeld | `url` |
+
+Vorlage: ein Artikel (`title` aus dem Titel, `intro` aus der Beschreibung und `body` aus dem Pick `body`, beide als
+Rich Text), zugeordnet über die Remote-ID `page-{url_hash}`. Beispiele: `sitemap.xml` (eine Sitemap mit vier
+Seiten; eine lokale Sitemap-Datei führt ihre Seiten auf, ohne sie zu lesen) und `sitemap-crawl.ndjson` (die
+Momentaufnahme eines Durchlaufs: drei Seiten gelesen, eine von robots.txt abgelehnt).
+
+### `webpage`
+
+Eine Seite oder eine Liste von Adressen (Option `urls`). Mit einem Selektor `item` wird jedes Element, das er auf
+einer Seite findet (ein Produkt einer Liste, ein Termin eines Kalenders), ein eigener Datensatz, und die Picks gelten
+relativ dazu (`@data-sku` allein nimmt ein Attribut des Elements selbst); ohne ihn ist eine Seite ein Datensatz. Ein
+Selektor `next` (`a[rel=next]`) nennt den Link zur nächsten Seite, dem gefolgt wird, solange `max_pages` es erlaubt.
+Ein Datensatz je Element: `id` (der Schlüssel: die Adresse, bei einem Element mit `#<Position>`), `url`,
+`url_hash`, `page` (1 für die erste Seite einer Adresse), `position` (ab 1 über alle Seiten einer Adresse),
+`status` und die Picks.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `urls` | Adressen, eine je Zeile (Pflicht) | |
+| `item` | der Selektor des wiederkehrenden Elements | die Seite ist ein Datensatz |
+| `next` | der Selektor des Links zur nächsten Seite (sein `href`) | keine nächste Seite |
+| `picks` | Zeilen `feld=selektor` | keine |
+| `max_pages` | die meisten Seiten, die ein Lauf liest, über alle Adressen | `20` |
+| `delay` | Sekunden zwischen zwei Anfragen | `1` |
+| `key` | das Schlüsselfeld | `id` |
+
+Keine Vorlage. Beispiel: `page-products.html` (eine Liste mit drei Produkten, gelesen, als wäre sie
+`https://example.org/products/`, mit dem Element `.product`).
 
 ## Der Katalog der Formate
 

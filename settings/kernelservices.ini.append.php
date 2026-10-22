@@ -236,6 +236,22 @@ Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: RSS export of another Exponential site
 
+[Service_sqliimport.source.sitemap]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportSitemapSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: the pages of a site by its sitemap (crawl)
+
+[Service_sqliimport.source.webpage]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportWebPageSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: fields picked from web pages (scraper)
+
 [Service_sqliimport.source.media]
 Class=expImportSourceEntry
 Factory=expImportSourceEntry::of

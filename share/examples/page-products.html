@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Teas – Example Tea Shop</title>
+<meta name="description" content="The teas of a fictitious shop, as an example page for the web page scraper.">
+<link rel="canonical" href="https://example.org/products/">
+<script>document.title = 'never run';</script>
+</head>
+<body>
+<header><h1>Our teas</h1></header>
+<main id="list">
+  <article class="product featured" data-sku="T-100">
+    <h2>Sencha Kyoto</h2>
+    <img src="/images/sencha.jpg" alt="Sencha leaves">
+    <p class="price">12.50 EUR</p>
+    <div class="description"><p>A <strong>fresh</strong> green tea from Kyoto.</p><p>Steep for two minutes.</p></div>
+    <ul class="tags"><li>green</li><li>japan</li></ul>
+    <a class="more" href="sencha-kyoto">Details</a>
+  </article>
+  <article class="product" data-sku="T-200">
+    <h2>Darjeeling First Flush</h2>
+    <img src="/images/darjeeling.jpg" alt="Darjeeling leaves">
+    <p class="price">18.00 EUR</p>
+    <div class="description"><p>A light black tea, picked in spring.</p></div>
+    <ul class="tags"><li>black</li></ul>
+    <a class="more" href="darjeeling-first-flush" onclick="alert(1)">Details</a>
+  </article>
+  <article class="product" data-sku="T-300">
+    <h2>Rooibos Vanilla</h2>
+    <img src="/images/rooibos.jpg" alt="Rooibos">
+    <p class="price">9.90 EUR</p>
+    <div class="description">Caffeine free, with vanilla – über gut.</div>
+    <ul class="tags"><li>herbal</li><li>vanilla</li></ul>
+    <a class="more" href="https://example.org/products/rooibos-vanilla">Details</a>
+  </article>
+</main>
+<nav class="pager"><a rel="next" href="?page=2">Next</a></nav>
+</body>
+</html>

@@ -89,6 +89,14 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 
 - Added: Translations by column: the mapping step maps a column per language of the site to the translatable
   attributes, and a run publishes the object with those translations.
+- Added: The format Pages of a site by its sitemap (sitemap): the public pages a sitemap, a sitemap index or the
+  Sitemap lines of robots.txt list, filtered by address patterns, with title, description, canonical address,
+  language and fields picked by CSS or XPath selectors (body keeps its HTML). Preset: the class article.
+- Added: The format Web page scraper (webpage): fields picked from one page or a list of addresses, one record per
+  repeating item of a page, following a next page link.
+- Added: The crawl of both formats obeys robots.txt (Allow, Disallow, Crawl-delay), spaces its requests, reads at
+  most [CrawlSettings] MaxPages pages with the checks of an address source, sends no cookies or credentials and runs
+  no JavaScript; a page it may not or could not read is a failed row of the run.
 
 ### Updated
 

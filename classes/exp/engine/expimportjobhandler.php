@@ -353,6 +353,8 @@ class expImportJobHandler extends expQueueHandlerBase
     /** @return expImportRowResult */
     protected function processRecord( expImportHandlerInterface $handler, expImportRecord $record, expImportContext $context )
     {
+        if ( $record->sourceError() !== '' )
+            return expImportRowResult::failed( $record->sourceError() );
         try
         {
             $result = $handler->process( $record, $context );

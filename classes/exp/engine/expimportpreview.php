@@ -70,7 +70,7 @@ class expImportPreview
                     break;
                 try
                 {
-                    $result = $handler->process( $record, $context );
+                    $result = $record->sourceError() !== '' ? expImportRowResult::failed( $record->sourceError() ) : $handler->process( $record, $context );
                 }
                 catch ( Exception $e )
                 {

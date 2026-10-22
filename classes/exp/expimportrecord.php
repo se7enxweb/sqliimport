@@ -55,6 +55,18 @@ class expImportRecord
     }
 
     /**
+     * What went wrong when the source read this record: a source that reads its data itself (the crawl of a site)
+     * writes a record with the field _error for an address it may not or could not read. Such a record is a failed
+     * row of the run, never given to the handler.
+     *
+     * @return string the message, '' for a record that was read
+     */
+    public function sourceError()
+    {
+        return isset( $this->data['_error'] ) && is_scalar( $this->data['_error'] ) ? trim( (string)$this->data['_error'] ) : '';
+    }
+
+    /**
      * A value of an array by its dotted path. A key that itself contains a dot is found as written first.
      *
      * @param array $data
