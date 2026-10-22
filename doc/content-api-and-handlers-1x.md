@@ -161,7 +161,7 @@ The extension's own `sqliimport.ini.append.php` declares the example `[rssimport
 
 | File | Setting | Purpose |
 |---|---|---|
-| `menu.ini` | `[TopAdminMenu] Tabs[]=sqliimport`, `[Topmenu_sqliimport]` | The **Import management** tab, with `Icon=upload`, opening `sqliimport/list`, shown to users with `sqliimport/manageimports` |
+| `menu.ini` | `[TopAdminMenu] Tabs[]=sqliimport`, `[Topmenu_sqliimport]` | The **Import management** tab, with `Icon=download` (data comes in), opening `sqliimport/list`, shown to users with `sqliimport/manageimports` |
 | `cronjob.ini` | `[CronjobPart-sqliimport_run]` | `sqliimport_run.php`, `sqliimport_cleanup.php`, `indexcontent.php` |
 | `cronjob.ini` | `[CronjobPart-sqliimport_cleanup]` | `sqliimport_cleanup.php`, `indexcontent.php` |
 | `module.ini` | `ModuleList[]=sqliimport` | The `sqliimport` module |
@@ -170,7 +170,7 @@ The extension's own `sqliimport.ini.append.php` declares the example `[rssimport
 
 ## Usage in the administration
 
-Open the **Import management** tab (the upload icon) in the admin header. The list (`sqliimport/list`) shows every
+Open the **Import management** tab (the download icon: data comes in) in the admin header. The list (`sqliimport/list`) shows every
 import with its handler, who requested it, its status, progress, duration and notes.
 
 There are two kinds of imports. Both are stored as pending and run by the next `sqliimport_run` cronjob.
