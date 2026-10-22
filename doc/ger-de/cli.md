@@ -82,6 +82,39 @@ Bricht einen Lauf ab. Exit-Code `2`, wenn er schon beendet war.
 Startet einen Lauf mit den fehlgeschlagenen Zeilen eines beendeten Laufs. Abgelehnt wird er, wenn der Lauf keine
 fehlgeschlagenen Zeilen hat oder seine Zeilen keinen Datensatz enthalten (ein Handler von 1.x).
 
+## undo
+
+```bash
+./console ext:sqliimport:undo 12 --wait
+```
+
+Macht einen Lauf rückgängig: was er angelegt hat, kommt in den Papierkorb; was er geändert hat, erhält die Version
+vor dem Lauf erneut als neue Version. Ein danach geändertes Objekt bleibt unberührt und wird aufgeführt. Ein Lauf
+wird einmal rückgängig gemacht, innerhalb von `[RunSettings] UndoDays` (oder der eigenen Zahl von Tagen des Imports).
+Siehe [runs.md](runs.md).
+
+## report
+
+```bash
+./console ext:sqliimport:report 12 > lauf-12.csv
+./console ext:sqliimport:report 12 --outcome=failed --output=var/import/lauf-12-fehler.csv
+```
+
+Schreibt den CSV-Bericht eines Laufs, eine Zeile je Datensatz: `run_id`, `row`, `ref`, `outcome`, `status`,
+`object_id`, `remote_id`, `version_before`, `version_after`, `changed_fields`, `message`, `time`. Die Zeilen werden
+seitenweise gelesen, ein großer Lauf braucht also wenig Speicher. Eine Zelle, die eine Tabellenkalkulation als Formel
+lesen würde, erhält ein führendes Apostroph. Die Seite des Laufs bietet denselben Bericht als **CSV-Bericht
+herunterladen** (alle Datensätze oder das angezeigte Ergebnis).
+
+## opml-feeds
+
+```bash
+./console ext:sqliimport:opml-feeds meine-feedliste --parent=2345
+```
+
+Legt je Feed der Liste eines OPML-Imports einen deaktivierten RSS-Import an, mit der RSS-Vorlage als Zuordnung.
+Siehe [sources.md](sources.md#opml-opml).
+
 ## migrate-1x
 
 Migriert die Handler, geplanten Importe und den Verlauf von SQLI Import 1.x. Ohne `--apply` meldet der Befehl nur.
@@ -97,7 +130,9 @@ Siehe [migration-1x.md](migration-1x.md).
 ## tick
 
 Eine Runde des Cron-Teils `sqliimport`: beendet Läufe, deren Jobs beendet sind, stellt fällige Zeitpläne und
-offene Importe von 1.x ein und bereinigt alte Läufe. Die Zähler gibt der Befehl als JSON aus.
+offene Importe von 1.x ein und bereinigt alte Läufe. Die Zähler gibt der Befehl als JSON aus. Der Tick läuft auch im
+Cron-Teil `expqueue` der Job-Warteschlange mit; eine Site, auf der die Warteschlange jede Minute läuft, braucht also
+keine eigene Cron-Zeile. Eine Sperre verhindert, dass zwei Ticks gleichzeitig laufen.
 
 ```bash
 ./console ext:sqliimport:tick

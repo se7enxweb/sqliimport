@@ -24,9 +24,20 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   the run is left alone and listed. A run is undone once, within the days set by UndoDays (30, per import too).
 - Added: Conflict rules for objects a person changed since the last run: overwrite, skip, fill_empty (only empty
   fields) and merge (only the fields nobody changed), decided by the field values the import wrote.
+- Added: The CSV report of a run (one line per record), from the run page and ./console ext:sqliimport:report.
+- Added: A catalogue of formats: a format is one source class plus one block in kernelservices.ini (tagged
+  sqliimport.source), with a description, a group, example files and a preset mapping that a new import starts
+  from. The catalogue shows them as cards by group with New import; the editor groups them the same way.
+- Added: OPML feed lists (opml), with ./console ext:sqliimport:opml-feeds to create one RSS import per feed.
+- Added: TSV (tsv) and JSON Lines (ndjson) as formats of their own (variants of the CSV and JSON sources).
+- Added: WordPress exports (wxr): posts and pages with author, dates, categories, tags, meta and featured image, or
+  the media, categories, tags and authors of the export.
 
 ### Updated
 
+- Updated: The tick also runs within the cron part expqueue, so schedules need no cron line of their own; a lock
+  keeps two ticks from running at once.
+- Updated: A preset maps only the fields the site's class can take (by attribute and datatype).
 - Updated: Two policies, as the owner chose: manage (Manage imports) and run (Run imports), both with the handler
   limitation; the functions view, edit, rollback, ai and settings of 2.0.0-alpha.1 are gone. manageimports of 1.x
   counts as manage, listimports lets one look; migrate-1x --roles gives manage to the roles with manageimports.

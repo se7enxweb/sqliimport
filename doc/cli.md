@@ -79,6 +79,37 @@ Cancels a run. Exit code `2` if it had ended already.
 Starts a run of the failed rows of an ended run. It is refused when the run has no failed rows, or when its rows
 carry no record (a 1.x handler).
 
+## undo
+
+```bash
+./console ext:sqliimport:undo 12 --wait
+```
+
+Undoes a run: what it created goes to the trash, what it updated gets the version before the run published again
+as a new version. An object changed after the run is left alone and listed. A run is undone once, within
+`[RunSettings] UndoDays` (or the import's own number of days). See [runs.md](runs.md).
+
+## report
+
+```bash
+./console ext:sqliimport:report 12 > run-12.csv
+./console ext:sqliimport:report 12 --outcome=failed --output=var/import/run-12-failed.csv
+```
+
+Writes the CSV report of a run, one line per record: `run_id`, `row`, `ref`, `outcome`, `status`, `object_id`,
+`remote_id`, `version_before`, `version_after`, `changed_fields`, `message`, `time`. The rows are read in pages, so a
+large run needs little memory. A cell a spreadsheet would read as a formula gets a leading apostrophe. The run page
+offers the same report as **Download CSV report** (all records, or the outcome shown).
+
+## opml-feeds
+
+```bash
+./console ext:sqliimport:opml-feeds my-feed-list --parent=2345
+```
+
+Creates one disabled RSS import per feed of an OPML import's list, with the RSS preset as mapping. See
+[sources.md](sources.md#opml-opml).
+
 ## migrate-1x
 
 Migrates the handlers, scheduled imports and history of SQLI Import 1.x. Without `--apply` it only reports.
@@ -94,7 +125,9 @@ See [migration-1x.md](migration-1x.md).
 ## tick
 
 One round of the cron part `sqliimport`: ends runs whose jobs ended, queues due schedules and pending 1.x imports,
-and purges old runs. It prints the counters as JSON.
+and purges old runs. It prints the counters as JSON. The tick also runs within the cron part `expqueue` of the job
+queue, so a site where the job queue runs every minute needs no cron line of its own; a lock keeps two ticks from
+running at once.
 
 ```bash
 ./console ext:sqliimport:tick

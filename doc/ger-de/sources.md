@@ -32,7 +32,7 @@ Datensatzes in den Zeilen und im Protokoll des Laufs.
 Der Schlüssel muss innerhalb der Quelle eindeutig sein. Ein Lauf verarbeitet jeden Verweis einmal, ein zweiter
 Datensatz mit demselben Schlüssel wird also nicht verarbeitet.
 
-## CSV / TSV (`csv`)
+## CSV, TSV und Text mit Trennzeichen (`csv`, `tsv`)
 
 Dateiendungen: `csv`, `tsv`, `txt`. Die Datei wird als Datenstrom gelesen, ein Datensatz pro Zeile (ein Feld in
 Anführungszeichen darf über mehrere Zeilen gehen). Die Felder jedes Datensatzes sind nach der Kopfzeile benannt.
@@ -82,7 +82,7 @@ mit denselben Feldern in beiden Formaten, sodass eine Zuordnung für beide passt
 Die einzige Option ist `key` (Vorgabe `id`). Diese Quelle ersetzt den RSS-Beispiel-Handler von 1.x
 (`SQLIRSSImportHandler`), der aus Kompatibilitätsgründen bleibt.
 
-## JSON / NDJSON (`json`)
+## JSON und JSON Lines (`json`, `ndjson`)
 
 Dateiendungen: `json`, `ndjson`, `jsonl`.
 
@@ -124,21 +124,102 @@ Die Werte kommen so, wie sie in der Datei gespeichert sind:
 
 Eine sehr große Tabelle wird schneller gelesen, wenn sie als CSV gespeichert ist.
 
-## Einen Quelltyp hinzufügen
+## OPML (`opml`)
 
-Ein Quelltyp implementiert `expImportSourceInterface` (`identifier()`, `label()`, `schema()`, `extensions()`,
-einen Konstruktor, der die geprüfte Konfiguration mit `file` erhält, `records( $cursor )`, `count()` und
-`sample( $limit )`). `expImportAbstractSource` liefert die Option `key` und den Verweis des Datensatzes.
-Registrieren Sie ihn in `sqliimport.ini`:
+Dateiendungen: `opml`, `xml`. Das Gliederungsformat, in dem Feedreader und Podcast-Apps ihre Abonnements
+exportieren. Jedes `<outline>` ist ein Datensatz:
 
-```ini
-[SourceSettings]
-Sources[]=mysource
+| Feld | Inhalt |
+|---|---|
+| `id` | die Feed-Adresse (`xmlUrl`), sonst die Webadresse (`htmlUrl`), sonst die Position der Gliederung |
+| `text`, `title` | Text und Titel der Gliederung (jeweils mit dem anderen als Ersatz) |
+| `type` | `rss`, `link`, `include` ... wie angegeben |
+| `xml_url`, `html_url` | die Feed-Adresse und die Webadresse |
+| `description`, `language`, `version` | wie angegeben |
+| `category` | das Attribut `category`, sonst der Pfad der umgebenden Gliederungen (`News/Tech`) |
+| `path`, `depth`, `position` | die Texte der umgebenden Gliederungen mit `/` verbunden, die Tiefe (1 ganz oben), die Position (`1.2`) |
+| `parent_id` | die `id` der umgebenden Gliederung |
+| `attributes` | alle Attribute der Gliederung |
 
-[Source_mysource]
-Class=myImportSource
-Status=enabled
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `outlines` | `feeds` (nur Gliederungen mit Feed-Adresse), `leaves` (nur Gliederungen ohne Kinder), `all` | `feeds` |
+| `key` | das Schlüsselfeld | `id` |
+
+Die Vorlage bildet eine Gliederung auf ein `link`-Objekt ab (Name, Beschreibung, Adresse). Sollen die Feeds einer
+Liste verfolgt statt die Liste gespeichert werden, legt der OPML-Import je Feed einen RSS-Import an:
+
+```bash
+./console ext:sqliimport:opml-feeds <Kennung des OPML-Imports> [--parent=<Knoten-ID>] [--prefix=<Anfang der Kennungen>]
 ```
 
-`Status` ist `enabled`, `example` (aufgeführt, aber für einen neuen Import nicht angeboten) oder `disabled`. Eine
-Quelle kann auch ein Kernel-Dienst mit dem Tag `sqliimport.source` sein.
+Jeder Feed-Import wird **deaktiviert** angelegt, mit der Feed-Adresse als Quelle und der RSS-Vorlage als Zuordnung,
+unterhalb des angegebenen Elternknotens. Prüfen Sie die Zuordnungen in der Administration und aktivieren Sie die
+Importe dann. Ein zweiter Aufruf legt nur die Importe an, deren Kennungen es noch nicht gibt.
+
+## WordPress-Export (`wxr`)
+
+Dateiendungen: `xml`, `wxr`. Die Exportdatei von WordPress (Werkzeuge, Daten exportieren). Die Option `records`
+bestimmt, was ein Datensatz ist:
+
+| `records` | Felder |
+|---|---|
+| `posts` (Vorgabe) | `id`, `type`, `title`, `slug`, `link`, `date` (UTC, ISO 8601), `author` (Login), `author_name`, `status`, `parent_id`, `menu_order`, `content` (wie geschrieben), `content_html` (Absätze aus Leerzeilen, wie WordPress sie anzeigt), `excerpt`, `categories`, `tags`, `category_slugs`, `tag_slugs`, `featured_image` (die Adresse des Beitragsbilds), `images` (die Bildadressen im Inhalt), `comment_count`, `meta` (eigene Felder ohne die `_`-Schlüssel von WordPress) |
+| `attachments` | `id`, `title`, `url`, `mime`, `parent_id`, `date`, `alt`, `caption`, `description` |
+| `categories` | `id` (Slug), `term_id`, `name`, `slug`, `parent` (Slug), `description` |
+| `tags` | `id` (Slug), `term_id`, `name`, `slug`, `description` |
+| `authors` | `id`, `login`, `email`, `display_name`, `first_name`, `last_name` |
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `post_types` | die zu lesenden Beitragstypen, einer je Zeile | `post`, `page` |
+| `status` | `publish` (nur veröffentlichte) oder `all` (auch Entwürfe, private und ausstehende) | `publish` |
+| `key` | das Schlüsselfeld | `id` |
+
+Die Vorlage bildet einen Beitrag auf einen `article` ab (Titel, Einleitung aus dem Auszug, Text aus `content_html`
+und, wo die Klasse sie hat, Veröffentlichungsdatum, Bild und Schlagwörter). `featured_image` und `images` sind
+Adressen, die die Umwandlung `image` herunterlädt.
+
+## Der Katalog der Formate
+
+**Importe, Katalog** zeigt die Formate nach Gruppen (Daten, Inhalte, Plattformen, Handel, Medien, Sonstiges). Jede
+Karte sagt, was das Format liest, nennt Dateiendungen und Optionen, bietet Beispieldateien zum Herunterladen und,
+wo das Format eine mitbringt, die Zuordnung, mit der es beginnt. **Neuer Import** öffnet den Editor mit diesem
+Format; beim Speichern wird die Vorlage mit den Feldern ausgefüllt, die die Klasse dieser Site hat (eine Zeile der
+Vorlage kann die passenden Datentypen nennen, damit ein Bild-Download nicht auf eine Objektbeziehung abgebildet wird).
+Prüfen Sie sie im Schritt Zuordnung.
+
+Manche Formate sind Varianten einer Quellklasse mit anderen Vorgaben: **TSV** (`tsv`) ist die CSV-Quelle mit
+Tabulator als Trennzeichen, **JSON Lines** (`ndjson`) die JSON-Quelle mit einem Objekt je Zeile.
+
+## Ein Format hinzufügen
+
+Ein Format ist **eine Quellklasse und ein Block in `kernelservices.ini`**. Die Klasse implementiert
+`expImportSourceInterface` (`identifier()`, `label()`, `schema()`, `extensions()`, einen Konstruktor, der die
+geprüfte Konfiguration mit `file` erhält, `records( $cursor )`, `count()` und `sample( $limit )`); wer von
+`expImportAbstractSource` erbt, erhält die Option `key`, den Verweis des Datensatzes und die Methoden des Katalogs
+mit ihren Vorgaben, die ein Format nach Bedarf überschreibt:
+
+| Methode | Liefert |
+|---|---|
+| `description()` | was das Format ist und was ein Datensatz ist |
+| `group()` | `data`, `content`, `platform`, `commerce`, `media` oder `other` |
+| `examples()` | eine Liste von `array( 'label', 'file' )` (eine Datei in `share/examples` der Erweiterung, mit `'options'`, falls nötig) oder `array( 'label', 'url' )` |
+| `preset()` | eine Zuordnung als Ausgangspunkt: `class`, `match`, `fields` (je mit `source`, `attribute`, `transforms` und wahlweise `datatypes`), oder `array()` |
+| `variants()` | ID => `label`, `description`, `extensions`, `defaults` (Option => Wert), `examples`, `preset` |
+
+Registrieren Sie es in `settings/kernelservices.ini.append.php` Ihrer Erweiterung:
+
+```ini
+[Service_mysite.source.myformat]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=myImportSource
+# für eine Variante der Klasse: Arguments[]=<ID der Variante>
+Scope=worker
+Tags[]=sqliimport.source
+```
+
+`[Source_<id>] Status=` in `sqliimport.ini` setzt ein Format auf `enabled`, `example` (aufgeführt, aber für einen
+neuen Import nicht angeboten) oder `disabled`; `Enabled=false` im Dienstblock schaltet es ab. Der Weg von
+2.0.0-alpha.1 (`[SourceSettings] Sources[]` mit einem Block `[Source_<id>] Class=`) funktioniert weiterhin.

@@ -31,7 +31,7 @@ log.
 The key must be unique within the source. A run processes each reference once, so a second record with the same
 key is not processed.
 
-## CSV / TSV (`csv`)
+## CSV, TSV and delimited text (`csv`, `tsv`)
 
 File name extensions: `csv`, `tsv`, `txt`. The file is read as a stream, one record per line (a quoted field may
 span lines). Each record is keyed by the header line.
@@ -81,7 +81,7 @@ record with the same fields in both formats, so one mapping fits both:
 The only option is `key` (default `id`). This source replaces the RSS sample handler of 1.x
 (`SQLIRSSImportHandler`), which stays for compatibility.
 
-## JSON / NDJSON (`json`)
+## JSON and JSON Lines (`json`, `ndjson`)
 
 File name extensions: `json`, `ndjson`, `jsonl`.
 
@@ -121,20 +121,101 @@ Values come as they are stored in the file:
 
 A very large spreadsheet is read faster when it is saved as CSV.
 
-## Adding a source type
+## OPML (`opml`)
 
-A source type implements `expImportSourceInterface` (`identifier()`, `label()`, `schema()`, `extensions()`, a
-constructor taking the validated configuration with `file`, `records( $cursor )`, `count()` and `sample( $limit )`).
-`expImportAbstractSource` provides the `key` option and the record reference. Register it in `sqliimport.ini`:
+File name extensions: `opml`, `xml`. The outline format feed readers and podcast apps export their subscriptions
+in. Every `<outline>` is a record:
 
-```ini
-[SourceSettings]
-Sources[]=mysource
+| Field | What it holds |
+|---|---|
+| `id` | the feed address (`xmlUrl`), else the web address (`htmlUrl`), else the outline's position |
+| `text`, `title` | the outline's text and title (each falls back to the other) |
+| `type` | `rss`, `link`, `include` ... as written |
+| `xml_url`, `html_url` | the feed address and the web address |
+| `description`, `language`, `version` | as written |
+| `category` | the `category` attribute, else the path of the enclosing outlines (`News/Tech`) |
+| `path`, `depth`, `position` | the enclosing outlines' texts joined by `/`, the depth (1 at the top), the position (`1.2`) |
+| `parent_id` | the `id` of the enclosing outline |
+| `attributes` | every attribute of the outline |
 
-[Source_mysource]
-Class=myImportSource
-Status=enabled
+| Option | Values | Default |
+|---|---|---|
+| `outlines` | `feeds` (only outlines with a feed address), `leaves` (only outlines without children), `all` | `feeds` |
+| `key` | the key field | `id` |
+
+The preset maps an outline to a `link` object (name, description, location). To follow the feeds of a list rather
+than store the list, let the OPML import create one RSS import per feed:
+
+```bash
+./console ext:sqliimport:opml-feeds <identifier of the OPML import> [--parent=<node id>] [--prefix=<identifier start>]
 ```
 
-`Status` is `enabled`, `example` (listed, but not offered for a new import) or `disabled`. A source can also be
-a kernel service tagged `sqliimport.source`.
+Each feed import is created **disabled**, with the feed address as its source and the RSS preset as its mapping,
+below the given parent node. Check the mappings in the administration, then enable them. A second call creates only
+the imports whose identifiers do not exist yet.
+
+## WordPress export (`wxr`)
+
+File name extensions: `xml`, `wxr`. The export file of WordPress (Tools, Export). The option `records` chooses what a
+record is:
+
+| `records` | Fields |
+|---|---|
+| `posts` (default) | `id`, `type`, `title`, `slug`, `link`, `date` (UTC, ISO 8601), `author` (login), `author_name`, `status`, `parent_id`, `menu_order`, `content` (as written), `content_html` (paragraphs made from blank lines, as WordPress shows them), `excerpt`, `categories`, `tags`, `category_slugs`, `tag_slugs`, `featured_image` (the address of the featured image), `images` (the image addresses in the content), `comment_count`, `meta` (custom fields without WordPress's own `_` keys) |
+| `attachments` | `id`, `title`, `url`, `mime`, `parent_id`, `date`, `alt`, `caption`, `description` |
+| `categories` | `id` (slug), `term_id`, `name`, `slug`, `parent` (slug), `description` |
+| `tags` | `id` (slug), `term_id`, `name`, `slug`, `description` |
+| `authors` | `id`, `login`, `email`, `display_name`, `first_name`, `last_name` |
+
+| Option | Values | Default |
+|---|---|---|
+| `post_types` | the post types to read, one per line | `post`, `page` |
+| `status` | `publish` (only published) or `all` (drafts, private and pending too) | `publish` |
+| `key` | the key field | `id` |
+
+The preset maps a post to an `article` (title, intro from the excerpt, body from `content_html`, and, where the class
+has them, publish date, image and tags). `featured_image` and `images` are addresses, which the transform `image`
+downloads.
+
+## The catalogue of formats
+
+**Imports, Catalogue** lists the formats by group (data, content, platforms, commerce, media, other). Each card says
+what the format reads, its file name extensions and options, offers example files to download and, where the format
+comes with one, the mapping it starts from. **New import** opens the editor with that format chosen; when the import
+is saved, the format's preset mapping is filled in with the fields this site's class has (a preset line may name the
+datatypes it fits, so an image download is not mapped to an object relation). Check it in the step Mapping.
+
+Some formats are variants of a source class with other defaults: **TSV** (`tsv`) is the CSV source with a tab as
+delimiter, **JSON Lines** (`ndjson`) the JSON source with one object per line.
+
+## Adding a format
+
+A format is **one source class plus one block in `kernelservices.ini`**. The class implements
+`expImportSourceInterface` (`identifier()`, `label()`, `schema()`, `extensions()`, a constructor taking the
+validated configuration with `file`, `records( $cursor )`, `count()` and `sample( $limit )`); extending
+`expImportAbstractSource` gives the `key` option, the record reference and the catalogue methods with their
+defaults, which a format overrides as it needs:
+
+| Method | Returns |
+|---|---|
+| `description()` | what the format is and what one record is |
+| `group()` | `data`, `content`, `platform`, `commerce`, `media` or `other` |
+| `examples()` | a list of `array( 'label', 'file' )` (a file in the extension's `share/examples`, with `'options'` if it needs some) or `array( 'label', 'url' )` |
+| `preset()` | a mapping to start from: `class`, `match`, `fields` (each with `source`, `attribute`, `transforms` and optionally `datatypes`), or `array()` |
+| `variants()` | id => `label`, `description`, `extensions`, `defaults` (option => value), `examples`, `preset` |
+
+Register it in your extension's `settings/kernelservices.ini.append.php`:
+
+```ini
+[Service_mysite.source.myformat]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=myImportSource
+# for a variant of the class: Arguments[]=<variant id>
+Scope=worker
+Tags[]=sqliimport.source
+```
+
+`[Source_<id>] Status=` in `sqliimport.ini` sets a format to `enabled`, `example` (listed, but not offered for a new
+import) or `disabled`; `Enabled=false` in the service block switches it off. The way of 2.0.0-alpha.1
+(`[SourceSettings] Sources[]` with a `[Source_<id>] Class=` block) still works.
