@@ -1,3 +1,19 @@
+1.3.1
+-----------------
+Updated: The Import management tab shows an icon in the admin header (Icon=upload in menu.ini [Topmenu_sqliimport], drawn by the admin4 design)
+Fixed: The extension loads and runs on PHP 8: a string offset written with braces (a parse error since PHP 8.0) in SQLICSVRowSet,
+       the universal getters of SQLIImportItem and SQLIScheduledImport declare the mixed return type of the kernel's persistent object,
+       the Iterator, ArrayAccess and Countable methods carry ReturnTypeWillChange, nullable parameters are declared explicitly (PHP 8.4),
+       and SQLIScheduledImport::__toString() always returns a string
+Updated: README.md replaces README.rst: requirements, installation with Composer and by hand, every setting, the admin pages,
+         the command line script and cronjobs, writing a handler, the content API, permissions, upgrading and troubleshooting
+Updated: composer.json is se7enxweb/sqliimport (replacing lolautruche/sqliimport), requires PHP 8.0 or later and states the support links;
+         ezinfo.php is new; ezinfo.php and extension.xml state version 1.3.1, the license and the website
+
+1.3.0, 1.2.x
+-----------------
+See the tags at https://github.com/se7enxweb/sqliimport/tags (PostgreSQL schema, no output to STDERR, earlier fixes).
+
 1.2.1
 -----------------
 Added Oracle schema (Thanks Simone Tellini !)
