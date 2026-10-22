@@ -1,0 +1,3 @@
+{"id":101,"title":"Brewing green tea at the right heat","slug":"brewing-green-tea","status":"published","published_at":"2026-09-01T08:00:00+00:00","tags":"[\"tea\",\"green\"]","word_count":840,"author.name":"Editorial desk","author.email":"desk@example.invalid"}
+{"id":102,"title":"A short history of oolong","slug":"history-of-oolong","status":"published","published_at":"2026-09-08T09:30:00+00:00","tags":"[\"tea\",\"oolong\",\"history\"]","word_count":1260,"author.name":"Guest writer","author.email":"guest@example.invalid"}
+{"id":103,"title":"Storing tea at home","slug":"storing-tea","status":"published","published_at":"2026-09-15T07:15:00+00:00","tags":"[]","word_count":530,"author":null}

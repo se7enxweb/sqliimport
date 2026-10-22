@@ -11,7 +11,7 @@ Laufs dieselben Daten liest.
 | `upload` | `file`: der gespeicherte Name einer hochgeladenen Datei | Der Upload (im Speicherverzeichnis der Website unter `sqliimport/uploads/`) wird in das Verzeichnis des Laufs kopiert |
 | `url` | `url`: eine Adresse mit `http` oder `https` | Die Adresse wird in das Verzeichnis des Laufs heruntergeladen, mit dem Zeitlimit `[ImportSettings] StreamTimeout` und dem Größenlimit `[SourceSettings] MaxSourceMegabytes` |
 | `path` | `path`: eine Datei auf dem Server | Die Datei wird an Ort und Stelle gelesen, aber nur, wenn sie in einem der Verzeichnisse von `[SourceSettings] AllowedPaths[]` liegt |
-| `remote` | die eigenen Optionen der Quelle (eine Datenbank, ein Suchindex, ein Postfach, ein Verzeichnisdienst, ein Dienst) | Die Quelle liest ihre Daten einmal pro Lauf selbst und schreibt sie als JSON Lines in das Verzeichnis des Laufs (`sql`, `mongodb`, `redis`, `couchdb`, `couchbase`, `cosmosdb`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion`, `dynamodb`, `firestore`, `bigquery`, `firebase_rtdb`, `cassandra`, `neo4j`, `arangodb`, `clickhouse`, `snowflake`, `influxdb` und die Websites der Gruppe Plattformen) |
+| `remote` | die eigenen Optionen der Quelle (eine Datenbank, ein Suchindex, ein Postfach, ein Verzeichnisdienst, ein Dienst) | Die Quelle liest ihre Daten einmal pro Lauf selbst und schreibt sie als JSON Lines in das Verzeichnis des Laufs (`sql`, `mongodb`, `redis`, `couchdb`, `couchbase`, `cosmosdb`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion`, `dynamodb`, `firestore`, `bigquery`, `firebase_rtdb`, `cassandra`, `neo4j`, `arangodb`, `clickhouse`, `snowflake`, `influxdb`, `supabase`, `baserow`, `salesforce`, `hubspot` und die Websites der Gruppe Plattformen) |
 
 Regeln:
 
@@ -443,6 +443,59 @@ nicht gelesen. Das Front Matter von Markdown-Dateien nutzt denselben Parser.
 | `format` | `auto` (nach dem Dateinamen), `yaml`, `toml` | `auto` (`toml` beim Format `toml`) |
 | `record_path` | der Pfad der Liste | ganz oben |
 | `key` | das Schlüsselfeld | leer |
+
+## Apache Avro (`avro`) und Apache Arrow oder Feather (`arrow`)
+
+Gruppe: Daten. Herkunft `upload`, `url` und `path` wie die anderen Dateien. Beide werden allein in PHP gelesen; für die
+üblichen Dateien muss nichts installiert werden.
+
+**Avro** (`.avro`): Object Container Files, wie Kafka-Connectoren, Hadoop und Datenpipelines sie schreiben. Der Leser
+prüft den Kopf (`Obj1`, das Schema in `avro.schema`, die Sync-Markierung nach jedem Block) und dekodiert jeden
+Datensatz mit dem Schema der Datei. **Arrow** (`.arrow`, `.feather`, `.arrows`, `.ipc`): das Arrow-IPC-Dateiformat
+(auch Feather Version 2, die dasselbe ist) und das Stream-Format, wie pandas, Polars, R und DuckDB sie schreiben; eine
+Datei wird ganz gelesen, bis `[SourceSettings] MaxSourceMegabytes`. Feather Version 1 (vor 2020) wird mit einer Meldung
+abgelehnt.
+
+| Option | Bedeutung | Vorgabe |
+|---|---|---|
+| `arrays` | Arrays (Listen) als JSON (`["a","b"]`) oder als verbundene Liste (`a, b`; Listen von Datensätzen bleiben JSON) | `json` |
+| `separator` | Das Trennzeichen der Liste | `, ` |
+| `key` | das Schlüsselfeld | leer |
+
+Ein Datensatz ist ein Avro-Datensatz oder eine Arrow-Zeile; verschachtelte Datensätze, Maps und Struct-Spalten werden
+zu Namen mit Punkt (`origin.country`) aufgelöst, wie die MongoDB-Quelle es tut. Ein Abschnitt eines Laufs setzt beim
+Block (Avro) oder Batch (Arrow) des Datensatzes davor fort.
+
+| Typ | Wert |
+|---|---|
+| null, boolean, int, long, float, double | wie sie sind (Arrow: int mit 8 bis 64 Bit, mit oder ohne Vorzeichen; eine vorzeichenlose 64-Bit-Zahl über dem Bereich von PHP als Text; auch Half Floats) |
+| NaN und Unendlich | der Text `NaN`, `INF`, `-INF` |
+| string (Arrow utf8, large utf8) | Text |
+| bytes, fixed (Arrow binary, fixed size binary) | Base64 |
+| enum (Arrow-Spalten mit Wörterbuch) | das Symbol oder der Wert |
+| union | der Wert seines Zweigs (Arrow-Unions werden abgelehnt) |
+| date | `2026-10-22` |
+| timestamp-millis, -micros (Arrow timestamp mit Zeitzone) | ISO 8601 in UTC mit `Z` |
+| local-timestamp-* (Arrow timestamp ohne Zeitzone) | ISO 8601 ohne `Z` |
+| time-millis, -micros (Arrow time) | `10:20:30.500` |
+| decimal (bytes oder fixed; Arrow decimal mit 32 bis 256 Bit) | eine Dezimalzahl in Textform mit ihren Nachkommastellen (`-1234.50`), nie eine Gleitkommazahl |
+| uuid | der Text 8-4-4-4-12 |
+| Arrow duration | die Zahl ihrer Einheit |
+
+**Kompression:** Avro-Codecs `null` und `deflate` (zlib); `snappy` nur mit der PECL-Erweiterung snappy (die CRC-32 jedes
+Blocks wird geprüft), `zstandard` mit der PECL-Erweiterung zstd, `bzip2` mit der Erweiterung bz2; jeder andere Codec
+wird mit einer Meldung abgelehnt. Arrow: unkomprimiert, LZ4-Frames (die Vorgabe von Feather in pyarrow; in PHP
+gelesen) und Zstandard (nur mit der PECL-Erweiterung zstd). Die Treiberliste des Katalogs zeigt, was dieses PHP und die
+Worker der Job-Queue haben. Arrow-Intervalle, Unions, Run-End-kodierte und View-Typen werden mit dem Namen der Spalte
+abgelehnt: Wandeln Sie sie beim Schreiben der Datei in einen einfachen Typ um.
+
+**Parquet** liest das Format DuckDB (`duckdb`), das das Programm `duckdb` oder libduckdb auf dem Server braucht. DuckDB
+liest Arrow-Dateien nur über seine Community-Erweiterung `arrow`, die die DuckDB-Quelle nicht lädt (sie lehnt
+`INSTALL` und `LOAD` ab); darum werden Arrow-Dateien hier gelesen.
+
+**Beispiele:** `share/examples/teas.avro` (fünf erfundene Teesorten mit verschachtelter Herkunft, Schlagwörtern, einem
+Dezimalpreis, einem Datum und einem Zeitstempel; deflate, zwei Blöcke) und `share/examples/teas.arrow` (dasselbe als
+Arrow-Datei mit einem Struct, einer Liste, einer Wörterbuch-Spalte und zwei Record Batches).
 
 ## Google Sheets (`google_sheets`)
 
@@ -1933,15 +1986,16 @@ Die Zuordnung entsteht beim Speichern des Imports aus dem ersten Datensatz: sein
 Bezeichner (Rich Text über `richtext`, Bilder über `image`; Beziehungen bleiben Ihnen überlassen), abgeglichen über
 die Remote-ID, sodass die Kopie dem Original bei jedem Lauf folgt.
 
-## Gehostete Dienste, die die Quelle selbst liest (`airtable`, `notion`)
+## Gehostete Dienste, die die Quelle selbst liest (`airtable`, `notion`, `supabase`, `baserow`, `salesforce`, `hubspot`)
 
 Diese Formate lesen die API eines gehosteten Dienstes mit einem Token: Einmal pro Lauf fragt die Quelle die
 Datensätze Seite für Seite ab und schreibt sie als Schnappschuss (`source.ndjson`) in das Verzeichnis des Laufs, den
 dann jeder Abschnitt des Laufs liest; der Probelauf des Editors liest nur so viele Datensätze, wie er zeigt. Für beide
 gilt:
 
-- **Nur lesend.** Die Quellen lesen nur: Airtable über `GET`-Anfragen, Notion über seine Datenbankabfrage und
-  `GET`-Anfragen. Geben Sie dem Token so wenig Rechte wie nötig (siehe jedes Format).
+- **Nur lesend.** Die Quellen lesen nur: Airtable, Supabase und Baserow über `GET`-Anfragen, Notion über seine
+  Datenbankabfrage und `GET`-Anfragen, Salesforce über seine Anmeldung und `GET`-Abfragen, HubSpot über `GET`-Listen und
+  seine Suche (ein `POST`, das liest). Geben Sie dem Token so wenig Rechte wie nötig (siehe jedes Format).
 - **Das Token wird nie im Import gespeichert.** Die Option nimmt den *Namen* eines Geheimnisses: `Secrets[<Name>]` von
   `[SecretSettings]` in den eigenen Einstellungen der Website, oder `env:<VARIABLE>` des PHP-Prozesses. Meldungen zeigen
   `[secret <Name>]`, nie das Token, auch wenn der Dienst es in einem Fehler zitiert.
@@ -1949,8 +2003,10 @@ gilt:
   der Dienst mit `429 Too Many Requests` antwortet, wartet sie (das `Retry-After` der Antwort, sonst die eigene
   Sperrzeit des Dienstes) und versucht es erneut, bis zu viermal; ein Gateway-Fehler (502, 503, 504) wird ebenso
   wiederholt.
-- `[PlatformSettings] MaxPages` begrenzt die Anfragen eines Laufs (200), `MaxResponseMegabytes` eine Antwort (20) und
-  `[ImportSettings] StreamTimeout` die Zeit einer Anfrage.
+- `[PlatformSettings] MaxPages` begrenzt die Anfragen eines Laufs von Airtable und Notion (200); Supabase, Baserow,
+  Salesforce und HubSpot haben `MaxPages` in eigenen Abschnitten (`[SupabaseSourceSettings]` ..., 1000).
+  `[PlatformSettings] MaxResponseMegabytes` begrenzt eine Antwort (20) und `[ImportSettings] StreamTimeout` die Zeit
+  einer Anfrage.
 - **Verbindung testen** im Schritt „Quelle“ liest den ersten Datensatz und zeigt seine Felder oder den Fehler
   (maskiert). Nichts wird gespeichert; es braucht dieselbe Berechtigung wie das Speichern des Imports. *Womit dieser
   Server verbinden kann* nennt, was der Host braucht.
@@ -2040,6 +2096,170 @@ werden nicht gelesen.
 **Beispiel:** `share/examples/notion-articles.ndjson` ist der Schnappschuss von zwei erfundenen Seiten mit ihrem
 Inhalt als Markdown; der Katalog zeigt außerdem eine Konfiguration für die veröffentlichten Artikel, die neuesten
 zuerst, mit dem Inhalt als HTML.
+
+### Supabase oder PostgREST (`supabase`)
+
+Gruppe: Plattformen. Die Zeilen einer Tabelle oder Sicht eines Supabase-Projekts über seine REST-API, oder eines
+beliebigen PostgREST-Servers: Die Quelle fragt `GET <Basis>/<Tabelle>?select=...&<Filter>&order=...` Seite für Seite
+ab. Bei einer Adresse auf `supabase.co` wird der Pfad `/rest/v1` ergänzt; jeder andere Server wird mit dem angegebenen
+Pfad verwendet.
+
+| Option | Bedeutung | Vorgabe |
+|---|---|---|
+| `base_url` | Pflicht. Die Adresse des Projekts (`https://<ref>.supabase.co`) oder des PostgREST-Servers | |
+| `table` | Pflicht. Die Tabelle oder Sicht, ein Name (nie `rpc`, Funktionen werden nicht gelesen) | |
+| `schema` | Ein Schema, das die API neben `public` freigibt (Header `Accept-Profile`) | leer |
+| `select` | Spalten und eingebettete Ressourcen: `id,title,author:authors(name,email)`; Aliase, Casts (`::text`), JSON-Pfade (`->>`) und Aggregate erlaubt | `*` |
+| `filters` | Einer pro Zeile als PostgREST-Parameter: `status=eq.published`, `tags=cs.{tea}`, `or=(stock.gt.0,preorder.is.true)` | keine |
+| `order` | `published_at.desc,id` (auch `.nullsfirst`, `.nullslast`); eine Reihenfolge hält die Seiten stabil | leer |
+| `paging` | `range` (Header `Range: 0-999`, `Range-Unit: items`) oder `offset` (Parameter `limit` und `offset`) | `range` |
+| `count` | `none`, `exact`, `planned` oder `estimated` (Header `Prefer: count=...`): die Gesamtzahl aus `Content-Range` | `none` |
+| `page_size` | Zeilen pro Anfrage (Supabase antwortet mit höchstens seinen *max rows*, standardmäßig 1000) | `1000` |
+| `limit` | Höchstens so viele Zeilen; `0`: alle | `0` |
+| `api_key` | Der **Name** des Geheimnisses mit dem Anon-Key, gesendet als `apikey` und als Bearer-Token; leer für einen Server ohne Authentifizierung | leer |
+| `bearer` | Der **Name** eines Geheimnisses mit einem JWT einer nur lesenden Rolle, statt des Keys als Bearer-Token gesendet | leer |
+| `arrays`, `separator` | Arrays als JSON oder als verbundene Liste | `json`, `, ` |
+| `key` | die Schlüsselspalte | `id` |
+
+**Zusicherung „nur lesend“:** nur `GET`-Anfragen an die Tabelle; `select`, jeder Filter und `order` werden geprüft,
+bevor etwas gesendet wird. Ein Filter darf nur `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `like`, `ilike`, `is`, `in`,
+`cs`, `cd` verwenden (mit `not.` und den Modifikatoren `(any)` und `(all)`), auch in `and=(...)`, `or=(...)` und `not.`
+in jeder Tiefe; Volltextsuche, Bereiche und die Parameter `select`, `order`, `limit`, `offset`, `columns` und
+`on_conflict` werden als Filter abgelehnt. **Verwenden Sie den Anon-Key mit einer nur lesenden Rolle und Row Level
+Security** (Richtlinien, die nur `SELECT` auf das erlauben, was der Import liest); ein Service-Role-Key umgeht Row Level
+Security und sollte nicht verwendet werden. Ein selbst betriebener Server in einem privaten Netz nur aus
+`[SupabaseSourceSettings] AllowedHosts[]`.
+
+**Seiten:** Das Lesen endet, wenn eine Seite kürzer als die Seitengröße ist, wenn die Gesamtzahl aus `Content-Range`
+erreicht ist oder wenn der Server `416` antwortet (der Bereich beginnt nach der letzten Zeile). **Werte:** so, wie
+PostgREST sie liefert: Text, Zahlen, Wahrheitswerte, Zeitstempel in ISO 8601, wie PostgreSQL sie schreibt
+(`2026-09-01T08:00:00+00:00`), `json`- und `jsonb`-Spalten und eingebettete Ressourcen als Felder mit Punkt
+(`author.name`), Arrays und Einbettungen mit mehreren Zeilen als JSON oder verbundene Liste, `bytea` als Hex-Text
+`\x...`. **Verbindung testen** liest eine Zeile und, mit einer Zählung, die Gesamtzahl.
+
+**Beispiel:** `share/examples/supabase-articles.ndjson` (drei erfundene Artikel mit ihrem Autor).
+
+### Baserow (`baserow`)
+
+Gruppe: Plattformen. Die Zeilen einer Baserow-Tabelle über ihre REST-API, auf baserow.io oder selbst betrieben: Die
+Quelle fragt `GET <Basis>/api/database/rows/table/<ID>/?user_field_names=true&size=...&page=...` ab, solange die
+Antwort ein `next` hat.
+
+| Option | Bedeutung | Vorgabe |
+|---|---|---|
+| `base_url` | `https://api.baserow.io` oder die Adresse eines selbst betriebenen Baserow | `https://api.baserow.io` |
+| `table_id` | Pflicht. Die ID der Tabelle | |
+| `view_id` | Eine Ansicht, deren Filter und Reihenfolge gelten; `0`: keine | `0` |
+| `filters` | Einer pro Zeile als `<Feld>__<Typ>=<Wert>`, gesendet als `filter__<Feld>__<Typ>`: `Status__single_select_equal=3`, `Price__higher_than=10` | keine |
+| `filter_type` | `AND` oder `OR` | `AND` |
+| `search` | Nur Zeilen, die diesen Text enthalten | leer |
+| `order_by` | Felder nach Namen, `-` für absteigend: `-Date,Name` | leer |
+| `include` | Die zu lesenden Felder, eines pro Zeile; leer: alle | leer |
+| `page_size` | Zeilen pro Anfrage (höchstens 200) | `100` |
+| `separator` | Zwischen den Werten von Verknüpfungen, Mehrfachauswahlen und Mitarbeitenden | `, ` |
+| `token` | Pflicht. Der **Name** des Geheimnisses mit einem Datenbank-Token | |
+| `key` | das Schlüsselfeld | `id` (die Zeilen-ID) |
+
+Legen Sie das Datenbank-Token (Einstellungen, Datenbank-Tokens) nur mit der Berechtigung **Lesen** für den Arbeitsbereich
+und die Tabellen an, die der Import braucht; es wird als `Authorization: Token ...` gesendet. Die Quelle sendet nur
+`GET`-Anfragen an die Liste der Zeilen. Ein selbst betriebenes Baserow in einem privaten Netz nur aus
+`[BaserowSourceSettings] AllowedHosts[]`.
+
+**Werte:** Verknüpfungen (Link rows) als ihre verbundenen Werte (`<Feld>`) und ihre Zeilen-IDs (`<Feld>_ids`, durch
+Komma getrennt); Dateien als Liste ihrer Adressen (`<Feld>`, die die Zuordnung herunterladen kann) und ihrer Namen
+(`<Feld>_names`); eine Einfachauswahl als ihr Wert, Mehrfachauswahlen und Mitarbeitende als verbundene Namen; ein
+Benutzer (erstellt von, zuletzt geändert von) als Name; Datumsangaben in ISO 8601, wie Baserow sie liefert;
+Wahrheitswerte als `true` und `false`; Zahlen, wie Baserow sie liefert (Dezimalzahlen als Text, damit keine Stelle
+verloren geht); eine leere Liste als `[]`. Verbindung testen liest eine Zeile und die Zahl der Zeilen.
+
+**Beispiel:** `share/examples/baserow-events.ndjson` (drei erfundene Veranstaltungen).
+
+### Salesforce (`salesforce`)
+
+Gruppe: Plattformen. Die Datensätze einer SOQL-Abfrage über die Salesforce-REST-API: Die Quelle meldet sich mit einer
+Connected App an, führt `GET <Instanz>/services/data/<Version>/query?q=...` aus (oder `queryAll`, das auch gelöschte
+und archivierte Datensätze liefert) und folgt `nextRecordsUrl`.
+
+| Option | Bedeutung | Vorgabe |
+|---|---|---|
+| `login_url` | `https://login.salesforce.com`, `https://test.salesforce.com` (Sandbox) oder die My-Domain-Adresse | `https://login.salesforce.com` |
+| `auth` | `jwt` (JWT Bearer Flow) oder `refresh_token` | `jwt` |
+| `client_id` | Pflicht. Der Consumer Key der Connected App | |
+| `user` | JWT: der Benutzername des Integrationsbenutzers | |
+| `private_key` | JWT: der **Name** des Geheimnisses mit dem PEM des privaten Schlüssels zum Zertifikat der Connected App | |
+| `client_secret` | Refresh Token: der **Name** des Geheimnisses mit dem Consumer Secret | |
+| `refresh_token` | Refresh Token: der **Name** des Geheimnisses mit dem Refresh Token | |
+| `query` | Pflicht. Ein einzelnes SOQL-`SELECT` | |
+| `query_all` | Auch gelöschte und archivierte Datensätze (`queryAll`) | nein |
+| `api_version` | Die Version der REST-API | `v61.0` |
+| `batch_size` | Datensätze pro Antwort (`Sforce-Query-Options: batchSize`, 200 bis 2000) | `2000` |
+| `key` | das Schlüsselfeld | `Id` |
+
+**Anmeldung:** Der JWT Bearer Flow signiert ein Token (`iss` der Consumer Key, `sub` der Benutzer, `aud` der
+Anmeldeserver, drei Minuten gültig) mit RS256 (`openssl_sign`) und braucht das Zertifikat in der Connected App und den
+vorab autorisierten Benutzer; der Refresh-Token-Flow braucht das Consumer Secret und ein Refresh Token des Benutzers.
+Die Instanzadresse kommt aus der Token-Antwort; sie und die Anmeldeadresse müssen `https`-Adressen auf einer Domain von
+`[SalesforceSourceSettings] AllowedDomains[]` (`salesforce.com`, `force.com`, `cloudforce.com`, `salesforce.mil`) oder
+ein Host aus `AllowedHosts[]` sein, damit kein Token woanders hin geht; `nextRecordsUrl` muss ein Query Locator sein.
+
+**Zusicherung „nur lesend“:** Die Abfrage muss eine einzelne Anweisung sein, die mit `SELECT` beginnt; `FOR UPDATE`
+(sperrt Datensätze), `FOR VIEW` und `FOR REFERENCE` (schreiben das Datum der letzten Ansicht), `UPDATE TRACKING` und
+`UPDATE VIEWSTAT` (schreiben Statistiken) und die Wörter von DML werden außerhalb von Zeichenketten abgelehnt. Geben Sie
+dem Integrationsbenutzer ein Profil oder einen Berechtigungssatz mit *API Enabled* und nur Leserechten auf die Objekte,
+die der Import braucht.
+
+**Werte:** Beziehungsfelder mit Punkt (`Owner.Name`, `Owner.Manager.Name`), `attributes` auf jeder Ebene weggelassen;
+Adress- und Geolocation-Felder aufgelöst (`BillingAddress.city`, `Location__c.latitude`); eine untergeordnete Beziehung
+(eine Unterabfrage) als JSON-Liste ihrer Datensätze; Datumsangaben wie geliefert (`2026-10-22`); Datum mit Uhrzeit in
+ISO 8601 mit `Z` für UTC (Salesforce schreibt `+0000`) oder `+02:00`; Währungs-, Prozent- und Double-Werte (Zahlen mit
+Nachkommastellen) als Zahl in Textform, nie mit Exponent; ganze Zahlen als Zahlen; Wahrheitswerte als `true` und
+`false`. Datensätze von Personen (Kontakte, Leads, Benutzer) sind **personenbezogene Daten**. Verbindung testen meldet
+sich an, liest einen Datensatz und die `totalSize`.
+
+**Beispiel:** `share/examples/salesforce-accounts.ndjson` (drei erfundene Accounts).
+
+### HubSpot (`hubspot`)
+
+Gruppe: Plattformen. Die Objekte eines HubSpot-CRM-Objekttyps über die CRM-API v3 unter `https://api.hubapi.com`:
+`contacts`, `companies`, `deals`, `tickets`, `products`, `line_items` oder ein eigenes Objekt (`2-1234567`,
+`p_<Name>`).
+
+| Option | Bedeutung | Vorgabe |
+|---|---|---|
+| `object_type` | Pflicht. Der Objekttyp | |
+| `mode` | `list` (`GET /crm/v3/objects/<Typ>`, jedes Objekt) oder `search` (`POST /crm/v3/objects/<Typ>/search`) | `list` |
+| `properties` | Die zu lesenden Eigenschaften, eine pro Zeile (interne Namen); leer: die Standardeigenschaften von HubSpot | leer |
+| `associations` | Liste: die verknüpften Objekttypen, deren IDs gelesen werden (`companies`, `contacts`) | leer |
+| `filter_groups` | Suche: `[{"filters": [{"propertyName": "lifecyclestage", "operator": "EQ", "value": "customer"}]}]` | leer |
+| `search` | Suche: der Text, den HubSpot in den Standard-Texteigenschaften sucht | leer |
+| `sort` | Suche: eine Eigenschaft und die Richtung, `createdate DESCENDING` | leer |
+| `archived` | Liste: stattdessen die archivierten Objekte lesen | nein |
+| `date_properties` | Eigenschaften, deren Werte in Millisekunden zu ISO 8601 werden, neben `createdate`, `closedate` und den anderen Datumsangaben von HubSpot | leer |
+| `page_size` | Objekte pro Anfrage (eine Liste höchstens 100, eine Suche 200) | `100` |
+| `token` | Pflicht. Der **Name** des Geheimnisses mit dem Zugriffstoken einer privaten App | |
+| `key` | das Schlüsselfeld | `id` |
+
+Legen Sie eine private App nur mit den **Lese**-Scopes der Objekte an, die der Import braucht
+(`crm.objects.contacts.read`, `crm.objects.companies.read` ...). **Zusicherung „nur lesend“:** Die einzigen Anfragen
+sind die Liste (`GET`) und die Suche (ein `POST` an `.../search`, das liest); den Rumpf der Suche baut die Quelle aus
+`filter_groups`, das vorher geprüft wird: eine Liste von höchstens 5 Gruppen (oder `{"filterGroups": [...]}`), jede
+`{"filters": [...]}`, jeder Filter nur `propertyName`, `operator` (`EQ`, `NEQ`, `LT`, `LTE`, `GT`, `GTE`, `BETWEEN`,
+`IN`, `NOT_IN`, `HAS_PROPERTY`, `NOT_HAS_PROPERTY`, `CONTAINS_TOKEN`, `NOT_CONTAINS_TOKEN`), `value`, `highValue` und
+`values`, höchstens 18 Filter.
+
+**Ratenlimits und Seiten:** Private Apps dürfen 100 Anfragen in 10 Sekunden stellen (die Quelle hält eine Zehntelsekunde
+zwischen zwei Anfragen ein), die Suche etwa 5 pro Sekunde (eine Fünftelsekunde); nach einem `429` wartet sie das
+`Retry-After`. Beide Arten folgen `paging.next.after`; eine Suche liest höchstens 10.000 Objekte (die Grenze von
+HubSpot; die Quelle meldet sie).
+
+**Werte:** Ein Datensatz hat `id`, `created_at`, `updated_at`, `archived`, jede Eigenschaft nach Namen (jede angefragte,
+`null`, wenn leer) und `associations.<Typ>` als Liste der IDs. HubSpot liefert jede Eigenschaft als Text: Zahlen bleiben
+Text; Datumsangaben bleiben ISO 8601, und eine Datumseigenschaft in Millisekunden seit 1970 wird ISO 8601 in UTC; die
+Werte eines Mehrfach-Kontrollkästchens bleiben mit `;` verbunden. **Kontakte enthalten personenbezogene Daten** (Namen,
+E-Mail-Adressen, Telefonnummern): Ordnen Sie nur zu, was die Website braucht. Verbindung testen liest ein Objekt (und
+die Gesamtzahl einer Suche).
+
+**Beispiel:** `share/examples/hubspot-companies.ndjson` (drei erfundene Firmen mit den IDs ihrer Kontakte).
 
 ## Exporte anderer Systeme (`joomla`, `ezpkg`)
 

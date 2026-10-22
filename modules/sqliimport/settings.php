@@ -67,6 +67,10 @@ foreach ( array( 'RunSettings' => array( 'ChunkSize', 'DryRunRows', 'LogLevel', 
                  'ClickHouseSourceSettings' => array( 'AllowedHosts', 'AllowedTableFunctions', 'MaxExecutionTime', 'MaxResultRows', 'MaxPages' ),
                  'SnowflakeSourceSettings' => array( 'AllowedHosts', 'StatementTimeout', 'MaxPages' ),
                  'InfluxDbSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
+                 'SupabaseSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
+                 'BaserowSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
+                 'SalesforceSourceSettings' => array( 'AllowedDomains', 'AllowedHosts', 'MaxPages' ),
+                 'HubSpotSourceSettings' => array( 'MaxPages' ),
                  'ImportSettings' => array( 'DefaultParentNodeID', 'ViewCaching', 'ObjectIndexing', 'StreamTimeout' ),
                  'AdminSettings' => array( 'ListLimit' ) ) as $section => $names )
     foreach ( $names as $name )

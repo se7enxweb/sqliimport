@@ -65,6 +65,14 @@ Formats[]=BigQuery
 Formats[]=Firebase
 Formats[]=Cassandra
 Formats[]=ScyllaDB
+Formats[]=Supabase
+Formats[]=PostgREST
+Formats[]=Baserow
+Formats[]=Salesforce
+Formats[]=HubSpot
+Formats[]=Avro
+Formats[]=Arrow
+Formats[]=Feather
 EntryURL=sqliimport/list
 Permission=sqliimport/manage|sqliimport/run|sqliimport/manageimports|sqliimport/listimports
 HelpPage=ext/sqliimport/README.md
@@ -133,6 +141,22 @@ Arguments[]=ndjson
 Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: JSON Lines (NDJSON)
+
+[Service_sqliimport.source.avro]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportAvroSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: Apache Avro object container files (.avro)
+
+[Service_sqliimport.source.arrow]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportArrowSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: Apache Arrow IPC and Feather v2 files (.arrow, .feather, .arrows)
 
 [Service_sqliimport.source.elasticsearch]
 Class=expImportSourceEntry
@@ -467,6 +491,38 @@ Arguments[]=expImportNotionSource
 Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: pages of a Notion database (API, read-only)
+
+[Service_sqliimport.source.supabase]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportSupabaseSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: rows of a Supabase or PostgREST table (REST API, read-only)
+
+[Service_sqliimport.source.baserow]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportBaserowSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: rows of a Baserow table (REST API, read-only)
+
+[Service_sqliimport.source.salesforce]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportSalesforceSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: records of a Salesforce SOQL query (REST API, read-only)
+
+[Service_sqliimport.source.hubspot]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportHubSpotSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: objects of the HubSpot CRM (API v3, read-only)
 
 [Service_sqliimport.source.media]
 Class=expImportSourceEntry
