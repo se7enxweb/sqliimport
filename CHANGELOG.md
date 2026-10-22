@@ -72,6 +72,10 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   results download of a run (formerly the CSV report) has the node ID.
 - Added: The transform media_object: an image object for an image address, made once per file, for object relations.
 
+- Added: Notifications of runs that ended, set per import (Processing): when (failed or with errors, failed, every
+  run, never), a notice for the starter on the dashboard (New since you last looked; read when the run is opened)
+  and mails with the counts, the first errors and the link; fetch( 'sqliimport', 'notices' ) for a bell.
+
 ### Updated
 
 - Updated: The tick also runs within the cron part expqueue, so schedules need no cron line of their own; a lock

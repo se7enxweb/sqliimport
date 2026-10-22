@@ -186,3 +186,8 @@
 /* the form of a 1.x scheduled import stands above the lists */
 .a4-sqliimport-legacy-form { margin: 0 0 var(--a4-space-4); }
 .a4-sqliimport-legacy-form > .a4-card-head { margin: 0 0 var(--a4-space-3); }
+
+/* the notices of runs that ended, on the dashboard */
+.a4-sqliimport-notices { display: grid; gap: var(--a4-space-2); }
+.a4-sqliimport-notices > .a4-h3 { margin: 0; }
+.a4-sqliimport-notice-list { margin: 0; padding-inline-start: var(--a4-space-4); display: grid; gap: var(--a4-space-1); }

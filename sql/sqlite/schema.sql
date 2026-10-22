@@ -1,4 +1,4 @@
--- 7x SQLI Import: the tables sqliimport_definition, sqliimport_item, sqliimport_mapping, sqliimport_mapping_field, sqliimport_run, sqliimport_run_log, sqliimport_run_row, sqliimport_schedule, sqliimport_scheduled (sqlite).
+-- 7x SQLI Import: the tables sqliimport_definition, sqliimport_item, sqliimport_mapping, sqliimport_mapping_field, sqliimport_notice, sqliimport_run, sqliimport_run_log, sqliimport_run_row, sqliimport_schedule, sqliimport_scheduled (sqlite).
 -- Generated from expImportSchema::definition() by ./console ext:sqliimport:install-schema --write-files with the
 -- kernel's schema handler; ./console ext:sqliimport:install-schema creates the same tables in a running installation.
 
@@ -68,6 +68,18 @@ CREATE TABLE sqliimport_mapping_field (
 );
 
 CREATE  INDEX sqliimport_mapping_field__sqliimport_mapf_mapping ON sqliimport_mapping_field  ( mapping_id, sort_order );
+CREATE TABLE sqliimport_notice (
+  created INTEGER(11) NOT NULL DEFAULT '0',
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  import_id INTEGER(11) NOT NULL DEFAULT '0',
+  kind varchar(20) NOT NULL DEFAULT '',
+  run_id INTEGER(11) NOT NULL DEFAULT '0',
+  seen INTEGER(11) NOT NULL DEFAULT '0',
+  user_id INTEGER(11) NOT NULL DEFAULT '0'
+);
+
+CREATE  INDEX sqliimport_notice_run ON sqliimport_notice  ( run_id );
+CREATE  INDEX sqliimport_notice_user ON sqliimport_notice  ( user_id, seen, id );
 CREATE TABLE sqliimport_run (
   created_count INTEGER(11) NOT NULL DEFAULT '0',
   cursor_json longtext,

@@ -94,5 +94,30 @@
 </div>
 </fieldset>
 
+<fieldset class="a4-field a4-field-wide">
+<legend>{'Notifications'|i18n( 'extension/sqliimport/edit' )}</legend>
+<div class="a4-form is-wide a4-sqliimport-options">
+<div class="a4-field">
+<label for="sq-notify-when">{'Tell when a run'|i18n( 'extension/sqliimport/edit' )}</label>
+<select id="sq-notify-when" name="NotifyWhen">
+<option value="errors"{if eq( $behaviour.notify_when, 'errors' )} selected="selected"{/if}>{'failed or had errors'|i18n( 'extension/sqliimport/edit' )}</option>
+<option value="failed"{if eq( $behaviour.notify_when, 'failed' )} selected="selected"{/if}>{'failed'|i18n( 'extension/sqliimport/edit' )}</option>
+<option value="always"{if eq( $behaviour.notify_when, 'always' )} selected="selected"{/if}>{'ended (every run)'|i18n( 'extension/sqliimport/edit' )}</option>
+<option value="never"{if eq( $behaviour.notify_when, 'never' )} selected="selected"{/if}>{'never'|i18n( 'extension/sqliimport/edit' )}</option>
+</select>
+</div>
+<div class="a4-field">
+<label class="a4-check" for="sq-notify-starter"><input type="hidden" name="NotifyStarter" value="0" /><input type="checkbox" id="sq-notify-starter" name="NotifyStarter" value="1"{if $behaviour.notify_starter} checked="checked"{/if} /> {'A notice for the user who started the run'|i18n( 'extension/sqliimport/edit' )}</label>
+<span class="a4-help">{'Shown on the Imports dashboard until the run is looked at.'|i18n( 'extension/sqliimport/edit' )}</span>
+</div>
+<div class="a4-field a4-field-wide">
+<label for="sq-notify-emails">{'E-mail addresses'|i18n( 'extension/sqliimport/edit' )}</label>
+<textarea id="sq-notify-emails" name="NotifyEmails" rows="2"{if is_set( $errors.NotifyEmails )} aria-invalid="true"{/if}>{$behaviour.notify_emails|implode( "\n" )|wash}</textarea>
+<span class="a4-help">{'One per line; they get a mail with the counts, the first errors and the link to the run. Dry runs send no mail.'|i18n( 'extension/sqliimport/edit' )}</span>
+{if is_set( $errors.NotifyEmails )}<span class="a4-field-error">{$errors.NotifyEmails|wash}</span>{/if}
+</div>
+</div>
+</fieldset>
+
 {include uri='design:sqliimport/edit/buttons.tpl' step='processing' stay=1}
 </form>

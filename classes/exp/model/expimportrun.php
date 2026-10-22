@@ -198,6 +198,7 @@ class expImportRun extends eZPersistentObject
         $id = (int)$this->attribute( 'id' );
         $db = expImport::db();
         $db->query( 'DELETE FROM sqliimport_run_row WHERE run_id = ' . $id );
+        $db->query( 'DELETE FROM sqliimport_notice WHERE run_id = ' . $id );
         $db->query( 'DELETE FROM sqliimport_run_log WHERE run_id = ' . $id );
         $this->remove();
     }

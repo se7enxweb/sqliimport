@@ -74,6 +74,8 @@ $tpl->setVariable( 'legacy_handlers', expImportLegacy::handlers( 'run' ) );
 $tpl->setVariable( 'can_purge', expImportAdmin::can( 'manage' ) );
 $tpl->setVariable( 'now', expImport::now() );
 $tpl->setVariable( 'stats', $installed ? expImportStatistics::overview( 30 ) : array() );
+// the current user's notices of runs that ended (expImportNotifier)
+$tpl->setVariable( 'notices', $installed ? expImportNotifier::notices( expImport::currentUserID(), true, 10 ) : array() );
 
 $Result = array();
 $Result['content'] = $tpl->fetch( 'design:sqliimport/list.tpl' );

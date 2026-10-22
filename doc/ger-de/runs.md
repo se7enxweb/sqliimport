@@ -139,6 +139,31 @@ Formular-Token.
 Auf der Kommandozeile: `./console ext:sqliimport:cancel <Lauf-ID>` und `./console ext:sqliimport:retry <Lauf-ID>`
 ([cli.md](cli.md)).
 
+## Benachrichtigungen
+
+Wer vom Ende eines Laufs erfährt, wird je Import im Schritt Verarbeitung des Editors unter **Notifications**
+eingestellt:
+
+| Einstellung | Wirkung |
+|---|---|
+| Tell when a run | `failed or had errors` (die Vorgabe), `failed`, `ended (every run)` oder `never` |
+| A notice for the user who started the run | der Benutzer sieht den Hinweis auf der Übersicht der Importe (**New since you last looked**), bis er die Seite des Laufs öffnet oder **Mark all as read** wählt (Vorgabe: an) |
+| E-mail addresses | eine je Zeile; sie erhalten eine E-Mail mit den Zahlen, den ersten Fehlern und dem Link zum Lauf |
+
+Probeläufe und Rückgängig-Läufe geben ihrem Starter einen Hinweis, nie eine E-Mail. Die Adressen eines Zeitplans
+(2.0.0-alpha.1) erhalten weiterhin eine E-Mail, wenn ein geplanter Lauf fehlschlägt oder mit Fehlern endet. Der Link
+in einer E-Mail nutzt `[AdminSettings] AdminURL` der `sqliimport.ini`, wenn er gesetzt ist (z. B.
+`https://edit.example.org/admin`), sonst einen Pfad.
+
+Eine Seite kann die Hinweise ebenfalls zeigen, etwa eine Glocke im Kopf:
+
+```
+{def $sq_bell = fetch( 'sqliimport', 'notices', hash( 'limit', 5 ) )}
+{if $sq_bell.count}<a href={'/sqliimport/list'|ezurl}>{$sq_bell.count}</a>{/if}
+```
+
+Die Hinweise liegen in der Tabelle `sqliimport_notice` und gehen mit ihrem Lauf, wenn er bereinigt wird.
+
 ## Aufbewahrung
 
 Beendete Läufe, die älter als `[RunSettings] KeepDays` (Vorgabe 90) sind, entfernt der Cron-Teil samt Zeilen,

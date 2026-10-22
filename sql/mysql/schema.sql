@@ -1,4 +1,4 @@
--- 7x SQLI Import: the tables sqliimport_definition, sqliimport_item, sqliimport_mapping, sqliimport_mapping_field, sqliimport_run, sqliimport_run_log, sqliimport_run_row, sqliimport_schedule, sqliimport_scheduled (mysql).
+-- 7x SQLI Import: the tables sqliimport_definition, sqliimport_item, sqliimport_mapping, sqliimport_mapping_field, sqliimport_notice, sqliimport_run, sqliimport_run_log, sqliimport_run_row, sqliimport_schedule, sqliimport_scheduled (mysql).
 -- Generated from expImportSchema::definition() by ./console ext:sqliimport:install-schema --write-files with the
 -- kernel's schema handler; ./console ext:sqliimport:install-schema creates the same tables in a running installation.
 
@@ -70,6 +70,19 @@ CREATE TABLE sqliimport_mapping_field (
   transforms_json longtext,
   PRIMARY KEY ( id ),
   KEY sqliimport_mapf_mapping ( mapping_id, sort_order )
+) ENGINE=InnoDB;
+
+CREATE TABLE sqliimport_notice (
+  created int(11) NOT NULL DEFAULT '0',
+  id int(11) NOT NULL AUTO_INCREMENT,
+  import_id int(11) NOT NULL DEFAULT '0',
+  kind varchar(20) NOT NULL DEFAULT '',
+  run_id int(11) NOT NULL DEFAULT '0',
+  seen int(11) NOT NULL DEFAULT '0',
+  user_id int(11) NOT NULL DEFAULT '0',
+  PRIMARY KEY ( id ),
+  KEY sqliimport_notice_user ( user_id, seen, id ),
+  KEY sqliimport_notice_run ( run_id )
 ) ENGINE=InnoDB;
 
 CREATE TABLE sqliimport_run (

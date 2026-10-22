@@ -57,6 +57,8 @@ if ( $flash )
     $http->removeSessionVariable( 'SQLIImportFlash' );
 
 $tpl = eZTemplate::factory();
+// looking at a run reads its notices
+expImportNotifier::markSeen( expImport::currentUserID(), (int)$run->attribute( 'id' ) );
 $tpl->setVariable( 'run', expImportAdmin::runRow( $run ) );
 $tpl->setVariable( 'import', $import );
 $tpl->setVariable( 'rows', $rows );

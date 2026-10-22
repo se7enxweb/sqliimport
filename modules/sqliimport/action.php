@@ -34,6 +34,10 @@ try
 {
     switch ( $action )
     {
+        case 'notices_seen':
+            // the current user's own notices: anyone who sees the dashboard may mark them as read
+            expImportNotifier::markSeen( expImport::currentUserID() );
+            break;
         case 'run':
         case 'dryrun':
             $import = expImportDefinition::fetch( (int)$http->postVariable( 'ImportID' ) );

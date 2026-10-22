@@ -214,6 +214,22 @@ class expImportSchema
                     'sqliimport_log_run' => $index( 'run_id', 'id' ),
                 ),
             ),
+            'sqliimport_notice' => array(
+                'fields' => array(
+                    'created' => $int,
+                    'id' => $auto,
+                    'import_id' => $int,
+                    'kind' => $varchar( 20 ),
+                    'run_id' => $int,
+                    'seen' => $int,
+                    'user_id' => $int,
+                ),
+                'indexes' => array(
+                    'PRIMARY' => $primary,
+                    'sqliimport_notice_user' => $index( 'user_id', 'seen', 'id' ),
+                    'sqliimport_notice_run' => $index( 'run_id' ),
+                ),
+            ),
         );
         $schema = $new + self::legacyDefinition();
         foreach ( $schema as $name => $table )

@@ -462,9 +462,29 @@ class expImportEditor
         $this->import->setAttribute( 'handler', $handler );
         $this->import->setAttribute( 'options_json', expImport::json( $options ) );
         $this->import->setAttribute( 'target_json', expImport::json( array( 'parent_node_id' => $parent, 'section_id' => $section, 'language' => $language, 'owner_id' => $owner ) ) );
+        // who hears of a run that ended (expImportNotifier)
+        $notifyWhen = (string)$this->post( 'NotifyWhen', isset( $behaviour['notify_when'] ) ? $behaviour['notify_when'] : 'errors' );
+        if ( !in_array( $notifyWhen, expImportNotifier::WHEN, true ) )
+            $notifyWhen = 'errors';
+        $emails = array();
+        foreach ( preg_split( '/[\s,;]+/', (string)$this->post( 'NotifyEmails', '' ) ) as $address )
+        {
+            $address = trim( $address );
+            if ( $address === '' )
+                continue;
+            if ( !eZMail::validate( $address ) )
+                $this->errors['NotifyEmails'] = ezpI18n::tr( 'extension/sqliimport/edit', '%address is no e-mail address.', null, array( '%address' => $address ) );
+            $emails[] = $address;
+        }
+        if ( count( $emails ) > 20 )
+            $this->errors['NotifyEmails'] = ezpI18n::tr( 'extension/sqliimport/edit', 'At most 20 addresses.' );
+        if ( $this->errors )
+            return false;
         $this->import->setAttribute( 'behaviour_json', expImport::json( array( 'chunk_size' => $chunk, 'update_policy' => $policy,
                                                                                 'trash_policy' => 'skip', 'max_rows' => max( 0, (int)$this->post( 'MaxRows', $behaviour['max_rows'] ) ),
-                                                                                'conflict_policy' => $conflict, 'undo_days' => $undoDays ) ) );
+                                                                                'conflict_policy' => $conflict, 'undo_days' => $undoDays,
+                                                                                'notify_when' => $notifyWhen, 'notify_starter' => $this->post( 'NotifyStarter', '' ) === '1',
+                                                                                'notify_emails' => array_values( array_unique( $emails ) ) ) ) );
         $this->save( false );
         return true;
     }

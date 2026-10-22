@@ -125,6 +125,29 @@ Every change (run, dry run, cancel, retry) is a POST request to `sqliimport/acti
 From the command line: `./console ext:sqliimport:cancel <run id>` and `./console ext:sqliimport:retry <run id>`
 ([cli.md](cli.md)).
 
+## Notifications
+
+Who hears of a run that ended is set per import, in the editor's step Processing, under **Notifications**:
+
+| Setting | What it does |
+|---|---|
+| Tell when a run | `failed or had errors` (the default), `failed`, `ended (every run)` or `never` |
+| A notice for the user who started the run | the user sees it on the Imports dashboard (**New since you last looked**) until the run's page is opened or **Mark all as read** is used (default: on) |
+| E-mail addresses | one per line; they get a mail with the counts, the first errors and the link to the run |
+
+Dry runs and undo runs give their starter a notice, never a mail. The addresses of a schedule (2.0.0-alpha.1) still
+get a mail when a scheduled run fails or ends with errors. The link in a mail uses `[AdminSettings] AdminURL` of
+`sqliimport.ini` when it is set (e.g. `https://edit.example.org/admin`), else a path.
+
+A page can show the notices too, e.g. a bell in the header:
+
+```
+{def $sq_bell = fetch( 'sqliimport', 'notices', hash( 'limit', 5 ) )}
+{if $sq_bell.count}<a href={'/sqliimport/list'|ezurl}>{$sq_bell.count}</a>{/if}
+```
+
+The notices live in the table `sqliimport_notice` and go with their run when it is purged.
+
 ## Retention
 
 Ended runs older than `[RunSettings] KeepDays` (90 by default) are removed with their rows, log and files by the

@@ -94,7 +94,7 @@ class expImportJobHandler extends expQueueHandlerBase
         {
             expImportRunner::syncLegacyItem( $run );
             expImport::audit( 'run.fail', array( 'id' => (int)$run->attribute( 'id' ) ) );
-            expImportScheduler::notifyFailure( $run );
+            expImportNotifier::runEnded( $run );
         }
     }
 
@@ -477,8 +477,8 @@ class expImportJobHandler extends expQueueHandlerBase
         if ( (int)$run->attribute( 'schedule_id' ) )
             expImport::db()->query( 'UPDATE sqliimport_schedule SET last_run = ' . $runID . ' WHERE id = ' . (int)$run->attribute( 'schedule_id' ) );
         expImport::audit( 'run.finish', array( 'id' => $runID, 'status' => $status, 'failed' => (int)$run->attribute( 'failed_count' ) ) );
-        if ( $status === expImportRun::STATUS_COMPLETED_WITH_ERRORS )
-            expImportScheduler::notifyFailure( $run );
+        // a notice for the starter, mails of the import and of its schedule, by the import's settings
+        expImportNotifier::runEnded( $run );
         return expQueueResult::done( array( 'status' => $status ) );
     }
 

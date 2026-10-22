@@ -12,6 +12,7 @@
 <div class="box-bc"><div class="box-ml"><div class="box-content">
 
 {include uri='design:sqliimport/parts/flash.tpl' flash=$flash}
+{include uri='design:sqliimport/parts/notices.tpl' notices=$notices}
 
 <p class="a4-intro">{'An import brings content from a file or an address (CSV, XML, RSS, JSON) into the site, or runs an import handler. Every run is processed by the job queue in chunks, keeps a row per record and its own log, and can be cancelled or retried.'|i18n( 'extension/sqliimport' )}</p>
 

@@ -1,4 +1,4 @@
--- 7x SQLI Import: the tables sqliimport_definition, sqliimport_item, sqliimport_mapping, sqliimport_mapping_field, sqliimport_run, sqliimport_run_log, sqliimport_run_row, sqliimport_schedule, sqliimport_scheduled (postgresql).
+-- 7x SQLI Import: the tables sqliimport_definition, sqliimport_item, sqliimport_mapping, sqliimport_mapping_field, sqliimport_notice, sqliimport_run, sqliimport_run_log, sqliimport_run_row, sqliimport_schedule, sqliimport_scheduled (postgresql).
 -- Generated from expImportSchema::definition() by ./console ext:sqliimport:install-schema --write-files with the
 -- kernel's schema handler; ./console ext:sqliimport:install-schema creates the same tables in a running installation.
 
@@ -96,6 +96,25 @@ CREATE TABLE IF NOT EXISTS sqliimport_mapping_field (
 
 CREATE INDEX sqliimport_mapf_mapping ON sqliimport_mapping_field USING btree ( mapping_id, sort_order );
 ALTER TABLE ONLY sqliimport_mapping_field ADD CONSTRAINT sqliimport_mapping_field_pkey PRIMARY KEY ( id );
+CREATE SEQUENCE IF NOT EXISTS sqliimport_notice_id_seq
+  START 1
+  INCREMENT 1
+  MAXVALUE 9223372036854775807
+  MINVALUE 1
+  CACHE 1;
+CREATE TABLE IF NOT EXISTS sqliimport_notice (
+  created integer DEFAULT 0 NOT NULL,
+  id integer DEFAULT nextval('sqliimport_notice_id_seq'::text) NOT NULL,
+  import_id integer DEFAULT 0 NOT NULL,
+  kind character varying(20) DEFAULT ''::character varying NOT NULL,
+  run_id integer DEFAULT 0 NOT NULL,
+  seen integer DEFAULT 0 NOT NULL,
+  user_id integer DEFAULT 0 NOT NULL
+);
+
+CREATE INDEX sqliimport_notice_user ON sqliimport_notice USING btree ( user_id, seen, id );
+CREATE INDEX sqliimport_notice_run ON sqliimport_notice USING btree ( run_id );
+ALTER TABLE ONLY sqliimport_notice ADD CONSTRAINT sqliimport_notice_pkey PRIMARY KEY ( id );
 CREATE SEQUENCE IF NOT EXISTS sqliimport_run_id_seq
   START 1
   INCREMENT 1

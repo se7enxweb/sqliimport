@@ -1,4 +1,4 @@
--- 7x SQLI Import: the tables sqliimport_definition, sqliimport_item, sqliimport_mapping, sqliimport_mapping_field, sqliimport_run, sqliimport_run_log, sqliimport_run_row, sqliimport_schedule, sqliimport_scheduled (oracle).
+-- 7x SQLI Import: the tables sqliimport_definition, sqliimport_item, sqliimport_mapping, sqliimport_mapping_field, sqliimport_notice, sqliimport_run, sqliimport_run_log, sqliimport_run_row, sqliimport_schedule, sqliimport_scheduled (oracle).
 -- Generated from expImportSchema::definition() by ./console ext:sqliimport:install-schema --write-files with the
 -- kernel's schema handler; ./console ext:sqliimport:install-schema creates the same tables in a running installation.
 
@@ -124,6 +124,32 @@ END;
 /
 
 CREATE INDEX sqliimport_mapf_mapping ON sqliimport_mapping_field ( mapping_id, sort_order );
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE SEQUENCE se_sqliimport_notice';
+EXCEPTION WHEN OTHERS THEN
+  IF SQLCODE != -955 THEN RAISE; END IF;
+END;
+/
+CREATE TABLE sqliimport_notice (
+  created INTEGER DEFAULT 0 NOT NULL,
+  id INTEGER NOT NULL,
+  import_id INTEGER DEFAULT 0 NOT NULL,
+  kind VARCHAR2(20),
+  run_id INTEGER DEFAULT 0 NOT NULL,
+  seen INTEGER DEFAULT 0 NOT NULL,
+  user_id INTEGER DEFAULT 0 NOT NULL,
+  PRIMARY KEY ( id )
+);
+
+CREATE OR REPLACE TRIGGER sqliimport_notice_id_tr
+BEFORE INSERT ON sqliimport_notice FOR EACH ROW WHEN (new.id IS NULL)
+BEGIN
+  SELECT se_sqliimport_notice.nextval INTO :new.id FROM dual;
+END;
+/
+
+CREATE INDEX sqliimport_notice_run ON sqliimport_notice ( run_id );
+CREATE INDEX sqliimport_notice_user ON sqliimport_notice ( user_id, seen, id );
 BEGIN
   EXECUTE IMMEDIATE 'CREATE SEQUENCE se_sqliimport_run';
 EXCEPTION WHEN OTHERS THEN

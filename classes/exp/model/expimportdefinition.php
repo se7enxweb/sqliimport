@@ -138,6 +138,9 @@ class expImportDefinition extends eZPersistentObject
             'max_rows' => 0,
             'conflict_policy' => 'overwrite',
             'undo_days' => '',
+            'notify_when' => 'errors',
+            'notify_starter' => true,
+            'notify_emails' => array(),
         );
     }
 
