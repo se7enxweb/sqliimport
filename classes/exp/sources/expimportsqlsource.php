@@ -59,6 +59,9 @@ class expImportSqlSource extends expImportJsonSource
         'XDBURITYPE',
     );
 
+    /** The other formats whose drivers the job queue's workers note too (recordWorkerPhp(), their localDrivers()). */
+    const WORKER_SOURCES = array( 'expImportMongoDbSource', 'expImportRedisSource' );
+
     /** The ODBC driver for SQL Server when [SqlSourceSettings] OdbcDriver is not set. */
     const DEFAULT_ODBC_DRIVER = 'ODBC Driver 18 for SQL Server';
 
@@ -1154,7 +1157,12 @@ class expImportSqlSource extends expImportJsonSource
             $drivers = array();
             foreach ( self::drivers() as $id => $row )
                 $drivers[$id] = (string)$row['via'];
-            $now = array( 'php' => PHP_BINARY, 'version' => PHP_VERSION, 'drivers' => $drivers );
+            // the other formats that name drivers of their own (MongoDB, Redis): format => driver => via
+            $sources = array();
+            foreach ( self::WORKER_SOURCES as $class )
+                if ( class_exists( $class ) && method_exists( $class, 'localDrivers' ) )
+                    $sources[(string)call_user_func( array( $class, 'identifier' ) )] = (array)call_user_func( array( $class, 'localDrivers' ) );
+            $now = array( 'php' => PHP_BINARY, 'version' => PHP_VERSION, 'drivers' => $drivers, 'sources' => $sources );
             $old = is_file( $file ) ? json_decode( (string)file_get_contents( $file ), true ) : null;
             if ( is_array( $old ) && isset( $old['at'] ) && array_diff_key( $old, array( 'at' => 1 ) ) == $now && time() - (int)$old['at'] < 86400 )
                 return;
@@ -1168,7 +1176,10 @@ class expImportSqlSource extends expImportJsonSource
         }
     }
 
-    /** @return array|null what recordWorkerPhp() noted: php, version, drivers (database => via), at */
+    /**
+     * @return array|null what recordWorkerPhp() noted: php, version, drivers (database => via), sources (format =>
+     *                    driver => via, the drivers of the other formats of WORKER_SOURCES), at
+     */
     public static function workerPhp()
     {
         try

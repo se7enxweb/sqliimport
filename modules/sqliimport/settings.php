@@ -53,6 +53,8 @@ foreach ( array( 'RunSettings' => array( 'ChunkSize', 'DryRunRows', 'LogLevel', 
                  'SourceSettings' => array( 'MaxSourceMegabytes', 'AllowPrivateHosts', 'AllowedPaths' ),
                  'SqlSourceSettings' => array( 'AllowedHosts', 'SiteDatabase', 'QueryTimeout', 'OracleDriver', 'AllowedTnsNames', 'SqlServerDriver', 'OdbcDriver', 'OdbcCharset', 'SqlServerEncrypt', 'SqlServerTrustServerCertificate' ),
                  'ImapSourceSettings' => array( 'AllowedHosts', 'Timeout', 'MaxMessageMegabytes' ),
+                 'MongoDbSourceSettings' => array( 'AllowedHosts', 'Timeout', 'MaxBatchSize' ),
+                 'RedisSourceSettings' => array( 'AllowedHosts', 'Client', 'Timeout', 'MaxValueMegabytes', 'MaxScannedKeys', 'TestScanRounds' ),
                  'ImportSettings' => array( 'DefaultParentNodeID', 'ViewCaching', 'ObjectIndexing', 'StreamTimeout' ),
                  'AdminSettings' => array( 'ListLimit' ) ) as $section => $names )
     foreach ( $names as $name )
