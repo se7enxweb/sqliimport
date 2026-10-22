@@ -149,23 +149,29 @@ class expImportSourceFiles
      *
      * @param string $url
      * @param string $target
+     * @param array $http options of the http stream context that replace the defaults (user_agent, header,
+     *                    follow_location, ignore_errors: the crawl sources set their own); timeout and size stay
+     * @param array|null $responseHeaders set to the lines of the answer's headers (status lines included)
      * @return string the file
      * @throws expImportSourceException
      */
-    public static function download( $url, $target )
+    public static function download( $url, $target, array $http = array(), &$responseHeaders = null )
     {
         $refusal = self::refuseUrl( $url );
         if ( $refusal !== null )
             throw new expImportSourceException( $refusal );
         $timeout = max( 5, (int)expImport::setting( 'ImportSettings', 'StreamTimeout', 50 ) );
         $max = self::maxBytes();
+        unset( $http['timeout'] );
         $context = stream_context_create( array(
-            'http' => array( 'timeout' => $timeout, 'follow_location' => 1, 'max_redirects' => 3, 'user_agent' => '7x SQLI Import',
-                             'ignore_errors' => false ),
+            'http' => array_merge( array( 'timeout' => $timeout, 'follow_location' => 1, 'max_redirects' => 3, 'user_agent' => '7x SQLI Import',
+                                          'ignore_errors' => false ), $http ),
         ) );
         $in = @fopen( $url, 'rb', false, $context );
         if ( !$in )
             throw new expImportSourceException( 'the address could not be read: ' . preg_replace( '#//[^/@]*@#', '//', $url ) );
+        $meta = stream_get_meta_data( $in );
+        $responseHeaders = isset( $meta['wrapper_data'] ) ? (array)$meta['wrapper_data'] : array();
         $out = fopen( $target, 'wb' );
         $bytes = 0;
         while ( !feof( $in ) )
