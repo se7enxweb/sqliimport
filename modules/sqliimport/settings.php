@@ -51,12 +51,16 @@ $ini = expImport::ini();
 $settings = array();
 foreach ( array( 'RunSettings' => array( 'ChunkSize', 'DryRunRows', 'LogLevel', 'KeepDays' ),
                  'SourceSettings' => array( 'MaxSourceMegabytes', 'AllowPrivateHosts', 'AllowedPaths' ),
+                 'SqlSourceSettings' => array( 'AllowedHosts', 'SiteDatabase', 'QueryTimeout' ),
+                 'ImapSourceSettings' => array( 'AllowedHosts', 'Timeout', 'MaxMessageMegabytes' ),
                  'ImportSettings' => array( 'DefaultParentNodeID', 'ViewCaching', 'ObjectIndexing', 'StreamTimeout' ),
                  'AdminSettings' => array( 'ListLimit' ) ) as $section => $names )
     foreach ( $names as $name )
         $settings[] = array( 'name' => "[$section] $name", 'value' => $ini->hasVariable( $section, $name ) ? $ini->variable( $section, $name ) : '' );
 $tpl = eZTemplate::factory();
 $tpl->setVariable( 'settings', $settings );
+// the names of the secrets only, never a value
+$tpl->setVariable( 'secret_names', array_values( array_filter( array_map( 'strval', expImportSecrets::names() ), 'strlen' ) ) );
 $tpl->setVariable( 'imports', expImportDefinition::fetchList( 0, 1000 ) );
 $tpl->setVariable( 'flash', $message );
 $Result = array();
