@@ -56,6 +56,11 @@ foreach ( array( 'RunSettings' => array( 'ChunkSize', 'DryRunRows', 'LogLevel', 
                  'MongoDbSourceSettings' => array( 'AllowedHosts', 'Timeout', 'MaxBatchSize' ),
                  'RedisSourceSettings' => array( 'AllowedHosts', 'Client', 'Timeout', 'MaxValueMegabytes', 'MaxScannedKeys', 'TestScanRounds' ),
                  'LdapSourceSettings' => array( 'AllowedHosts', 'Timeout' ),
+                 'Neo4jSourceSettings' => array( 'AllowedHosts', 'Timeout', 'MaxPages' ),
+                 'ArangoDbSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
+                 'ClickHouseSourceSettings' => array( 'AllowedHosts', 'AllowedTableFunctions', 'MaxExecutionTime', 'MaxResultRows', 'MaxPages' ),
+                 'SnowflakeSourceSettings' => array( 'AllowedHosts', 'StatementTimeout', 'MaxPages' ),
+                 'InfluxDbSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
                  'ImportSettings' => array( 'DefaultParentNodeID', 'ViewCaching', 'ObjectIndexing', 'StreamTimeout' ),
                  'AdminSettings' => array( 'ListLimit' ) ) as $section => $names )
     foreach ( $names as $name )

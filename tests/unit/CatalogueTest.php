@@ -108,7 +108,8 @@ class CatalogueTest extends TestCase
                         $this->assertNull( expImportSecrets::get( $example['options'][$name] ), "$id: an example names a secret, it has none" );
             }
         }
-        foreach ( array( 'sql', 'imap', 'sitemap', 'webpage', 'drupal', 'exponential_site', 'airtable', 'notion', 'ldap' ) as $id )
+        foreach ( array( 'sql', 'imap', 'sitemap', 'webpage', 'drupal', 'exponential_site', 'airtable', 'notion', 'ldap', 'neo4j', 'arangodb',
+                         'clickhouse', 'snowflake', 'influxdb' ) as $id )
             $this->assertContains( $id, $remote, "$id reads its data itself" );
     }
 

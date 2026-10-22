@@ -11,7 +11,7 @@ Laufs dieselben Daten liest.
 | `upload` | `file`: der gespeicherte Name einer hochgeladenen Datei | Der Upload (im Speicherverzeichnis der Website unter `sqliimport/uploads/`) wird in das Verzeichnis des Laufs kopiert |
 | `url` | `url`: eine Adresse mit `http` oder `https` | Die Adresse wird in das Verzeichnis des Laufs heruntergeladen, mit dem Zeitlimit `[ImportSettings] StreamTimeout` und dem Größenlimit `[SourceSettings] MaxSourceMegabytes` |
 | `path` | `path`: eine Datei auf dem Server | Die Datei wird an Ort und Stelle gelesen, aber nur, wenn sie in einem der Verzeichnisse von `[SourceSettings] AllowedPaths[]` liegt |
-| `remote` | die eigenen Optionen der Quelle (eine Datenbank, ein Suchindex, ein Postfach, ein Verzeichnisdienst, ein Dienst) | Die Quelle liest ihre Daten einmal pro Lauf selbst und schreibt sie als JSON Lines in das Verzeichnis des Laufs (`sql`, `mongodb`, `redis`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion` und die Websites der Gruppe Plattformen) |
+| `remote` | die eigenen Optionen der Quelle (eine Datenbank, ein Suchindex, ein Postfach, ein Verzeichnisdienst, ein Dienst) | Die Quelle liest ihre Daten einmal pro Lauf selbst und schreibt sie als JSON Lines in das Verzeichnis des Laufs (`sql`, `mongodb`, `redis`, `elasticsearch`, `duckdb`, `neo4j`, `arangodb`, `clickhouse`, `snowflake`, `influxdb`, `imap`, `ldap`, `airtable`, `notion` und die Websites der Gruppe Plattformen) |
 
 Regeln:
 
@@ -584,6 +584,15 @@ Schlüssel `id` und dieser Abfrage an:
 SELECT id, name, origin, kind, price, description FROM teas WHERE kind <> 'herbal' ORDER BY id
 ```
 
+**TimescaleDB** ist PostgreSQL mit einer Erweiterung und hat deshalb keine eigene Quelle: Lesen Sie es mit dem Treiber
+`pgsql` dieser Quelle. Seine Funktionen sind gewöhnliche Funktionen in einem `SELECT` (`time_bucket`, `first`,
+`last`, Continuous Aggregates als Views), zum Beispiel
+
+```sql
+SELECT time_bucket('1 hour', time) AS hour, room, avg(temperature) AS temperature
+FROM climate WHERE time > now() - interval '1 day' GROUP BY hour, room ORDER BY hour, room
+```
+
 ### Geheimnisse
 
 Eine Quelle speichert nie ein Passwort. Ihre Option vom Typ `secret` enthält den **Namen** eines Geheimnisses, und
@@ -909,6 +918,280 @@ einen Wert ab, der größer als `MaxValueMegabytes` ist.
 
 **Beispiel:** `share/examples/redis-products.ndjson` ist, was ein Lauf aus den Schlüsseln `product:*` liest (zwei
 Hashes, eine JSON-Zeichenkette und eine Menge), um eine Zuordnung auszuprobieren.
+## Abfragesprachen anderer Datenbanken über HTTP (`neo4j`, `arangodb`, `clickhouse`, `snowflake`, `influxdb`)
+
+Diese fünf Quellen senden eine Abfrage in der Sprache der Datenbank und schreiben ihre Zeilen in das Verzeichnis des
+Laufs, ein JSON-Objekt pro Zeile. Gemeinsam ist ihnen:
+
+- **Nur lesend, geprüft, bevor etwas gesendet wird.** Jede Abfrage prüft ein Lexer ihrer Sprache: Zeichenketten,
+  Namen in Anführungszeichen und Kommentare werden so herausgenommen, wie der Server sie liest (Escapes, verdoppelte
+  Anführungszeichen, Heredocs), sodass ein Schlüsselwort in einem Text nicht zählt und eine hinter einem
+  Anführungszeichen oder Kommentar versteckte Anweisung gefunden wird. Was schreibt, verwaltet, Code ausführt oder
+  aus der Datenbank hinausreicht, wird in jeder Tiefe abgelehnt, und eine abgelehnte Abfrage sendet nichts. Hat der
+  Server einen Nur-Lese-Modus, nutzt die Quelle ihn zusätzlich (Neo4j `access-mode: READ` und Bolt-Modus `r`,
+  ClickHouse `readonly`). Geben Sie dem Benutzer des Imports in jedem Fall nur Leserechte auf das, was er importiert.
+- **Geheimnisse über ihren Namen.** Ein Passwort, Token oder privater Schlüssel ist der **Name** eines Geheimnisses
+  (siehe *Geheimnisse* oben), nie der Wert; Meldungen zeigen es als `[secret <Name>]`, auch wenn ein Server es in einem
+  Fehler zitiert.
+- **Hosts.** Ein Server in einem privaten oder reservierten Netz (Intranet, Loopback) wird abgelehnt, außer mit
+  `[SourceSettings] AllowPrivateHosts=enabled` oder wenn der Host in der eigenen `AllowedHosts[]` der Quelle steht
+  (`[Neo4jSourceSettings]`, `[ArangoDbSourceSettings]`, `[ClickHouseSourceSettings]`, `[SnowflakeSourceSettings]`,
+  `[InfluxDbSourceSettings]`). `MaxPages` im selben Abschnitt begrenzt die Anfragen eines Laufs.
+- **HTTP** läuft über die `http`- und `https`-Streams von PHP (`allow_url_fopen=On` und die Erweiterung `openssl`, im
+  PHP des Webservers und im PHP der Worker der Job-Queue; Katalog und Quellschritt zeigen sie): Zertifikate geprüft,
+  Antworten begrenzt auf `[PlatformSettings] MaxResponseMegabytes`, Zeitlimit `[ImportSettings] StreamTimeout`, keine
+  Zugangsdaten nach einer Umleitung auf einen anderen Host. curl wird nicht gebraucht.
+- **Verschachtelte Werte** (eine Map, ein Objekt, ein Tupel) werden zu Feldnamen mit Punkt (`author.name`); eine Liste
+  einfacher Werte bleibt eine Liste, eine Liste von Objekten wird nummeriert (`items.0.sku`).
+- **Verbindung testen** führt die Abfrage für ihre erste Zeile aus und zeigt den Server, seine Version, wo er sie
+  nennt, und die Felder, oder den Fehler mit dem Grund des Servers, maskiert. Nichts wird gespeichert.
+
+### Neo4j und Memgraph (`neo4j`)
+
+Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Zeilen einer Cypher-Abfrage. Ein Knoten sind seine Eigenschaften mit
+`_labels` (eine Liste) und `_element_id`; eine Beziehung ihre Eigenschaften mit `_type`, `_element_id`, `_start` und
+`_end`; ein Pfad das JSON seiner Knoten und Beziehungen in ihrer Reihenfolge; Zeitwerte ISO 8601 (`2026-03-02`,
+`2026-03-02T10:00:00.5+01:00`, `P1M2DT30S`); ein Punkt `x,y` (oder `x,y,z`); ganze Zahlen, die größer sind als die
+von PHP, bleiben Text; Byte-Arrays `base64:...`. Eine Abfrage, die einen einzelnen Knoten oder eine Beziehung liefert
+(`RETURN a`), gibt deren Felder direkt; bei mehreren Spalten steht jede unter ihrem Namen (`a.title`, `a._labels`,
+`author`).
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `server` | `neo4j`, `memgraph` (nur Bolt) | `neo4j` |
+| `address` | `https://graph.example.org:7473` (HTTP) oder `bolt://`, `bolt+s://`, `neo4j://`, `neo4j+s://` mit Host und Port (Bolt); kein Pfad, keine Zugangsdaten | Pflicht |
+| `api` | `auto` (nach der Adresse), `tx` (transaktionaler HTTP-Endpunkt), `query` (Query API), `bolt` | `auto` |
+| `database` | die Datenbank; nie `system` | HTTP `neo4j`, Bolt die Standarddatenbank |
+| `user`, `password_secret` | der Benutzer und der **Name** des Geheimnisses mit dem Passwort (leerer Benutzer: keine Anmeldung) | |
+| `query` | eine lesende Cypher-Abfrage | Pflicht |
+| `parameters` | ein JSON-Objekt der `$parameters` der Abfrage | |
+| `page_size` | Zeilen pro Anfrage (HTTP `LIMIT`, Bolt `PULL n`) | `1000` |
+| `paging` | `auto`, `none` | `auto` |
+| `key` | das Feld, das eine Zeile benennt (`id`, `_element_id`) | die Position |
+
+Die drei Wege zum Server:
+
+- **`tx`**: der transaktionale HTTP-Endpunkt von Neo4j, `POST /db/<Datenbank>/tx/commit` mit dem Header
+  `access-mode: READ`, das Zeilenformat mit dem Graphformat für Labels und Typen (Neo4j 4 und 5).
+- **`query`**: die Query API, `POST /db/<Datenbank>/query/v2` mit `"accessMode": "READ"` und typisiertem JSON (Neo4j
+  ab 5.19, Aura).
+- **`bolt`**: das Bolt-Protokoll, mit einem kleinen eigenen Client der Quelle über einen Socket (Bolt 4.0 bis 4.4:
+  `HELLO`, `RUN` mit dem Modus `r`, `PULL` mit `n`, `DISCARD`, `GOODBYE`; nichts anderes wird je gesendet).
+  `neo4j://` wird wie `bolt://` gelesen (eine direkte Verbindung, keine Routing-Tabelle); `+s` nutzt TLS mit geprüftem
+  Zertifikat (ein selbst signiertes Zertifikat als vertrauenswürdige CA installieren). **Memgraph hat keine
+  HTTP-API**: Es wird nur über Bolt gelesen (`bolt://memgraph.example.org:7687`), und die Quelle lehnt dafür eine
+  `http`-Adresse ab.
+
+**Nur lesend.** Außerhalb von Zeichenketten und Kommentaren darf die Abfrage `CREATE`, `MERGE`, `SET`, `DELETE`,
+`DETACH`, `REMOVE`, `DROP`, `FOREACH`, `LOAD` (`LOAD CSV`), `IN TRANSACTIONS` (`CALL { ... } IN TRANSACTIONS`), die
+Verwaltungsbefehle (`ALTER`, `GRANT`, `DENY`, `REVOKE`, `RENAME`, `START`, `STOP`, `TERMINATE`, `ENABLE`) und die von
+Memgraph (`ANALYZE`, `FREE`, `STORAGE`, `REPLICATION`, `REGISTER`, `IMPORT`) nicht enthalten, auch keine zweite
+Anweisung. `USE` ist mit dem Namen einer Datenbank erlaubt, nie `system`. Prozeduren und Funktionen: `dbms.*` wird
+abgelehnt, `db.*` nur für die lesenden (`db.labels`, `db.relationshipTypes`, `db.propertyKeys`, `db.schema.*`,
+`db.indexes`, `db.constraints`, `db.info`, `db.ping`, die Volltext- und Vektorabfragen), und jeder andere Name
+(`apoc.*`, `gds.*`, Memgraph-Module wie `migrate.*`, `mg.*`) wird abgelehnt, wenn ein Teil davon schreibt, lädt oder
+Code ausführt: `create`, `merge`, `set...`, `delete`, `remove`, `load`, `import`, `export`, `periodic`, `trigger`,
+`refactor`, `cypher`, `do`, `lock`, `atomic`, `write`, `mutate`, `drop`, `project`, `config`, `uuid`, `ttl`, `custom`,
+`systemdb`, `migrate` und die Konnektoren (`bolt`, `jdbc`, `mongo`, `redis`, `es`, `kafka` ...). Ein Name in
+Backticks (`` `apoc`.`create`.node ``) wird so geprüft, wie der Server ihn liest. Geben Sie dem Import einen Benutzer
+mit der Rolle `reader` (Neo4j) oder nur Leserechten.
+
+**Blättern.** Über HTTP wird an die Abfrage `SKIP $sqliimport_skip LIMIT $sqliimport_limit` angehängt, wenn sie mit
+einem `RETURN` ohne eigenes `SKIP` oder `LIMIT` endet und kein `UNION` hat; geben Sie ihr ein `ORDER BY` für eine
+stabile Reihenfolge. Sonst (oder mit `paging` `none`) wird sie einmal so gesendet, wie sie ist. Über Bolt läuft die
+Abfrage einmal, und die Zeilen kommen Seite für Seite mit `PULL n` aus demselben Ergebnis.
+
+**Was der Host braucht:** für HTTP die Streams oben; für Bolt `stream_socket_client` (Teil von PHP) und für `+s` die
+Erweiterung `openssl`. Eine Neo4j-Treiberbibliothek ist nicht nötig. `[Neo4jSourceSettings] Timeout` ist das
+Zeitlimit von Bolt.
+
+**Beispiel:** `share/examples/neo4j-articles.ndjson` ist ein Snapshot von drei Artikel-Knoten, wie die Quelle ihn für
+`MATCH (a:Article) RETURN a ORDER BY a.id` schreibt. Mit Parametern:
+
+```cypher
+MATCH (a:Article)-[:WRITTEN_BY]->(p:Person)
+WHERE a.status = $status
+RETURN a.id AS id, a.title AS title, p.name AS author
+ORDER BY a.id
+```
+
+### ArangoDB (`arangodb`)
+
+Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Ergebnisse einer AQL-Abfrage über die HTTP-Cursor-API. Ein Dokument
+wird aufgelöst, `_key`, `_id` und `_rev` (und `_from`, `_to` einer Kante) zuerst; ein Ergebnis, das kein Objekt ist
+(eine Zahl, eine Zeichenkette, eine Liste), wird zum Feld `value`.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `base_url` | der Server oder Coordinator, `https://arango.example.org:8529` | Pflicht |
+| `database` | der Name der Datenbank | `_system` |
+| `auth` | `basic` (Benutzer und Passwort), `bearer` (ein JWT), `none` | `basic` |
+| `user`, `password_secret` | bei `basic`: der Benutzer und der **Name** des Geheimnisses mit dem Passwort | |
+| `token_secret` | bei `bearer`: der **Name** des Geheimnisses mit dem JWT | |
+| `query` | eine lesende AQL-Abfrage | Pflicht |
+| `bind_vars` | ein JSON-Objekt der `@parameters` der Abfrage | |
+| `page_size` | Ergebnisse pro Batch (`batchSize`) | `1000` |
+| `stream` | ein Streaming-Cursor (`options.stream`), der den Speicher des Servers klein hält | ja |
+| `key` | das Feld, das ein Ergebnis benennt | `_key` |
+
+**Nur lesend.** Außerhalb von Zeichenketten, Namen in Backticks und Kommentaren darf die Abfrage `INSERT`, `UPDATE`,
+`REPLACE`, `REMOVE`, `UPSERT`, die Funktionen, die Code aufrufen oder warten (`CALL`, `APPLY`, `SLEEP`, `V8`), und
+Benutzerfunktionen (`NAMESPACE::NAME()`) nicht enthalten, auch kein `;`. Namen in Forward Ticks werden abgelehnt
+(Backticks verwenden). Geben Sie dem Benutzer nur Lesezugriff auf die Datenbank (`ro`).
+
+**Blättern:** `POST /_db/<Datenbank>/_api/cursor` mit `batchSize`, dann der nächste Batch mit
+`POST /_api/cursor/<id>` (ArangoDB ab 3.7; `PUT` bei älteren Servern), solange `hasMore`. Ein Cursor, den ein früher
+Halt offen lässt (die Stichprobe des Editors), wird gelöscht. **Verbindung testen** liest auch die Version
+(`GET /_api/version`).
+
+**Beispiel:** `share/examples/arangodb-articles.ndjson`, für
+
+```aql
+FOR a IN articles
+  FILTER a.status == @status
+  SORT a.published_at DESC
+  RETURN a
+```
+
+### ClickHouse (`clickhouse`)
+
+Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Zeilen eines `SELECT` über die HTTP-Schnittstelle (Port 8123, oder
+8443 mit TLS) im Format `JSONEachRow`. Die Typen sind so, wie ClickHouse sie in JSON schreibt: `Int64`, `UInt64` und
+größere ganze Zahlen als Text (ohne Rundung), andere Zahlen als Zahlen, `Date` und `DateTime` als `2026-05-01` und
+`2026-05-01 10:00:00`, ein benanntes `Tuple`, eine `Map` oder eine `JSON`-Spalte zu Feldnamen mit Punkt aufgelöst, ein
+`Array` als Liste.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `base_url` | die HTTP-Schnittstelle, `https://clickhouse.example.org:8443` | Pflicht |
+| `database` | die Datenbank | `default` |
+| `user`, `password_secret` | der Benutzer (gesendet als `X-ClickHouse-User`) und der **Name** des Geheimnisses mit dem Passwort (`X-ClickHouse-Key`); nie in der Adresse | `default` |
+| `query` | ein einzelnes `SELECT` oder `WITH ... SELECT`, ohne `FORMAT` und `SETTINGS` | Pflicht |
+| `readonly` | `2` (nur lesend, die Quelle darf ihre Grenzen senden), `1` (nur lesend, es werden keine Einstellungen gesendet) | `2` |
+| `page_size` | Zeilen pro Anfrage | `10000` |
+| `paging` | `auto` (`LIMIT` und `OFFSET` um die Abfrage), `none` | `auto` |
+| `key` | die Spalte, die eine Zeile benennt | die Position |
+
+**Nur lesend.** Jede Anfrage trägt `readonly=2` (oder `1`), sodass der Server selbst Schreibzugriffe, DDL und eine
+Änderung von `readonly` ablehnt. Vorher muss die Abfrage mit `SELECT` oder `WITH` beginnen und darf außerhalb von
+Zeichenketten, Namen in Anführungszeichen (beide mit Backslash-Escapes und verdoppelten Anführungszeichen) und
+Kommentaren nicht enthalten: `INSERT`, `ALTER`, `CREATE`, `DROP`, `TRUNCATE`, `OPTIMIZE`, `SYSTEM`, `KILL`, `SET`,
+`GRANT`, `REVOKE`, `RENAME`, `ATTACH`, `DETACH`, `EXCHANGE`, `DELETE`, `UPDATE`, `INTO OUTFILE`, `USE`, `BACKUP`,
+`RESTORE`, die Klauseln `FORMAT` und `SETTINGS` (die Funktionen `format()` sind erlaubt), eine zweite Anweisung und
+die Tabellenfunktionen, die aus dem Server hinausreichen: `url`, `s3`, `gcs`, `azureBlobStorage`, `file`, `remote`,
+`remoteSecure`, `cluster`, `mysql`, `postgresql`, `mongodb`, `redis`, `sqlite`, `hdfs`, `jdbc`, `odbc`, `executable`,
+`input`, `deltaLake`, `hudi`, `iceberg` und ihre `...Cluster`-Formen. `[ClickHouseSourceSettings]
+AllowedTableFunctions[]` kann eine davon erlauben (zum Beispiel `s3` für einen Data Lake, den der Import lesen soll).
+Heredocs (`$tag$...$tag$`) werden so gelesen, wie ClickHouse sie liest.
+
+**Blättern:** `SELECT * FROM ( <Abfrage> ) LIMIT <page_size> OFFSET <n>`, bis eine Seite kürzer ist; geben Sie der
+Abfrage ein `ORDER BY` für eine stabile Reihenfolge. Mit `readonly=2` setzt jede Anfrage auch `max_execution_time`
+(`[ClickHouseSourceSettings] MaxExecutionTime`, 60) und, wenn `MaxResultRows` gesetzt ist, `max_result_rows` mit
+`result_overflow_mode=throw`. **Verbindung testen** liest `version()` und die erste Zeile.
+
+**Beispiel:** `share/examples/clickhouse-page-views.ndjson`, für
+
+```sql
+SELECT path, sum(views) AS views FROM page_views WHERE day >= today() - 7 GROUP BY path ORDER BY views DESC, path
+```
+
+### Snowflake (`snowflake`)
+
+Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Zeilen einer Abfrage über die SQL API v2
+(`POST /api/v2/statements`) mit **Schlüsselpaar-Authentifizierung**: Die Quelle signiert ein JWT mit dem privaten
+RSA-Schlüssel des Benutzers (RS256, openssl von PHP); sein Aussteller ist `<ACCOUNT>.<USER>.SHA256:<Fingerabdruck>`,
+der Fingerabdruck aus dem öffentlichen Schlüssel genau so berechnet, wie `DESC USER` ihn in `RSA_PUBLIC_KEY_FP`
+zeigt. Hinterlegen Sie den öffentlichen Schlüssel mit `ALTER USER ... SET RSA_PUBLIC_KEY=...`.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `account` | die Konto-ID: `orgname-accountname` oder ein Locator mit seiner Region (`xy12345.eu-central-1`) | Pflicht |
+| `base_url` | eine andere Adresse (ein Private Link) | `https://<account>.snowflakecomputing.com` |
+| `user` | der Benutzer | Pflicht |
+| `private_key_secret` | der **Name** des Geheimnisses mit dem privaten PEM-Schlüssel (`-----BEGIN PRIVATE KEY-----` oder `ENCRYPTED PRIVATE KEY`; ein Schlüssel auf einer Zeile mit `\n` geht auch) | Pflicht |
+| `passphrase_secret` | bei einem verschlüsselten Schlüssel: der **Name** des Geheimnisses mit seiner Passphrase | |
+| `warehouse`, `database`, `schema`, `role` | der Kontext der Anweisung | die Vorgaben des Benutzers |
+| `query` | ein einzelnes `SELECT`, `WITH ... SELECT`, `SHOW` oder `DESCRIBE` | Pflicht |
+| `key` | die Spalte, die eine Zeile benennt (Snowflake schreibt Spaltennamen groß) | die Position |
+
+**Nur lesend, soweit die Quelle es sieht.** Außerhalb von Zeichenketten (`'...'` mit Backslash-Escapes und
+verdoppelten Anführungszeichen, `$$...$$`), Namen in Anführungszeichen und Kommentaren (`--`, `//`, `/* */`) darf die
+Abfrage `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `CREATE`, `ALTER`, `DROP`, `TRUNCATE`, `GRANT`, `REVOKE`, `COPY`, `PUT`,
+`REMOVE`, `CALL`, `EXECUTE` (`EXECUTE IMMEDIATE`), `USE`, `SET`, `UNSET`, `UNDROP`, `BEGIN`, `COMMIT`, `ROLLBACK`,
+`INTO` nicht enthalten, auch keine `SYSTEM$`-Funktion und keine zweite Anweisung, und die Anfrage erlaubt eine
+Anweisung (`MULTI_STATEMENT_COUNT` 1). **Snowflake hat keine Nur-Lese-Sitzung**: Geben Sie dem Benutzer eine Rolle mit
+`SELECT` auf das, was der Import liest, und sonst nichts (kein `OWNERSHIP`, kein `USAGE` auf externe Funktionen oder
+Prozeduren).
+
+**Typen** (nach `resultSetMetaData.rowType`; die API sendet jeden Wert als Text): `FIXED` (`NUMBER`, `DECIMAL`) bleibt
+Text, sodass keine Zahl gerundet wird; `REAL` eine Gleitkommazahl; `BOOLEAN` wahr oder falsch; `DATE` `2026-03-02`;
+`TIME` `10:00:00.5`; `TIMESTAMP_NTZ` `2026-03-02T10:00:00.123`, `TIMESTAMP_LTZ` in UTC mit `Z`, `TIMESTAMP_TZ` mit
+seinem Versatz (`2026-03-02T11:00:00+01:00`); `VARIANT`, `OBJECT` und `ARRAY` aus JSON dekodiert, ein Objekt unter dem
+Namen der Spalte aufgelöst (`ADDRESS.city`); `BINARY` als Hex-Text; `NULL` null.
+
+**Blättern:** die Partitionen des Ergebnisses (`resultSetMetaData.partitionInfo`): Die erste kommt mit der Antwort, die
+anderen mit `GET /api/v2/statements/<handle>?partition=<n>`. Eine Anweisung, die noch läuft (`202`), wird jede Sekunde
+erneut abgefragt, bis sie endet oder `[SnowflakeSourceSettings] StatementTimeout` (300 s, auch als `timeout` der
+Anweisung gesendet) verstreicht. **Was der Host braucht:** den `https`-Stream und die Erweiterung `openssl` (sie
+signiert auch das Token).
+
+**Beispiel:** `share/examples/snowflake-orders.ndjson`, drei Bestellungen, wie die Quelle sie schreibt.
+
+### InfluxDB (`influxdb`)
+
+Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Zeilen einer **Flux**-Abfrage (InfluxDB 2, InfluxDB Cloud;
+`POST /api/v2/query`, die Antwort als annotiertes CSV) oder einer **InfluxQL**-Abfrage (InfluxDB 1 und die
+1.x-Kompatibilitäts-API von InfluxDB 2; `GET /query`, die Antwort als JSON). Ein Datensatz ist eine Zeile: `_time` in
+ISO 8601 (RFC 3339), die Tags und Felder als Spalten, `_measurement`, und bei Flux `_start`, `_stop` sowie `_field`
+und `_value`, außer die Abfrage pivotiert.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `base_url` | der Server, `https://influx.example.org:8086`, oder die Adresse von InfluxDB Cloud | Pflicht |
+| `language` | `flux`, `influxql` | `flux` |
+| `org` | Flux: der Name oder die ID der Organisation | |
+| `database`, `retention_policy` | InfluxQL: die Datenbank (oder der ihr zugeordnete Bucket) und die Retention Policy | |
+| `auth` | `token` (`Authorization: Token ...`), `basic` (Benutzer und Passwort), `none` | `token` |
+| `token_secret` | der **Name** des Geheimnisses mit dem Token | |
+| `user`, `password_secret` | bei `basic` | |
+| `query` | Flux, oder ein einzelnes InfluxQL-`SELECT` oder -`SHOW` | Pflicht |
+| `pivot` | Flux: `pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")` anhängen, eine Zeile pro Zeitpunkt mit einer Spalte pro Feld | nein |
+| `page_size` | InfluxQL: Punkte pro Serie und Anfrage | `10000` |
+| `key` | die Spalte, die eine Zeile benennt | die Position |
+
+**Nur lesend.** Flux: Nur diese Pakete dürfen importiert werden: `array`, `strings`, `date`, `math`, `regexp`,
+`json`, `dict`, `types`, `join`, `interpolate`, `timezone`, `runtime`, `system`, `influxdata/influxdb`,
+`influxdata/influxdb/schema`, `influxdata/influxdb/v1`, `influxdata/influxdb/sample`, `sampledata`, `experimental`
+und seine lesenden Teile (`aggregate`, `array`, `date/boundaries`, `geo`, `json`, `oee`, `polyline`, `query`,
+`record`, `table`, `dynamic`). Damit werden `http`, `sql`, `csv` aus einer Datei oder Adresse,
+`influxdata/influxdb/secrets`, `socket`, `mqtt`, `kafka`, die Benachrichtigungs-Endpunkte (`slack`, `pagerduty`,
+`opsgenie`, `telegram`, `sensu`, `discord`, `teams`, `victorops`, `zenoss`, `servicenow`, `bigpanda`, `alerta`,
+`pushbullet`, `webexteams`) und jedes `contrib/...`-Paket abgelehnt. An jeder Stelle der Abfrage werden `to()`,
+`wideTo()`, jedes `X.to()` (`experimental.to`, auch über einen Alias oder eine Variable) und `sleep()` abgelehnt,
+ebenso String-Interpolation (`"${...}"`). InfluxQL: ein einzelnes `SELECT` oder `SHOW`, ohne `INTO` und ohne `DROP`,
+`DELETE`, `CREATE`, `ALTER`, `GRANT`, `REVOKE`, `KILL` oder `SET PASSWORD`. Geben Sie dem Token nur Lesezugriff auf
+den Bucket (eine Lese-Autorisierung von InfluxDB 2).
+
+**Typen:** Flux nach der Annotation `#datatype`: `long` eine ganze Zahl, `unsignedLong` eine ganze Zahl (Text, wenn
+größer als die von PHP), `double` eine Gleitkommazahl, `boolean` wahr oder falsch, `dateTime:RFC3339` Text wie
+gesendet, der Rest Text; ein leerer Wert null (oder das `#default` der Tabelle); die Spalten `result` und `table`
+entfallen; eine Fehlertabelle beendet den Lauf mit ihrer Meldung. InfluxQL so, wie die JSON-Antwort es liefert (`time`
+als `_time`, RFC 3339).
+
+**Blättern:** Ein InfluxQL-`SELECT` ohne eigenes `LIMIT`, `OFFSET`, `SLIMIT` oder `SOFFSET` bekommt
+`LIMIT <page_size> OFFSET <n>` angehängt (pro Serie, wie InfluxQL zählt), bis keine Serie eine Seite füllt. Flux kommt
+in einer Antwort: Grenzen Sie sie mit `range()` und `filter()` ein (Antworten sind auf `[PlatformSettings]
+MaxResponseMegabytes` begrenzt); die Stichprobe des Editors hängt `limit(n: ...)` an. **Verbindung testen** zeigt die
+Version des Servers aus `X-Influxdb-Version`.
+
+**Beispiel:** `share/examples/influxdb-climate.ndjson`, drei pivotierte Messwerte, für
+
+```flux
+from(bucket: "sensors")
+  |> range(start: -1d)
+  |> filter(fn: (r) => r._measurement == "climate")
+```
+
 ## LDAP-Verzeichnis (`ldap`)
 
 Gruppe: Daten. Herkunft: `remote`. Die Einträge eines LDAP-Verzeichnisses (OpenLDAP, Active Directory, 389 Directory
