@@ -5,8 +5,11 @@
  * 2.x views: list (the dashboard: figures, imports, runs), run (one run: progress, counters, rows, log), edit (the
  * import editor), schedules, catalogue, settings (export and import of definitions) and action
  * (every change: run, dry run, cancel, retry failed rows; POST only, checked by ezformtoken).
- * 1.x views, kept: items (the 1.x import requests), scheduledlist, addimport, addscheduled, alterimport,
- * removescheduled, purgelist; their changes are POST only as well.
+ * The 1.x requests and scheduled imports are part of these pages (expImportLegacy): the dashboard lists the 1.x
+ * import requests (request, cancel, interrupt, purge), sqliimport/schedules the 1.x scheduled imports (add, edit, run
+ * now, enable, disable, delete). The addresses of the 1.x views stay (items, scheduledlist, addimport, addscheduled,
+ * alterimport, removescheduled, purgelist): a GET goes to the 2.x page, a POST with the 1.x fields does what it did
+ * (checked by ezformtoken and the handler limitation) and then goes there. They draw no page of their own.
  *
  * Policies (2.x, two as the owner chose): "Manage imports" (manage) and "Run imports" (run), both with the handler limitation
  * SQLIImport_Type. The 1.x functions listimports and manageimports stay and still give access (the view's
@@ -23,13 +26,14 @@ $ViewList = array();
 
 // who may look: a 2.x policy (Manage imports, Run imports), or a 1.x one
 $canView = array( 'manage or run or listimports or manageimports' );
-// who may change through the 1.x pages (they check the 1.x function and its handler limitation themselves)
-$canManage = array( 'manageimports' );
+// who may change through the addresses of the 1.x pages (they check the handler limitation themselves, with
+// expImportAdmin::can(): manageimports of 1.x as before, or Manage imports of 2.x)
+$canManage = array( 'manage or manageimports' );
 
 $ViewList['list'] = array(
     'script' => 'list.php',
     'params' => array(),
-    'unordered_params' => array( 'status' => 'Status', 'import' => 'Import', 'offset' => 'Offset' ),
+    'unordered_params' => array( 'status' => 'Status', 'import' => 'Import', 'offset' => 'Offset', 'legacyoffset' => 'LegacyOffset' ),
     'default_navigation_part' => 'sqliimportnavigationpart',
     'functions' => $canView,
 );
@@ -68,6 +72,7 @@ $ViewList['edit'] = array(
 $ViewList['schedules'] = array(
     'script' => 'schedules.php',
     'params' => array(),
+    'unordered_params' => array( 'legacy' => 'Legacy' ),
     'default_navigation_part' => 'sqliimportnavigationpart',
     'functions' => $canView,
 );
@@ -87,6 +92,8 @@ $ViewList['settings'] = array(
     'functions' => array( 'manage or manageimports' ),
 );
 
+// The addresses of the 1.x views: a GET goes to the 2.x page (expImportLegacy::redirectFor()), a POST does what the
+// 1.x view did and then goes there
 $ViewList['items'] = array(
     'script' => 'items.php',
     'params' => array(),

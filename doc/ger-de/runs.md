@@ -77,7 +77,9 @@ Das linke Menü des Reiters Importe verlinkt die Seiten der Erweiterung:
 | Catalogue | `sqliimport/catalogue` | Die Quelltypen, Handler und Umwandlungen der Website mit ihren Optionen und ihrem Status |
 | Settings | `sqliimport/settings` | Die Einstellungen, wie sie gelten, Export und Import der Definitionen ([settings.md](settings.md#die-seite-settings)) |
 
-Unter „sqliimport 1.x“ folgen die Seiten von 1.x ([migration-1x.md](migration-1x.md#nach-der-aktualisierung)).
+Die Seiten von 1.x sind Teil dieser Seiten: die Importaufträge von 1.x stehen in der Übersicht, die geplanten Importe
+von 1.x unter Schedules; ihre alten Adressen leiten dorthin weiter
+([migration-1x.md](migration-1x.md#nach-der-aktualisierung)).
 
 ### Die Übersicht
 
@@ -92,6 +94,11 @@ Unter „sqliimport 1.x“ folgen die Seiten von 1.x ([migration-1x.md](migratio
   ([editor.md](editor.md#ändern-kopieren-und-löschen)).
 - Die Läufe, die neuesten zuerst, gefiltert nach Status: `sqliimport/list/(status)/active`, `failed`, `completed`
   oder `cancelled`, und nach Import: `sqliimport/list/(import)/<id>`.
+- **1.x import requests** (gezeigt, wenn Handler von 1.x eingerichtet sind oder Aufträge bestehen; früher
+  `sqliimport/items`): das Formular **Request import** (ein Handler von 1.x und seine Optionen, eine `name=wert` pro
+  Zeile; früher `sqliimport/addimport`), **Purge history** (die beendeten Aufträge; manage) und jeder Auftrag mit
+  Status, Fortschritt und Fortschrittsnotizen, einem Link zu seinem Lauf und **Cancel** (wartend) oder **Interrupt**
+  (laufend) für Benutzer, die seinen Handler ausführen dürfen. Ältere Aufträge: `sqliimport/list/(legacyoffset)/<n>`.
 
 Das Dashboard der Administration (`content/dashboard`) hat einen Block **Imports** mit den letzten Läufen und ihrem
 Status sowie einem Hinweis mit Link, wenn in den letzten 24 Stunden Läufe fehlgeschlagen oder mit Fehlern beendet

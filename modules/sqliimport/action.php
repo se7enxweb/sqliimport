@@ -2,7 +2,9 @@
 /**
  * sqliimport/action: every change of the 2.x pages, POST only (ezformtoken checks the form token of every POST):
  *   run, dryrun, duplicate, delete, enable, disable (ImportID); cancel, retry, undo (RunID);
- *   schedule_pause, schedule_resume, schedule_delete (ScheduleID)
+ *   schedule_pause, schedule_resume, schedule_delete (ScheduleID);
+ *   1.x: legacy_request (ImportHandler, ImportOptions), legacy_cancel, legacy_interrupt (ItemID), legacy_purge,
+ *   legacy_schedule_run, legacy_schedule_enable, legacy_schedule_disable, legacy_schedule_delete (LegacyScheduleID)
  * The result is shown on the next page (a session message); RedirectURI must be a page of this module.
  *
  * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
@@ -130,6 +132,61 @@ try
             }
             expImport::audit( 'schedule.change', array( 'id' => (int)$schedule->attribute( 'id' ), 'import' => (int)$import->attribute( 'id' ), 'action' => $action ) );
             $flash( 'ok', ezpI18n::tr( 'extension/sqliimport', 'The schedule of "%name" is changed.', null, array( '%name' => $import->attribute( 'name' ) ) ) );
+            break;
+        // the 1.x import requests (dashboard) and scheduled imports (sqliimport/schedules), see expImportLegacy
+        case 'legacy_request':
+            $handler = $http->hasPostVariable( 'ImportHandler' ) ? (string)$http->postVariable( 'ImportHandler' ) : '';
+            if ( !expImportAdmin::can( 'run', $handler ) )
+                return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
+            $item = expImportLegacy::requestImport( $handler, $http->hasPostVariable( 'ImportOptions' ) ? (string)$http->postVariable( 'ImportOptions' ) : '' );
+            $flash( 'ok', ezpI18n::tr( 'extension/sqliimport', 'The 1.x import #%id of "%handler" is requested; the next cron round starts it.', null,
+                                       array( '%id' => $item->attribute( 'id' ), '%handler' => expImportLegacy::handlerName( $handler ) ) ) );
+            break;
+        case 'legacy_cancel':
+        case 'legacy_interrupt':
+            $item = SQLIImportItem::fetch( (int)$http->postVariable( 'ItemID' ) );
+            if ( !$item instanceof SQLIImportItem )
+                throw new expImportException( ezpI18n::tr( 'extension/sqliimport', 'The 1.x import request does not exist.' ) );
+            if ( !expImportAdmin::can( 'run', (string)$item->attribute( 'handler' ) ) )
+                return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
+            expImportLegacy::alterItem( $item, $action === 'legacy_cancel' ? 'cancel' : 'interrupt' );
+            $flash( 'ok', ezpI18n::tr( 'extension/sqliimport', 'The 1.x import #%id is %status.', null,
+                                       array( '%id' => $item->attribute( 'id' ), '%status' => ezpI18n::tr( 'extension/sqliimport/type', (string)$item->attribute( 'status_string' ) ) ) ) );
+            break;
+        case 'legacy_purge':
+            if ( !expImportAdmin::can( 'manage' ) )
+                return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
+            expImportLegacy::purgeHistory();
+            $flash( 'ok', ezpI18n::tr( 'extension/sqliimport', 'The history of the 1.x import requests is purged.' ) );
+            break;
+        case 'legacy_schedule_run':
+        case 'legacy_schedule_enable':
+        case 'legacy_schedule_disable':
+        case 'legacy_schedule_delete':
+            $scheduled = SQLIScheduledImport::fetch( (int)$http->postVariable( 'LegacyScheduleID' ) );
+            if ( !$scheduled instanceof SQLIScheduledImport )
+                throw new expImportException( ezpI18n::tr( 'extension/sqliimport', 'The 1.x scheduled import does not exist.' ) );
+            $handler = (string)$scheduled->attribute( 'handler' );
+            $name = $scheduled->attribute( 'label' ) !== '' ? (string)$scheduled->attribute( 'label' ) : '#' . $scheduled->attribute( 'id' );
+            if ( !expImportAdmin::can( $action === 'legacy_schedule_run' ? 'run' : 'manage', $handler ) )
+                return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
+            if ( $action === 'legacy_schedule_run' )
+            {
+                $item = expImportLegacy::runScheduledNow( $scheduled );
+                $flash( 'ok', ezpI18n::tr( 'extension/sqliimport', 'The 1.x import #%id of "%handler" is requested; the next cron round starts it.', null,
+                                           array( '%id' => $item->attribute( 'id' ), '%handler' => $name ) ) );
+            }
+            elseif ( $action === 'legacy_schedule_delete' )
+            {
+                expImportLegacy::removeScheduled( $scheduled );
+                $flash( 'ok', ezpI18n::tr( 'extension/sqliimport', 'The 1.x scheduled import "%name" is deleted.', null, array( '%name' => $name ) ) );
+            }
+            else
+            {
+                expImportLegacy::setScheduledActive( $scheduled, $action === 'legacy_schedule_enable' );
+                $flash( 'ok', $action === 'legacy_schedule_enable' ? ezpI18n::tr( 'extension/sqliimport', 'The 1.x scheduled import "%name" is enabled.', null, array( '%name' => $name ) )
+                                                                   : ezpI18n::tr( 'extension/sqliimport', 'The 1.x scheduled import "%name" is disabled.', null, array( '%name' => $name ) ) );
+            }
             break;
         default:
             $flash( 'warn', ezpI18n::tr( 'extension/sqliimport', 'Unknown action.' ) );

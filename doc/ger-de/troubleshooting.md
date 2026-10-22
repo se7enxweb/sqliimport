@@ -122,7 +122,7 @@ das Feld `key` der Quelle eindeutig oder lassen Sie es leer, damit Datensätze n
 - Seine Zeilen haben das Ergebnis `processed`; die Engine weiß nicht, was der Handler getan hat. Lesen Sie seine
   Fortschrittsnotizen im Protokoll des Laufs.
 - „Retry failed rows“ gibt es nicht. Starten Sie den Import erneut.
-- Importaufträge von 1.x aus `sqliimport/addimport` warten, bis der Cron-Teil `sqliimport` (oder der veraltete
+- Importaufträge von 1.x (**Request import** in der Übersicht oder ein POST an `sqliimport/addimport`) warten, bis der Cron-Teil `sqliimport` (oder der veraltete
   `sqliimport_run`) sie an die Job-Warteschlange übergibt. Bleibt einer offen, prüfen Sie, dass ein Cron-Teil läuft.
 
 ## Speicher und Zeit

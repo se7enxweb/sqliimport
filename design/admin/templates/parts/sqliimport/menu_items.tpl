@@ -11,8 +11,5 @@
     'settings',  'Settings'|i18n( 'extension/sqliimport/menu' ),
     'active',    'Running runs'|i18n( 'extension/sqliimport/menu' ),
     'failed',    'Failed runs'|i18n( 'extension/sqliimport/menu' ),
-    'items',     '1.x import requests'|i18n( 'extension/sqliimport/menu' ),
-    'scheduled', '1.x scheduled imports'|i18n( 'extension/sqliimport/menu' ),
-    'addimport', 'New 1.x import request'|i18n( 'extension/sqliimport/menu' ),
     'queue',     'Job queue'|i18n( 'extension/sqliimport/menu' ),
 )}

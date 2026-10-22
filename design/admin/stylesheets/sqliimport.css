@@ -74,3 +74,18 @@
 .a4-sqliimport-format-desc { margin: 0; }
 .a4-sqliimport-format-foot { display: flex; flex-wrap: wrap; gap: var(--a4-space-1); margin-top: auto; }
 .a4-sqliimport-format-list { margin: 0; padding-inline-start: var(--a4-space-4); }
+
+/* ---- the requests and scheduled imports of 1.x (dashboard and sqliimport/schedules) ---- */
+
+/* the name=value options of 1.x: one per line, long values wrap */
+.a4-sqliimport-options-text { display: inline-block; max-width: 22rem; white-space: pre-line; overflow-wrap: anywhere; }
+
+/* the progression notes of a 1.x handler wrap within a readable width */
+.a4-sqliimport-notes { min-width: 9rem; max-width: 18rem; overflow-wrap: anywhere; }
+
+/* an action at the end of a section head (Purge history) */
+.a4-sqliimport-head-end { margin-inline-start: auto; }
+
+/* the form of a 1.x scheduled import stands above the lists */
+.a4-sqliimport-legacy-form { margin: 0 0 var(--a4-space-4); }
+.a4-sqliimport-legacy-form > .a4-card-head { margin: 0 0 var(--a4-space-3); }

@@ -75,13 +75,28 @@ Imports `legacy-<handler>`.
 
 - **Handler von 1.x laufen unverändert** in der Engine von 2.x. Ihre Zeilen haben das Ergebnis `processed`, ihre
   Fortschrittsnotizen gehen in das Protokoll des Laufs ([handlers.md](handlers.md)).
-- **Die Seiten von 1.x bleiben** im linken Menü des Reiters Importe unter „sqliimport 1.x“: die Importaufträge
-  von 1.x (`sqliimport/items`), die geplanten Importe (`sqliimport/scheduledlist`) und die Formulare für einen
-  neuen Auftrag (`sqliimport/addimport`, `sqliimport/addscheduled`). Ihre Aktionen (abbrechen, unterbrechen,
-  entfernen, bereinigen) sind jetzt POST-Formulare mit Bestätigung. Ein dort angelegter Auftrag wird vom Cron-Teil
-  an die Engine von 2.x übergeben.
-- **Die Liste von 1.x ist umgezogen:** `sqliimport/list` ist jetzt die Übersicht von 2.x. Die Liste der
-  Importaufträge von 1.x ist `sqliimport/items`. Passen Sie Lesezeichen an.
+- **Die Seiten von 1.x sind Teil der Seiten von 2.x.** Keine Seite von 1.x wird mehr gebraucht, und das linke Menü
+  hat keine Gruppe „sqliimport 1.x“ mehr:
+
+  | Seite von 1.x | Wo ihre Funktion jetzt ist |
+  |---|---|
+  | `sqliimport/items` (die Importaufträge) | Die Übersicht `sqliimport/list`, Abschnitt „1.x import requests“: Status, Fortschritt, Fortschrittsnotizen, der Lauf jedes Auftrags, **Cancel** (wartend), **Interrupt** (laufend); geblättert mit `(legacyoffset)` |
+  | `sqliimport/addimport` (einen Import anfordern) | Die Übersicht, das Formular **Request import** dieses Abschnitts (ein Handler von 1.x und seine Optionen `name=wert`) |
+  | `sqliimport/purgelist` | Die Übersicht, **Purge history** in diesem Abschnitt |
+  | `sqliimport/alterimport/<cancel\|interrupt>/<id>` | Die Übersicht, **Cancel** oder **Interrupt** des Auftrags; bricht auch seinen Lauf von 2.x ab |
+  | `sqliimport/scheduledlist` | `sqliimport/schedules`, Abschnitt „1.x scheduled imports“: **Run now**, **Edit**, **Enable** oder **Disable**, **Delete** |
+  | `sqliimport/addscheduled[/<id>]` | `sqliimport/schedules/(legacy)/<id>` (oder `/new`): Bezeichnung, Handler, Optionen, erster Lauf, Häufigkeit, aktiv; ein migrierter öffnet den Zeitplan seines Imports im Editor |
+  | `sqliimport/removescheduled/<id>` | `sqliimport/schedules`, **Delete** |
+  | der Fortschritt eines Auftrags | die Seite des Laufs `sqliimport/run/<id>` (Fortschritt, Zähler, Protokoll) |
+
+- **Die alten Adressen funktionieren weiter.** Ein GET einer Seite von 1.x führt zur Seite von 2.x oben, mit ihren
+  IDs und ihrem Offset (`sqliimport/addscheduled/12` zu `sqliimport/schedules/(legacy)/12`). Ein POST mit den Feldern
+  von 1.x (`RequestImportButton`, `ImportHandler`, `ImportOptions`; `RequestScheduledImportButton` und die Felder
+  `Scheduled*`; der POST von `alterimport`, `removescheduled`, `purgelist`) tut weiter, was er tat, geprüft durch das
+  Formular-Token und die Handler-Einschränkung `SQLIImport_Type` wie bisher, und führt dann zur Seite von 2.x.
+  Skripte und Handler von 1.x, die dorthin senden, brauchen keine Änderung. Diese Adressen zeigen keine eigene Seite.
+- **Die Liste von 1.x ist umgezogen:** `sqliimport/list` ist die Übersicht von 2.x. Lesezeichen auf
+  `sqliimport/items` werden weitergeleitet.
 - **Ein Import blockiert nicht mehr alle anderen.** 1.x hatte eine globale Sperre (`SQLIImportToken`); 2.x führt
   verschiedene Importe parallel aus und jeden Import einmal gleichzeitig.
 - **`sqlidoimport.php` und die Cron-Teile von 1.x bleiben erhalten**, sind aber veraltet.

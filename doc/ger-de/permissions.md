@@ -68,7 +68,7 @@ expqueue. Der Block „Imports“ auf dem Dashboard der Administration erscheint
 
 ## Hinweise zur Sicherheit
 
-- Jede Änderung auf den Seiten von 2.x und von 1.x ist eine POST-Anfrage mit dem Formular-Token (ezformtoken). Eine
+- Jede Änderung auf den Seiten von 2.x und über die alten Adressen der Seiten von 1.x ist eine POST-Anfrage mit dem Formular-Token (ezformtoken). Eine
   GET-Anfrage ändert nichts. Auch die Live-Seite eines Laufs holt ihre Aktualisierungen per POST mit dem
   Formular-Token.
 - Der Lauf wird als der Benutzer verarbeitet, der ihn gestartet hat, oder als Robot-Benutzer des Imports. Dieser

@@ -7,9 +7,6 @@
 Map[sqliimport]=ext/sqliimport/index.md
 Map[sqliimport/list]=ext/sqliimport/runs.md
 Map[sqliimport/run]=ext/sqliimport/runs.md
-Map[sqliimport/items]=ext/sqliimport/migration-1x.md
-Map[sqliimport/scheduledlist]=ext/sqliimport/schedules.md
-Map[sqliimport/addimport]=ext/sqliimport/handlers.md
-Map[sqliimport/addscheduled]=ext/sqliimport/schedules.md
+Map[sqliimport/schedules]=ext/sqliimport/schedules.md
 
 */ ?>

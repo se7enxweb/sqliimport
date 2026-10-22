@@ -66,7 +66,7 @@ dashboard is shown to users who may open the Imports tab.
 
 ## Security notes
 
-- Every change in the 2.x pages and in the 1.x pages is a POST request with the form token (ezformtoken). A GET
+- Every change in the 2.x pages and through the old addresses of the 1.x pages is a POST request with the form token (ezformtoken). A GET
   request changes nothing. The live run page reads its updates by POST with the form token as well.
 - The run is processed as the user who started it, or as the robot user of the import. That user needs the content
   policies to create and edit the objects of the import.

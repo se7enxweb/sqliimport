@@ -1,82 +1,38 @@
 <?php
 /**
- * SQLi Import import alteration view
- * @copyright Copyright (C) 2010 - SQLi Agency. All rights reserved
- * @licence http://www.gnu.org/licenses/gpl-2.0.txt GNU GPLv2
- * @author Jerome Vieilledent
- * @version @@@VERSION@@@
+ * sqliimport/alterimport/<action>/<id> (1.x): cancel a pending 1.x import request or interrupt a running one. The
+ * buttons are on the dashboard now (sqliimport/list, "1.x import requests"). A POST (checked by ezformtoken) still
+ * does it, if the user may use the handler (SQLIImport_Type), and cancels the 2.x run of the request; then, as a GET,
+ * it goes to the dashboard.
+ *
+ * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
+ * @license GNU General Public License v2.0
  * @package sqliimport
  */
 
+/** @var eZModule $Module */
 $Module = $Params['Module'];
-// A change is made only by a POST (the form token of ezformtoken checks it), never by a link a page could embed
-if ( strtoupper( (string)eZSys::serverVariable( 'REQUEST_METHOD', true ) ) !== 'POST' )
-    return $Module->redirectToView( 'items' );
-$Result = array();
-$tpl = SQLIImportUtils::templateInit();
-
-try
+if ( strtoupper( (string)eZSys::serverVariable( 'REQUEST_METHOD', true ) ) === 'POST' )
 {
-    $user = eZUser::currentUser();
-    $userID = $user->attribute( 'contentobject_id' );
-    $userLogin = $user->attribute( 'login' );
-    $action = $Params['Action'];
-    $importID = $Params['ImportID'];
-    $import = SQLIImportItem::fetch( $importID );
-    if ( !$import instanceof SQLIImportItem )
-        throw new SQLIImportBaseException( SQLIImportUtils::translate( 'extension/sqliimport/error',
-                                                                       "No import item found with ID #%importID",
-                                                                        null, array( '%importID' => $importID) ) );
-
-    // Check if user has access to handler alteration
-    $aLimitation = array( 'SQLIImport_Type' => $import->attribute( 'handler' ) );
-    $hasAccess = SQLIImportUtils::hasAccessToLimitation( $Module->currentModule(), 'manageimports', $aLimitation );
-    if( !$hasAccess )
-        return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
-
-    switch( $action )
+    $id = (int)$Params['ImportID'];
+    $item = SQLIImportItem::fetch( $id );
+    if ( !$item instanceof SQLIImportItem )
+        expImportLegacy::flash( 'bad', ezpI18n::tr( 'extension/sqliimport/error', 'No import item found with ID #%importID', null, array( '%importID' => $id ) ) );
+    else
     {
-        case 'cancel':
-            // Check if import is already running. Maybe user has not refreshed import list in the admin...
-            $status = ( $import->attribute( 'status' ) == SQLIImportItem::STATUS_RUNNING ) ? SQLIImportItem::STATUS_INTERRUPTED : SQLIImportItem::STATUS_CANCELED;
-            
-            SQLIImportLogger::logNotice(
-                'User "'.$userLogin.'" (#'.$userID.') requested cancelation of pending import #'.$importID.' on '.date( 'Y-m-d H:i' ),
-                false
-            );
-            $import->setAttribute( 'status', $status );
-            $import->store();
-            break;
-            
-        case 'interrupt':
-            SQLIImportLogger::logNotice(
-                'User "'.$userLogin.'" (#'.$userID.') requested interruption of running import #'.$importID.' on '.date( 'Y-m-d H:i' ),
-                false
-            );
-            $import->setAttribute( 'status', SQLIImportItem::STATUS_INTERRUPTED );
-            $import->store();
-            break;
-            
-        default:
-            throw new SQLIImportBaseException( SQLIImportUtils::translate( 'extension/sqliimport/error',
-                                                                           "Unknown alter import action '%action'",
-                                                                            null, array( '%action' => $action) ) );
+        if ( !expImportAdmin::can( 'manage', (string)$item->attribute( 'handler' ) ) )
+            return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
+        try
+        {
+            expImportLegacy::alterItem( $item, (string)$Params['Action'] );
+            expImportLegacy::flash( 'ok', ezpI18n::tr( 'extension/sqliimport', 'The 1.x import #%id is %status.', null,
+                                                       array( '%id' => $id, '%status' => ezpI18n::tr( 'extension/sqliimport/type', (string)$item->attribute( 'status_string' ) ) ) ) );
+        }
+        catch ( Exception $e )
+        {
+            SQLIImportLogger::writeError( $e->getMessage() );
+            expImportLegacy::flash( 'bad', $e->getMessage() );
+        }
     }
-    
-    $Module->redirectToView( 'items' );
 }
-catch( Exception $e )
-{
-    $errMsg = $e->getMessage();
-    SQLIImportLogger::writeError( $errMsg );
-    $tpl->setVariable( 'error_message', $errMsg );
-    
-    $Result['path'] = array(
-        array(
-            'url'       => false,
-            'text'      => SQLIImportUtils::translate( 'extension/sqliimport/error', 'Error' )
-        )
-    );
-    $Result['content'] = $tpl->fetch( 'design:sqliimport/altererror.tpl' );
-}
-
+$Module->redirectTo( expImportLegacy::redirectFor( 'alterimport' ) );

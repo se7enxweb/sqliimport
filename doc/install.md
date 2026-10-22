@@ -92,7 +92,6 @@ The left menu of the tab has these pages:
 | Job queue | `expqueue/dashboard` | the manual of expqueue |
 | Catalogue | `sqliimport/catalogue` | the source types, handlers and transforms of the site |
 | Settings | `sqliimport/settings` | [settings.md](settings.md#the-settings-page) |
-| 1.x import requests, 1.x scheduled imports, New 1.x import request | `sqliimport/items`, `sqliimport/scheduledlist`, `sqliimport/addimport` | [migration-1x.md](migration-1x.md#after-the-upgrade) |
 
 A link is shown only to users who may open its page ([permissions.md](permissions.md)). The extension also adds the
 block "Imports" to the admin dashboard (`dashboard.ini [DashboardBlock_sqliimport]`).

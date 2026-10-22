@@ -95,7 +95,6 @@ Das linke Menü des Reiters hat diese Seiten:
 | Job queue | `expqueue/dashboard` | das Handbuch von expqueue |
 | Catalogue | `sqliimport/catalogue` | die Quelltypen, Handler und Umwandlungen der Website |
 | Settings | `sqliimport/settings` | [settings.md](settings.md#die-seite-settings) |
-| 1.x import requests, 1.x scheduled imports, New 1.x import request | `sqliimport/items`, `sqliimport/scheduledlist`, `sqliimport/addimport` | [migration-1x.md](migration-1x.md#nach-der-aktualisierung) |
 
 Ein Link erscheint nur für Benutzer, die seine Seite öffnen dürfen ([permissions.md](permissions.md)). Die
 Erweiterung fügt außerdem dem Dashboard der Administration den Block „Imports“ hinzu

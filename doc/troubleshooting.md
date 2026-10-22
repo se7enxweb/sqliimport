@@ -111,7 +111,7 @@ or leave it empty so records are named by their position.
 - Its rows have the outcome `processed`; the engine does not know what the handler did. Read its progression notes
   in the run's log.
 - "Retry failed rows" is not available. Run the import again.
-- 1.x import requests made on `sqliimport/addimport` wait until the cron part `sqliimport` (or the deprecated
+- 1.x import requests (the dashboard's **Request import**, or a POST to `sqliimport/addimport`) wait until the cron part `sqliimport` (or the deprecated
   `sqliimport_run`) hands them to the job queue. If one stays pending, check that a cron part runs.
 
 ## Memory and time

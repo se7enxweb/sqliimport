@@ -1,7 +1,10 @@
 <?php
 /**
- * sqliimport/schedules: every schedule of the 2.x imports with its next run, Pause, Resume and Edit; and the 1.x
- * scheduled imports that were not migrated yet.
+ * sqliimport/schedules: every schedule of the 2.x imports with its next run, Pause, Resume and Edit; and the scheduled
+ * imports of 1.x (sqliimport_scheduled), which were sqliimport/scheduledlist: Run now, Edit, Enable or Disable and
+ * Delete. sqliimport/schedules/(legacy)/<id> (or /new) shows the form of a 1.x scheduled import above the lists (it
+ * was sqliimport/addscheduled); its POST (LegacyScheduleSaveButton, the field names of 1.x, checked by ezformtoken) is
+ * handled here, so a value that is not valid is shown again with its message.
  *
  * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
  * @license GNU General Public License v2.0
@@ -12,6 +15,47 @@
 $Module = $Params['Module'];
 if ( !expImportSchema::installed() )
     return $Module->handleError( eZError::KERNEL_NOT_AVAILABLE, 'kernel' );
+$http = eZHTTPTool::instance();
+
+// the form of a 1.x scheduled import: (legacy)/new or (legacy)/<id>
+$legacyRef = isset( $Params['Legacy'] ) ? (string)$Params['Legacy'] : '';
+$legacyForm = null;
+$legacyErrors = array();
+if ( $legacyRef !== '' )
+{
+    $scheduled = null;
+    if ( $legacyRef !== 'new' )
+    {
+        $scheduled = SQLIScheduledImport::fetch( (int)$legacyRef );
+        if ( !$scheduled instanceof SQLIScheduledImport )
+            return $Module->handleError( eZError::KERNEL_NOT_AVAILABLE, 'kernel' );
+        if ( !expImportAdmin::can( 'manage', (string)$scheduled->attribute( 'handler' ) ) )
+            return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
+    }
+    elseif ( !expImportLegacy::handlers( 'manage' ) )
+        return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
+    $posted = null;
+    if ( strtoupper( (string)eZSys::serverVariable( 'REQUEST_METHOD', true ) ) === 'POST' && $http->hasPostVariable( 'LegacyScheduleSaveButton' ) )
+    {
+        $posted = expImportLegacy::postedScheduleFields( $http );
+        $handler = isset( $posted['ImportHandler'] ) ? (string)$posted['ImportHandler'] : '';
+        if ( !expImportAdmin::can( 'manage', $handler ) )
+            return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
+        try
+        {
+            $saved = expImportLegacy::saveScheduled( $scheduled ? (int)$scheduled->attribute( 'id' ) : 0, $posted );
+            expImportLegacy::flash( 'ok', ezpI18n::tr( 'extension/sqliimport', 'The 1.x scheduled import "%name" is saved.', null,
+                                                       array( '%name' => $saved->attribute( 'label' ) !== '' ? $saved->attribute( 'label' ) : '#' . $saved->attribute( 'id' ) ) ) );
+            return $Module->redirectTo( '/sqliimport/schedules' );
+        }
+        catch ( expImportValidationException $e )
+        {
+            $legacyErrors = $e->errors;
+        }
+    }
+    $legacyForm = expImportLegacy::form( $scheduled, $posted );
+}
+
 $rows = array();
 foreach ( expImportSchedule::fetchAll( 0, 500 ) as $s )
 {
@@ -23,17 +67,16 @@ foreach ( expImportSchedule::fetchAll( 0, 500 ) as $s )
                      'next' => (int)$s->attribute( 'is_active' ) ? expImportEditor::nextTimes( $s->calcArray(), 3 ) : array(),
                      'can_edit' => expImportAdmin::can( 'edit', (string)$import->attribute( 'handler' ) ) );
 }
-$legacy = 0;
-foreach ( (array)SQLIScheduledImport::fetchList( 0, null, array( 'is_active' => 1 ) ) as $old )
-    if ( !expImportDefinition::fetchCount( array( 'legacy_scheduled_id' => (int)$old->attribute( 'id' ) ) ) )
-        $legacy++;
-$http = eZHTTPTool::instance();
 $flash = $http->hasSessionVariable( 'SQLIImportFlash' ) ? $http->sessionVariable( 'SQLIImportFlash' ) : null;
 if ( $flash )
     $http->removeSessionVariable( 'SQLIImportFlash' );
 $tpl = eZTemplate::factory();
 $tpl->setVariable( 'schedules', $rows );
-$tpl->setVariable( 'legacy_count', $legacy );
+$tpl->setVariable( 'legacy_schedules', expImportLegacy::scheduled() );
+$tpl->setVariable( 'legacy_form', $legacyForm );
+$tpl->setVariable( 'legacy_errors', $legacyErrors );
+$tpl->setVariable( 'legacy_form_handlers', $legacyForm ? expImportLegacy::handlers( 'manage' ) : array() );
+$tpl->setVariable( 'can_add_legacy', (bool)expImportLegacy::handlers( 'manage' ) );
 $tpl->setVariable( 'flash', $flash );
 $tpl->setVariable( 'here', '/sqliimport/schedules' );
 $Result = array();

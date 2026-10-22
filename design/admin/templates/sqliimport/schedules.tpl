@@ -1,5 +1,6 @@
 {* sqliimport/schedules: the schedules of the imports with their next runs; Pause, Resume, Edit and Delete for users
-   who may edit the import. *}
+   who may edit the import. Then the scheduled imports of 1.x (parts/legacy_schedules.tpl), and with (legacy)/<id> or
+   (legacy)/new the form of one above everything (parts/legacy_schedule_form.tpl). *}
 <div class="context-block a4-page a4-sqliimport">
 <div class="box-header"><div class="box-ml">
 <h1 class="context-title">{'Schedules'|i18n( 'extension/sqliimport' )}</h1>
@@ -7,7 +8,7 @@
 <div class="box-bc"><div class="box-ml"><div class="box-content">
 {include uri='design:sqliimport/parts/flash.tpl' flash=$flash}
 <p class="a4-intro">{'The cron part "sqliimport" queues the runs that are due every minute; the workers of the job queue do them.'|i18n( 'extension/sqliimport' )}</p>
-{if gt( $legacy_count, 0 )}<p class="a4-notice is-info">{'%n scheduled imports of 1.x are not migrated yet; they keep running. ./console ext:sqliimport:migrate-1x moves them here.'|i18n( 'extension/sqliimport',, hash( '%n', $legacy_count ) )} <a href={'/sqliimport/scheduledlist'|ezurl}>{'1.x scheduled imports'|i18n( 'extension/sqliimport' )}</a></p>{/if}
+{if $legacy_form}{include uri='design:sqliimport/parts/legacy_schedule_form.tpl'}{/if}
 {if $schedules|count|eq( 0 )}
 <div class="a4-empty"><p>{'No import runs by itself yet. A schedule is the fifth step of the import editor.'|i18n( 'extension/sqliimport' )}</p></div>
 {else}
@@ -32,5 +33,6 @@
 </table>
 </div>
 {/if}
+{include uri='design:sqliimport/parts/legacy_schedules.tpl'}
 </div></div></div>
 </div>
