@@ -1,0 +1,39 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:urn:uuid:4fbe8971-0bc3-424c-9c26-36c3e1eff6b1
+FN:Alex Example
+N:Example;Alex;J.;Dr.;
+ORG:Example Corp;Research
+TITLE:Head of Research
+EMAIL;TYPE=work;PREF=1:alex@example.com
+EMAIL;TYPE=home:alex.home@example.org
+TEL;VALUE=uri;TYPE="work,voice":tel:+1-555-0100
+TEL;VALUE=uri;TYPE=cell:tel:+1-555-0101
+ADR;TYPE=work:;Suite 4;100 Example Avenue;Springfield;EX;55501;United States
+URL:https://example.com/people/alex
+NOTE:Met at the example conference\, 2026.\nLikes long
+  walks in example parks.
+BDAY:19850412
+CATEGORIES:Customer,Speaker
+PHOTO:https://example.com/photos/alex.jpg
+GENDER:N
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Sam Sample
+N:Sample;Sam;;;
+item1.EMAIL;type=INTERNET;type=pref:sam@example.org
+TEL;TYPE=HOME,VOICE:555-0123
+TEL;TYPE=FAX:555-0124
+ADR;TYPE=HOME:;;7 Sample Road;Exampleton;;12345;Exampleland
+BDAY:--0704
+ORG:Sample Club
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+UID:contact-3@example.net
+FN:Jordan Placeholder
+N:Placeholder;Jordan;;;
+EMAIL:jordan@example.net
+PHOTO;ENCODING=b;TYPE=JPEG:/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4n
+END:VCARD
