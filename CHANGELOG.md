@@ -7,6 +7,12 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 
 ### Added
 
+- Added: The SQL source reads through a named connection of Exponential 6.0.15 (option connection, Setup, Data
+  tables, Connections), with the same query check in the connection's dialect and paged reads.
+- Added: A secret's value can be typed in the editor (New value, for users with secrets/manage) and is stored in the
+  kernel's secret store under the option's name, scope sqliimport; it is never shown again.
+- Added: The field source of the "Module table" wizard is registered (datatable.field_source.sqliimport); it implements
+  the kernel's interface where the kernel has it.
 - Added: The format REST API (rest_api): the records of any JSON API, paged by page number, offset and limit, a cursor
   of the answer, the next address of the answer or the Link header rel="next" (both on the same site only), stopping
   at an empty page, a total or the most pages; authentication by bearer token, basic, an API key in a header or a

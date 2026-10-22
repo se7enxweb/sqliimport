@@ -598,4 +598,12 @@ Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: WooCommerce product CSV exports
 
+# The fields of an import's source for the kernel's "Module table" wizard (Exponential 6.0.15, the data table layer):
+# the card "Create a new table from this source". The class implements the kernel's interface where it exists.
+[Service_datatable.field_source.sqliimport]
+Class=expImportDataTableFieldSource
+Scope=worker
+Tags[]=datatable.field_source
+Description=The fields of a 7x SQLI Import source, for a new data table.
+
 */ ?>

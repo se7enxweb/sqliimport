@@ -614,6 +614,7 @@ die kein UTF-8 sind, werden als `base64:...` geschrieben. Stichprobe und Vorscha
 
 | Option | Werte | Vorgabe |
 |---|---|---|
+| `connection` | Ab Exponential 6.0.15: der Bezeichner einer Verbindung unter **Setup, Data tables, Connections**. Die Quelle liest dann über sie (ihren Server, Benutzer und ihr Geheimnis); `driver` bis `password` werden nicht verwendet. Die Abfrage wird genauso geprüft, im Dialekt der Datenbank der Verbindung, und in Seiten zu 500 Zeilen gelesen. `site` ist die Datenbank dieser Website, nur mit `[SqlSourceSettings] SiteDatabase=enabled`; eine MongoDB-Verbindung liest das Format MongoDB | |
 | `driver` | `mysql` (MySQL oder MariaDB), `pgsql` (PostgreSQL), `sqlite` (eine Datei auf dem Server), `oracle` (Oracle), `sqlsrv` (Microsoft SQL Server), `site` (die Datenbank dieser Website) | `mysql` |
 | `host`, `port` | der Datenbankserver; Port `0` ist der Standardport (3306, 5432, Oracle 1521, SQL Server 1433) | |
 | `database` | der Name der Datenbank; bei SQLite der Pfad der Datei; bei Oracle der Dienstname (siehe unten) | |
@@ -762,6 +763,13 @@ gesetzt sind (verschlüsselt gespeichert, nie wieder angezeigt; der Bereich dies
 `secrets.ini` und `env:`; `sqliimport.ini [SecretSettings] Secrets[]` bleibt als Rückfall, bestehende Importe brauchen
 also keine Änderung. Um einen Wert umzuziehen, setzen Sie ihn unter Setup, Secrets mit demselben Namen und entfernen
 ihn aus den Einstellungen. **Importe, Einstellungen** verlinkt dann auf diese Seite.
+
+**Einen Wert im Editor speichern.** Ein Benutzer mit der Richtlinie *secrets/manage* sieht unter jeder Geheimnis-Option
+des Editors ein Feld **New value** (Exponential 6.0.15 mit eingerichtetem Geheimnisspeicher). Den Namen in die Option,
+den Wert in New value eintragen und speichern: Der Wert kommt unter diesem Namen und dem Bereich `sqliimport` in den
+Speicher, mit Import und Option als Beschreibung. Das Feld ist immer leer; ein gespeicherter Wert wird nie wieder
+angezeigt, auch nicht nach einem Fehler, und gelangt nie in den Import, einen Lauf, ein Protokoll oder eine exportierte
+Definition.
 
 ## Elasticsearch- oder OpenSearch-Index (`elasticsearch`)
 

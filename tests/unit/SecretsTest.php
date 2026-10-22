@@ -54,4 +54,29 @@ class SecretsTest extends TestCase
         $this->assertStringContainsString( "return class_exists( 'expSecrets' );", $source );
         $this->assertStringContainsString( 'expSecrets::get( $ref, self::iniSecrets() )', $source, 'the INI secrets are the fallback of the kernel store' );
     }
+
+    /**
+     * Storing a value typed into the editor: refused without the right (or before 6.0.15), and without a name; the
+     * editor offers the field only when it may store, and never puts the value back into the form.
+     */
+    public function testStoringANewSecret(): void
+    {
+        expImportSecrets::$canStore = false;
+        try
+        {
+            $this->assertStringContainsString( 'secrets/manage', (string)expImportSecrets::store( 'shop_db', 'pw-value' ) );
+            expImportSecrets::$canStore = true;
+            $this->assertStringContainsString( 'Give the secret a name', (string)expImportSecrets::store( '  ', 'pw-value' ) );
+        }
+        finally
+        {
+            expImportSecrets::$canStore = null;
+        }
+        $root = dirname( __DIR__, 2 );
+        $tpl = (string)file_get_contents( $root . '/design/admin/templates/sqliimport/parts/option_fields.tpl' );
+        $this->assertStringContainsString( 'type="password" id="{$sq_of_oid}-new" name="NewSecret[{$sq_of_oid}]" value="" autocomplete="new-password"', $tpl, 'always empty' );
+        $editor = (string)file_get_contents( $root . '/classes/exp/expimporteditor.php' );
+        $this->assertStringContainsString( "\$this->storeNewSecrets( \$sources[\$type]['schema'], \$options, 'sq-so-' . \$type,", $editor );
+        $this->assertStringContainsString( "expImportSecrets::store( \$secretName, \$value,", $editor );
+    }
 }

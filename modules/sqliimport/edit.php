@@ -254,6 +254,7 @@ if ( $step === 'source' )
             $sourceDrivers[$sid] = (array)call_user_func( array( $s['class'], 'drivers' ) );
 $tpl->setVariable( 'source_drivers', $sourceDrivers );
 $tpl->setVariable( 'sql_drivers', isset( $sourceDrivers['sql'] ) ? $sourceDrivers['sql'] : array() );
+$tpl->setVariable( 'can_store_secrets', expImportSecrets::canStore() );
 // the option fields of every format (the chosen one shown): what was posted, else the stored options of the import's own format
 $postedOptions = $isPost && $http->hasPostVariable( 'SourceOptions' ) && is_array( $http->postVariable( 'SourceOptions' ) ) ? $http->postVariable( 'SourceOptions' ) : array();
 $savedType = $editor->import ? (string)$editor->import->attribute( 'source_type' ) : '';

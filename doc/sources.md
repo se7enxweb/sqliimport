@@ -600,6 +600,7 @@ as `base64:...`. The editor's sample and preview read the first `[RunSettings] D
 
 | Option | Values | Default |
 |---|---|---|
+| `connection` | Exponential 6.0.15 and later: the identifier of a connection of **Setup, Data tables, Connections**. The source then reads through it (its server, user and secret); `driver` to `password` are not used. The query is checked the same way, in the dialect of the connection's engine, and read in pages of 500 rows. `site` is this site's database, only with `[SqlSourceSettings] SiteDatabase=enabled`; a MongoDB connection is read with the MongoDB format | |
 | `driver` | `mysql` (MySQL or MariaDB), `pgsql` (PostgreSQL), `sqlite` (a file on the server), `oracle` (Oracle), `sqlsrv` (Microsoft SQL Server), `site` (this site's database) | `mysql` |
 | `host`, `port` | the database server; port `0` is the default port (3306, 5432, Oracle 1521, SQL Server 1433) | |
 | `database` | the database name; SQLite: the path of the file; Oracle: the service name (see below) | |
@@ -738,6 +739,12 @@ as `[secret <name>]`, also when a server quotes it in an error.
 encrypted, never shown again; this tool's scope is `sqliimport`), `secrets.ini` and `env:`; `sqliimport.ini
 [SecretSettings] Secrets[]` stays as the fallback, so existing imports need no change. To move a value, set it in
 Setup, Secrets under the same name and remove it from the settings. **Imports, Settings** then links to that page.
+
+**Storing a value from the editor.** A user with the policy *secrets/manage* sees a **New value** field under every
+secret option of the editor (Exponential 6.0.15 with the secret store set up). Type the name into the option, the value
+into New value, and save: the value goes into the store under that name and the scope `sqliimport`, with the import and
+the option as its description. The field is always empty; a stored value is never shown again, not even after an
+error, and never goes into the import, a run, a log or an exported definition.
 
 ## Elasticsearch or OpenSearch index (`elasticsearch`)
 

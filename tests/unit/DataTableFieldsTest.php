@@ -74,10 +74,15 @@ class DataTableFieldsTest extends TestCase
     public function testTheProviderIsGuarded(): void
     {
         $root = dirname( __DIR__, 2 );
-        $this->assertStringContainsString( 'class expImportDataTableFieldSource implements expDataTableFieldSource',
-                                           (string)file_get_contents( $root . '/classes/exp/expimportdatatablefieldsource.php' ) );
-        if ( !interface_exists( 'expDataTableFieldSource' ) )
-            $this->assertStringNotContainsString( 'datatable.field_source', (string)file_get_contents( $root . '/settings/kernelservices.ini.append.php' ),
-                                                  'not registered before the kernel has the interface' );
+        $file = (string)file_get_contents( $root . '/classes/exp/expimportdatatablefieldsource.php' );
+        $this->assertStringContainsString( "if ( interface_exists( 'expDataTableFieldSource' ) )", $file );
+        $this->assertStringContainsString( 'class expImportDataTableFieldSource extends expImportDataTableFieldSourceBase implements expDataTableFieldSource', $file );
+        $this->assertStringContainsString( "[Service_datatable.field_source.sqliimport]\nClass=expImportDataTableFieldSource\nScope=worker\nTags[]=datatable.field_source",
+                                           (string)file_get_contents( $root . '/settings/kernelservices.ini.append.php' ) );
+        // it loads on a kernel with or without the interface, and has the methods the wizard calls
+        $this->assertTrue( class_exists( 'expImportDataTableFieldSource' ) );
+        $this->assertSame( interface_exists( 'expDataTableFieldSource' ), is_subclass_of( 'expImportDataTableFieldSource', 'expDataTableFieldSource' ) );
+        foreach ( array( 'dataTableFields', 'dataTableSourceLabel' ) as $method )
+            $this->assertTrue( method_exists( 'expImportDataTableFieldSource', $method ), $method );
     }
 }

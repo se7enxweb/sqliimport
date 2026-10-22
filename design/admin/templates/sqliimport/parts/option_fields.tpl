@@ -22,6 +22,13 @@
 {/if}
 {/if}
 {if is_set( $sq_of_def.help )}<span class="a4-help">{$sq_of_def.help|wash}</span>{/if}
+{* a secret option: its value can be typed here and goes into the kernel's secret store under the name above (for a
+   user with secrets/manage, Exponential 6.0.15); the field is always empty, a stored value is never shown *}
+{if and( eq( $sq_of_type, 'secret' ), is_set( $can_store_secrets ) )}{if $can_store_secrets}
+<label for="{$sq_of_oid}-new">{'New value (stored in Setup, Secrets under this name)'|i18n( 'extension/sqliimport/edit' )}</label>
+<input type="password" id="{$sq_of_oid}-new" name="NewSecret[{$sq_of_oid}]" value="" autocomplete="new-password" spellcheck="false" />
+<span class="a4-help">{'Leave it empty to keep the stored value. It is never shown again, not even after an error.'|i18n( 'extension/sqliimport/edit' )}</span>
+{/if}{/if}
 {if is_set( $errors[$sq_of_ekey] )}<span class="a4-field-error" id="{$sq_of_oid}-error">{$errors[$sq_of_ekey]|wash}</span>{/if}
 </div>
 {undef $sq_of_oid $sq_of_type $sq_of_value $sq_of_ekey}

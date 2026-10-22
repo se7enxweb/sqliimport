@@ -102,6 +102,46 @@ class expImportEditor
     }
 
     /**
+     * Stores the values typed into the "New value" fields of the secret options (NewSecret[<id prefix>-<option>]) in
+     * the kernel's secret store, under the name the option gives and the scope sqliimport. Only for a user who may
+     * manage secrets, and only with the store there (Exponential 6.0.15); the value never goes into the import, a run
+     * or a log, and the form never shows it again. A problem is an error next to the option.
+     *
+     * @param array $schema the option schema
+     * @param array $options the validated options (secret option => name)
+     * @param string $idPrefix sq-so-<format> or sq-ho
+     * @param string $errorPrefix the error key before the option name
+     * @param string $importName for the description of the secret
+     * @return int how many were stored
+     */
+    protected function storeNewSecrets( array $schema, array $options, $idPrefix, $errorPrefix, $importName )
+    {
+        $typed = $this->postArray( 'NewSecret' );
+        $stored = 0;
+        foreach ( $schema as $option => $def )
+        {
+            if ( !isset( $def['type'] ) || $def['type'] !== 'secret' )
+                continue;
+            $key = $idPrefix . '-' . $option;
+            $value = isset( $typed[$key] ) && is_string( $typed[$key] ) ? $typed[$key] : '';
+            if ( $value === '' )
+                continue;
+            $secretName = isset( $options[$option] ) ? trim( (string)$options[$option] ) : '';
+            $label = isset( $def['label'] ) ? (string)$def['label'] : $option;
+            $result = expImportSecrets::store( $secretName, $value, ezpI18n::tr( 'extension/sqliimport/edit', 'Import "%import": %option', null,
+                                                                                 array( '%import' => $importName, '%option' => $label ) ) );
+            if ( $result === true )
+            {
+                $stored++;
+                $this->notice = trim( $this->notice . ' ' . ezpI18n::tr( 'extension/sqliimport/edit', 'The secret %name is stored.', null, array( '%name' => $secretName ) ) );
+            }
+            else
+                $this->errors[$errorPrefix . $option] = $result;
+        }
+        return $stored;
+    }
+
+    /**
      * The options posted for a format: SourceOptions[<format>][<option>] (the editor's form, which holds every format's
      * options), else a flat SourceOptions[<option>] when none of its keys is a format.
      *
@@ -153,6 +193,10 @@ class expImportEditor
             }
             foreach ( $optionErrors as $key => $message )
                 $this->errors['SourceOptions[' . $type . ']_' . $key] = $message;
+            // a value typed for a secret option goes into the kernel's secret store under the name of the option
+            // (Exponential 6.0.15, policy secrets/manage); it is never kept in the import or shown again
+            if ( !$optionErrors )
+                $this->storeNewSecrets( $sources[$type]['schema'], $options, 'sq-so-' . $type, 'SourceOptions[' . $type . ']_', $name );
             $config = array_intersect_key( $config, array_flip( array( 'file', 'original_name', 'manifest_file', 'handed_over_by' ) ) ) + $options;
             // the origins the format allows (a database or mailbox source reads its data itself: remote)
             $origins = !empty( $sources[$type]['origins'] ) ? array_values( $sources[$type]['origins'] ) : array( 'upload', 'url', 'path' );

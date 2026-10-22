@@ -7,62 +7,21 @@
  * @package sqliimport
  */
 
-/**
- * The fields of an import's source for the kernel's "Module table" wizard (Exponential 6.0.15, the data table layer):
- * the card "Create a new table from this source" opens the wizard with array( 'import' => <id> ), and the wizard asks
- * this provider for the fields (expImportDataTableFields over the source's sample) and a label.
- *
- * Registered in kernelservices.ini as datatable.field_source.sqliimport only on a kernel that has the interface; it is
- * never loaded on an older one.
+/*
+ * The provider of the fields of an import for the kernel's "Module table" wizard (service
+ * datatable.field_source.sqliimport, expImportDataTableFieldSourceBase has the methods). It implements the kernel's
+ * interface expDataTableFieldSource where the kernel has it (Exponential 6.0.15 with the wizard); on an older kernel
+ * the same class exists without it, so the registration in kernelservices.ini never breaks loading the services.
  */
-class expImportDataTableFieldSource implements expDataTableFieldSource
+if ( interface_exists( 'expDataTableFieldSource' ) )
 {
-    /** How many records of the source are read for the guess */
-    const SAMPLE = 50;
-
-    /**
-     * @param array $options array( 'import' => id )
-     * @return array list of array( name, label, type, length, required, unique, sample )
-     */
-    public function dataTableFields( array $options )
+    class expImportDataTableFieldSource extends expImportDataTableFieldSourceBase implements expDataTableFieldSource
     {
-        $import = $this->import( $options );
-        if ( !$import )
-            return array();
-        $sample = expImportPreview::sample( $import, self::SAMPLE );
-        $flat = array();
-        foreach ( $sample['records'] as $record )
-            $flat[] = $record['flat'];
-        return expImportDataTableFields::infer( $flat );
     }
-
-    /**
-     * @param array $options array( 'import' => id )
-     * @return string e.g. 'Import "Products" (CSV)'
-     */
-    public function dataTableSourceLabel( array $options )
+}
+else
+{
+    class expImportDataTableFieldSource extends expImportDataTableFieldSourceBase
     {
-        $import = $this->import( $options );
-        if ( !$import )
-            return '';
-        $sources = expImportRegistry::instance()->sources();
-        $type = (string)$import->attribute( 'source_type' );
-        $format = isset( $sources[$type]['label'] ) ? $sources[$type]['label'] : $type;
-        return ezpI18n::tr( 'extension/sqliimport', 'Import "%name" (%format)', null,
-                            array( '%name' => $import->attribute( 'name' ), '%format' => $format ) );
-    }
-
-    /**
-     * The import, for a user who may see the imports
-     *
-     * @param array $options
-     * @return expImportDefinition|null
-     */
-    protected function import( array $options )
-    {
-        if ( !isset( $options['import'] ) || !expImportAdmin::can( 'view' ) )
-            return null;
-        $import = expImportDefinition::fetch( (int)$options['import'] );
-        return $import ?: null;
     }
 }

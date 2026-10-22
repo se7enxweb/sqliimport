@@ -22,9 +22,24 @@ class expSecrets
     public static function names( $scope = null ) { return array(); }
     /** @return string */
     public static function mask( $text, array $refs, array $values = array() ) { return ''; }
+    /** @return bool */
+    public static function installed( $fresh = false ) { return false; }
+    /** @return bool */
+    public static function validName( $name ) { return false; }
+    /** @return bool */
+    public static function set( $name, $value, $scope = '', $description = null ) { return false; }
 }
 interface expDataTableFieldSource
 {
     public function dataTableFields( array $options );
     public function dataTableSourceLabel( array $options );
+}
+class expDataConnections
+{
+    /** @return array */
+    public static function all() { return array(); }
+    /** @return array|null */
+    public static function get( $identifier ) { return null; }
+    /** @return eZDBInterface */
+    public static function db( $identifier ) { return eZDB::instance(); }
 }

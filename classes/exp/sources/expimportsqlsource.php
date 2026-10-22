@@ -144,6 +144,8 @@ class expImportSqlSource extends expImportJsonSource
     public static function schema()
     {
         return array(
+            'connection' => array( 'type' => 'string', 'label' => 'Named connection', 'max' => 64,
+                                   'help' => self::connectionHelp() ),
             'driver' => array( 'type' => 'enum', 'label' => 'Database', 'default' => 'mysql',
                                'values' => array( 'mysql' => 'MySQL or MariaDB', 'pgsql' => 'PostgreSQL', 'sqlite' => 'SQLite (a file on the server)',
                                                   'oracle' => 'Oracle', 'sqlsrv' => 'Microsoft SQL Server',
@@ -407,7 +409,9 @@ class expImportSqlSource extends expImportJsonSource
      */
     public static function test( array $options )
     {
-        $driver = isset( $options['driver'] ) ? (string)$options['driver'] : 'mysql';
+        $driver = isset( $options['connection'] ) && trim( (string)$options['connection'] ) !== ''
+                ? 'connection ' . trim( (string)$options['connection'] )
+                : ( isset( $options['driver'] ) ? (string)$options['driver'] : 'mysql' );
         $rows = 0;
         $first = array();
         try
@@ -442,6 +446,8 @@ class expImportSqlSource extends expImportJsonSource
     {
         $driver = isset( $options['driver'] ) ? (string)$options['driver'] : 'mysql';
         $query = isset( $options['query'] ) ? (string)$options['query'] : '';
+        if ( isset( $options['connection'] ) && trim( (string)$options['connection'] ) !== '' )
+            return self::connectionRows( trim( (string)$options['connection'] ), $query, $limit, $each );
         list( $dsn, $user, $password, $dialect, $refs ) = self::connection( $options );
         $refusal = self::checkQuery( $query, $dialect );
         if ( $refusal !== null )
@@ -489,6 +495,159 @@ class expImportSqlSource extends expImportJsonSource
         {
             throw new expImportSourceException( 'SQL (' . $driver . '): ' . self::maskText( $e->getMessage(), $refs, $password ) );
         }
+    }
+
+    // ---- named connections (Exponential 6.0.15, Setup > Data tables > Connections) ------------------------------
+
+    /**
+     * @var callable|null tests: function ( string $identifier ) returning array( descriptor array, object with
+     *      arrayQuery( $sql, array $params ) ) or null for no such connection
+     */
+    public static $connections = null;
+
+    /** The engines of a named connection, and the dialect of the query check for each */
+    const CONNECTION_DIALECTS = array( 'mysql' => 'mysql', 'mariadb' => 'mysql', 'postgresql' => 'pgsql', 'pgsql' => 'pgsql',
+                                       'sqlite' => 'sqlite', 'oracle' => 'oracle', 'sqlserver' => 'sqlsrv', 'sqlsrv' => 'sqlsrv' );
+
+    /** @return bool whether named connections are there (the kernel's expDataConnections) */
+    public static function connectionsAvailable()
+    {
+        return self::$connections !== null || class_exists( 'expDataConnections' );
+    }
+
+    /** @return string the help of the option connection, with the identifiers there are */
+    protected static function connectionHelp()
+    {
+        if ( !self::connectionsAvailable() )
+            return 'Exponential 6.0.15 and later: a connection of Setup > Data tables > Connections instead of the options below';
+        $ids = array();
+        if ( self::$connections === null )
+        {
+            try
+            {
+                foreach ( expDataConnections::all() as $id => $c )
+                    if ( isset( $c['engine'] ) && isset( self::CONNECTION_DIALECTS[$c['engine']] ) && $id !== 'site' )
+                        $ids[] = (string)$id;
+            }
+            catch ( Exception $e )
+            {
+                $ids = array();
+            }
+        }
+        return 'An identifier of Setup > Data tables > Connections: the source then reads through it, with its server, user and secret, '
+             . 'and the options Database to Password below are not used'
+             . ( $ids ? ' (here: ' . implode( ', ', array_slice( $ids, 0, 12 ) ) . ')' : '' )
+             . "; site, this site's database, only with [SqlSourceSettings] SiteDatabase=enabled";
+    }
+
+    /**
+     * The connection descriptor and its database, through the kernel or the test resolver.
+     *
+     * @param string $identifier
+     * @return array array( descriptor, db )
+     * @throws expImportSourceException
+     */
+    protected static function namedConnection( $identifier )
+    {
+        if ( !preg_match( '/^[a-z0-9_]{1,64}$/', $identifier ) )
+            throw new expImportSourceException( "SQL: '$identifier' is not the identifier of a connection" );
+        if ( $identifier === 'site' && expImport::setting( 'SqlSourceSettings', 'SiteDatabase', 'disabled' ) !== 'enabled' )
+            throw new expImportSourceException( "SQL: this site's database can be read only with sqliimport.ini [SqlSourceSettings] SiteDatabase=enabled" );
+        if ( self::$connections !== null )
+        {
+            $found = call_user_func( self::$connections, $identifier );
+            if ( !$found )
+                throw new expImportSourceException( "SQL: there is no connection '$identifier' (Setup > Data tables > Connections)" );
+            return $found;
+        }
+        if ( !class_exists( 'expDataConnections' ) )
+            throw new expImportSourceException( 'SQL: named connections need Exponential 6.0.15 or later; give the server, user and secret instead' );
+        $descriptor = expDataConnections::get( $identifier );
+        if ( $descriptor === null )
+            throw new expImportSourceException( "SQL: there is no connection '$identifier' (Setup > Data tables > Connections)" );
+        try
+        {
+            return array( $descriptor, expDataConnections::db( $identifier ) );
+        }
+        catch ( Exception $e )
+        {
+            throw new expImportSourceException( 'SQL (' . $identifier . '): ' . self::maskText( $e->getMessage(), self::connectionRefs( $descriptor ), '' ) );
+        }
+    }
+
+    /** @return string[] the secret of a connection, for masking */
+    protected static function connectionRefs( array $descriptor )
+    {
+        return isset( $descriptor['secret'] ) && (string)$descriptor['secret'] !== '' ? array( (string)$descriptor['secret'] ) : array();
+    }
+
+    /**
+     * The rows of a query through a named connection: the same check as every query (a single SELECT, in the dialect
+     * of the connection's engine), read in pages of 500 so a large result is never held at once.
+     *
+     * @param string $identifier
+     * @param string $query
+     * @param int $limit
+     * @param callable $each
+     * @return string[] the columns of the first row
+     * @throws expImportSourceException
+     */
+    protected static function connectionRows( $identifier, $query, $limit, callable $each )
+    {
+        list( $descriptor, $db ) = self::namedConnection( $identifier );
+        $engine = $identifier === 'site' ? self::siteDialect() : ( isset( $descriptor['engine'] ) ? strtolower( (string)$descriptor['engine'] ) : '' );
+        if ( !isset( self::CONNECTION_DIALECTS[$engine] ) )
+            throw new expImportSourceException( "SQL: the connection '$identifier' is a $engine database; read it with its own format (e.g. MongoDB)" );
+        $dialect = self::CONNECTION_DIALECTS[$engine];
+        $refusal = self::checkQuery( $query, $dialect );
+        if ( $refusal !== null )
+            throw new expImportSourceException( 'SQL: ' . $refusal );
+        if ( $dialect === 'oracle' )
+            $query = rtrim( preg_replace( '/;\s*$/', '', rtrim( $query ) ) );
+        $refs = self::connectionRefs( $descriptor );
+        $columns = array();
+        $rows = 0;
+        $page = 500;
+        try
+        {
+            for ( $offset = 0; ; $offset += $page )
+            {
+                $length = $limit > 0 ? min( $page, $limit - $rows ) : $page;
+                if ( $length <= 0 )
+                    break;
+                $result = $db->arrayQuery( $query, array( 'limit' => $length, 'offset' => $offset ) );
+                if ( !is_array( $result ) )
+                    throw new expImportSourceException( "SQL ($identifier): the query failed" );
+                foreach ( $result as $row )
+                {
+                    if ( !$columns )
+                        $columns = array_map( 'strval', array_keys( (array)$row ) );
+                    $each( self::textValues( (array)$row, $dialect ) );
+                    $rows++;
+                }
+                if ( count( $result ) < $length )
+                    break;
+            }
+        }
+        catch ( expImportSourceException $e )
+        {
+            throw $e;
+        }
+        catch ( Exception $e )
+        {
+            throw new expImportSourceException( 'SQL (' . $identifier . '): ' . self::maskText( $e->getMessage(), $refs, '' ) );
+        }
+        return $columns;
+    }
+
+    /** @return string the query dialect of this site's database */
+    protected static function siteDialect()
+    {
+        $implementation = class_exists( 'eZINI' ) ? (string)eZINI::instance( 'site.ini' )->variable( 'DatabaseSettings', 'DatabaseImplementation' ) : '';
+        foreach ( array( 'sqlite' => 'sqlite', 'postgres' => 'postgresql', 'mysql' => 'mysql', 'oracle' => 'oracle', 'mssql' => 'sqlserver' ) as $needle => $engine )
+            if ( strpos( $implementation, $needle ) !== false )
+                return $engine;
+        return '';
     }
 
     /**

@@ -110,18 +110,8 @@ class expImportSecrets
     public static function mask( $text, array $refs )
     {
         $text = (string)$text;
-        if ( self::kernelStore() )
-        {
-            // the kernel's mask also hides the rawurlencoded value; the INI values are given to it as well
-            $values = array();
-            foreach ( $refs as $ref )
-            {
-                $value = self::get( $ref );
-                if ( $value !== null )
-                    $values[(string)$ref] = $value;
-            }
-            return (string)expSecrets::mask( $text, $refs, $values );
-        }
+        // every value this tool can read (the kernel store, secrets.ini, env:, sqliimport.ini) by its name first; then
+        // the kernel's own mask for what it knows besides (it names only the store's and secrets.ini's secrets)
         foreach ( $refs as $ref )
         {
             $value = self::get( $ref );
@@ -132,7 +122,48 @@ class expImportSecrets
                     $text = str_replace( rawurlencode( $value ), '[secret ' . $ref . ']', $text );
             }
         }
-        return $text;
+        return self::kernelStore() ? (string)expSecrets::mask( $text, $refs ) : $text;
+    }
+
+    /** @var bool|null tests: whether the current user may store secrets */
+    public static $canStore = null;
+
+    /**
+     * Whether the editor offers "New value" for a secret option: the kernel store is there with its table, and the
+     * current user has the policy secrets/manage.
+     *
+     * @return bool
+     */
+    public static function canStore()
+    {
+        if ( self::$canStore !== null )
+            return self::$canStore;
+        if ( !self::kernelStore() || !expSecrets::installed() || !class_exists( 'eZUser' ) )
+            return false;
+        $access = eZUser::currentUser()->hasAccessTo( 'secrets', 'manage' );
+        return isset( $access['accessWord'] ) && $access['accessWord'] !== 'no';
+    }
+
+    /**
+     * Stores a value typed into the editor in the kernel store, scope sqliimport.
+     *
+     * @param string $name the name the import's option gives
+     * @param string $value
+     * @param string $description
+     * @return true|string true, or the reason it was not stored (for the field's error; never the value)
+     */
+    public static function store( $name, $value, $description = '' )
+    {
+        $name = trim( (string)$name );
+        if ( !self::canStore() )
+            return 'Only a user with the policy secrets/manage can store a secret here (Setup > Secrets).';
+        if ( $name === '' )
+            return 'Give the secret a name in this field, then type its value below.';
+        if ( strpos( $name, 'env:' ) === 0 || !expSecrets::validName( $name ) )
+            return "The name '$name' cannot hold a stored secret (letters, digits, _ . - ; not env:).";
+        if ( !expSecrets::set( $name, (string)$value, self::SCOPE, (string)$description ) )
+            return 'The secret could not be stored (Setup > Secrets shows why: the key or the table).';
+        return true;
     }
 
     /**
