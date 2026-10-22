@@ -73,3 +73,41 @@
     else if ( window.addEventListener )
         window.addEventListener( 'DOMContentLoaded', start );
 })( window );
+
+/*
+ * The source step of the import editor: the form holds the option fields of every format
+ * (fieldset[data-sq-source-options="<format>"], sqliimport/edit/source.tpl); choosing a format shows its options and
+ * hides the others. Plain DOM, no library; without the script, saving the step shows the chosen format's options.
+ */
+(function ( document ) {
+    'use strict';
+
+    function show( form, format ) {
+        Array.prototype.forEach.call( form.querySelectorAll( '[data-sq-source-options]' ), function ( fieldset ) {
+            fieldset.hidden = fieldset.getAttribute( 'data-sq-source-options' ) !== format;
+        } );
+    }
+
+    function start() {
+        // the errors of a step that could not be saved: the summary takes the focus, its links lead to the fields
+        var summary = document.getElementById( 'a4-error-summary' );
+        if ( summary && summary.closest( '.a4-sqliimport' ) )
+            summary.focus();
+        Array.prototype.forEach.call( document.querySelectorAll( 'form' ), function ( form ) {
+            if ( !form.querySelector( '[data-sq-source-options]' ) )
+                return;
+            form.addEventListener( 'change', function ( e ) {
+                if ( e.target && e.target.name === 'SourceType' && e.target.checked )
+                    show( form, e.target.value );
+            } );
+            var checked = form.querySelector( 'input[name="SourceType"]:checked' );
+            if ( checked )
+                show( form, checked.value );
+        } );
+    }
+
+    if ( document.readyState === 'loading' )
+        document.addEventListener( 'DOMContentLoaded', start );
+    else
+        start();
+})( document );

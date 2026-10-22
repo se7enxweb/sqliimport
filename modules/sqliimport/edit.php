@@ -142,6 +142,10 @@ if ( $editor->import && $step === 'preview' && !$editor->import->isLegacy() )
     }
 }
 $mapping = $editor->mappingForForm();
+// a step that could not be saved shows what was entered (every field; files stay on the server, secrets are names)
+$failed = $isPost && $editor->errors;
+if ( $failed && $step === 'mapping' )
+    $mapping = $editor->mappingFromPost();
 $classes = array();
 foreach ( eZContentClass::fetchList( eZContentClass::VERSION_STATUS_DEFINED, true, false, array( 'name' => 'asc' ) ) as $class )
     $classes[] = array( 'identifier' => $class->attribute( 'identifier' ), 'name' => $class->attribute( 'name' ) );
@@ -212,12 +216,25 @@ $tpl->setVariable( 'handover', $handover );
 $tpl->setVariable( 'handlers', $registry->handlers() );
 $tpl->setVariable( 'transforms', expImportTransforms::catalogue() );
 $tpl->setVariable( 'source', $editor->import ? $editor->import->sourceConfig() : array( 'origin' => 'upload' ) );
+// the option fields of every format (the chosen one shown): what was posted, else the stored options of the import's own format
+$postedOptions = $isPost && $http->hasPostVariable( 'SourceOptions' ) && is_array( $http->postVariable( 'SourceOptions' ) ) ? $http->postVariable( 'SourceOptions' ) : array();
+$savedType = $editor->import ? (string)$editor->import->attribute( 'source_type' ) : '';
+$optionValues = array();
+foreach ( $sources as $sid => $s )
+    $optionValues[$sid] = isset( $postedOptions[$sid] ) && is_array( $postedOptions[$sid] ) ? $postedOptions[$sid] : ( $sid === $savedType ? $editor->import->sourceConfig() : array() );
+$tpl->setVariable( 'source_option_values', $optionValues );
+// after an error the format that was chosen stays chosen
+if ( $isPost && $editor->errors && $http->hasPostVariable( 'SourceType' ) && isset( $sources[(string)$http->postVariable( 'SourceType' )] ) )
+    $tpl->setVariable( 'source_type', (string)$http->postVariable( 'SourceType' ) );
 $tpl->setVariable( 'target', $editor->import ? $editor->import->target() : array( 'parent_node_id' => (int)expImport::setting( 'ImportSettings', 'DefaultParentNodeID', 2 ), 'section_id' => 0, 'language' => '', 'owner_id' => 0 ) );
 $tpl->setVariable( 'behaviour', $editor->import ? $editor->import->behaviour() : array( 'chunk_size' => (int)expImport::setting( 'RunSettings', 'ChunkSize', 200 ), 'update_policy' => 'update', 'max_rows' => 0, 'conflict_policy' => 'overwrite', 'undo_days' => '', 'notify_when' => 'errors', 'notify_starter' => true, 'notify_emails' => array() ) );
 $tpl->setVariable( 'options', $editor->import ? $editor->import->options() : array() );
 $tpl->setVariable( 'legacy_options', $editor->import && $editor->import->isLegacy() ? $editor->import->options() : array() );
 $tpl->setVariable( 'mapping', $mapping );
-$tpl->setVariable( 'grid', expImportEditor::gridLines( $mapping ) );
+$grid = expImportEditor::gridLines( $mapping );
+foreach ( $grid as $i => $line )
+    $grid[$i]['error'] = isset( $editor->errors['Fields_' . $line['attribute']] ) ? (string)$editor->errors['Fields_' . $line['attribute']] : '';
+$tpl->setVariable( 'grid', $grid );
 $translationGrid = $editor->import ? expImportEditor::translationGrid( $mapping, $languages ) : array();
 foreach ( $translationGrid as $i => $block )
     foreach ( $block['lines'] as $j => $line )
@@ -237,6 +254,46 @@ $tpl->setVariable( 'can_settings', expImportAdmin::can( 'settings' ) );
 $tpl->setVariable( 'undo_days_default', (int)expImport::setting( 'RunSettings', 'UndoDays', 30 ) );
 $tpl->setVariable( 'max_megabytes', (int)expImport::setting( 'SourceSettings', 'MaxSourceMegabytes', 200 ) );
 $tpl->setVariable( 'allowed_paths', (array)expImport::setting( 'SourceSettings', 'AllowedPaths', array() ) );
+if ( $failed )
+{
+    if ( $step === 'processing' )
+    {
+        $p = $editor->processingFromPost();
+        $tpl->setVariable( 'target', $p['target'] );
+        $tpl->setVariable( 'behaviour', $p['behaviour'] );
+        $tpl->setVariable( 'options', $p['options'] );
+        $tpl->setVariable( 'handler_choice', $p['handler'] );
+        if ( $p['legacy_options'] !== null )
+            $tpl->setVariable( 'legacy_options', $p['legacy_options'] );
+    }
+    elseif ( $step === 'schedule' )
+        $tpl->setVariable( 'schedule', $editor->scheduleFromPost() );
+}
+// the fields of the source step as posted (the template prefers them over the stored ones)
+$posted = array();
+if ( $failed )
+    foreach ( array( 'Name', 'Identifier', 'Description', 'Origin', 'SourceURL', 'SourcePath', 'LegacyHandler' ) as $name )
+        if ( $http->hasPostVariable( $name ) && is_scalar( $http->postVariable( $name ) ) )
+            $posted[$name] = (string)$http->postVariable( $name );
+$tpl->setVariable( 'posted', $posted );
+// the source step after an error: the origin and address as posted, and a file uploaded with it kept (a file input
+// cannot be filled again by a browser: "Uploaded: <name>" with KeepUpload instead)
+$pendingUpload = $failed && $step === 'source' ? expImportEditor::pendingUpload( $http ) : null;
+$tpl->setVariable( 'pending_upload', $pendingUpload );
+if ( $failed && $step === 'source' )
+{
+    $sourceVar = $editor->import ? $editor->import->sourceConfig() : array( 'origin' => 'upload' );
+    foreach ( array( 'Origin' => 'origin', 'SourceURL' => 'url', 'SourcePath' => 'path' ) as $field => $key )
+        if ( isset( $posted[$field] ) )
+            $sourceVar[$key] = $posted[$field];
+    if ( $pendingUpload )
+        $sourceVar['original_name'] = $pendingUpload['original_name'];
+    $tpl->setVariable( 'source', $sourceVar );
+}
+if ( !isset( $p ) )
+    $tpl->setVariable( 'handler_choice', $editor->import ? (string)$editor->import->attribute( 'handler' ) : 'mapping' );
+// the error summary links each error to its field
+$tpl->setVariable( 'error_links', expImportEditor::errorLinks( $editor->errors, $step ) );
 
 $Result = array();
 $Result['content'] = $tpl->fetch( 'design:sqliimport/edit.tpl' );

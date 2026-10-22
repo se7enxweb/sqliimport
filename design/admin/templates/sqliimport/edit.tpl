@@ -31,9 +31,10 @@
 
 {if ne( $notice, '' )}<p class="a4-notice is-info" role="status">{$notice|wash}</p>{/if}
 {if $errors|count|gt( 0 )}
-<div class="a4-notice is-bad a4-error-summary" role="alert">
-<p class="a4-notice-title">{'Please check these points:'|i18n( 'extension/sqliimport/edit' )}</p>
-<ul>{foreach $errors as $e}<li>{$e|wash}</li>{/foreach}</ul>
+<div class="a4-notice is-bad a4-error-summary" id="a4-error-summary" role="alert" tabindex="-1" aria-labelledby="a4-error-summary-title">
+<p class="a4-notice-title" id="a4-error-summary-title">{'Please check these points:'|i18n( 'extension/sqliimport/edit' )}</p>
+<ul>{foreach $error_links as $sq_el}<li>{if ne( $sq_el.target, '' )}<a href="#{$sq_el.target|wash}">{$sq_el.message|wash}</a>{else}{$sq_el.message|wash}{/if}</li>{/foreach}</ul>
+<p class="a4-meta">{'What you entered is kept; a file that was uploaded stays uploaded.'|i18n( 'extension/sqliimport/edit' )}</p>
 </div>
 {/if}
 

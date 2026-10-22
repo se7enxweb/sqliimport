@@ -13,16 +13,18 @@
 {/if}
 <div class="a4-field">
 <label for="sq-name">{'Name'|i18n( 'extension/sqliimport/edit' )} <span class="a4-required-mark" aria-hidden="true">*</span></label>
-<input type="text" id="sq-name" name="Name" value="{if $import}{$import.name|wash}{/if}" required="required" maxlength="255"{if is_set( $errors.Name )} aria-invalid="true"{/if} />
+<input type="text" id="sq-name" name="Name" value="{if is_set( $posted.Name )}{$posted.Name|wash}{elseif $import}{$import.name|wash}{/if}" required="required" maxlength="255" {if is_set( $errors.Name )} aria-invalid="true" aria-describedby="sq-name-error"{/if}/>
+{if is_set( $errors.Name )}<span class="a4-field-error" id="sq-name-error">{$errors.Name|wash}</span>{/if}
 </div>
 <div class="a4-field">
 <label for="sq-identifier">{'Identifier'|i18n( 'extension/sqliimport/edit' )}</label>
-<input type="text" id="sq-identifier" name="Identifier" value="{if $import}{$import.identifier|wash}{/if}" maxlength="100" />
+<input type="text" id="sq-identifier" name="Identifier" value="{if is_set( $posted.Identifier )}{$posted.Identifier|wash}{elseif $import}{$import.identifier|wash}{/if}" maxlength="100" {if is_set( $errors.Identifier )} aria-invalid="true" aria-describedby="sq-identifier-error"{/if}/>
+{if is_set( $errors.Identifier )}<span class="a4-field-error" id="sq-identifier-error">{$errors.Identifier|wash}</span>{/if}
 <span class="a4-help">{'Names the import on the command line (ext:sqliimport:run followed by the identifier). Empty: made from the name.'|i18n( 'extension/sqliimport/edit' )}</span>
 </div>
 <div class="a4-field a4-field-wide">
 <label for="sq-description">{'Description'|i18n( 'extension/sqliimport/edit' )}</label>
-<textarea id="sq-description" name="Description" rows="2">{if $import}{$import.description|wash}{/if}</textarea>
+<textarea id="sq-description" name="Description" rows="2">{if is_set( $posted.Description )}{$posted.Description|wash}{elseif $import}{$import.description|wash}{/if}</textarea>
 </div>
 
 <fieldset class="a4-field a4-field-wide">
@@ -57,17 +59,21 @@
 </fieldset>
 <div class="a4-field">
 <label for="sq-file">{'File'|i18n( 'extension/sqliimport/edit' )}</label>
-<input type="file" id="sq-file" name="SourceFile"{if is_set( $errors.SourceFile )} aria-invalid="true"{/if} />
-<span class="a4-help">{if is_set( $source.original_name )}{'Uploaded: %name. Choose a file only to replace it.'|i18n( 'extension/sqliimport/edit',, hash( '%name', $source.original_name ) )|wash}{else}{'At most %mb MB.'|i18n( 'extension/sqliimport/edit',, hash( '%mb', $max_megabytes ) )}{/if}</span>
+{if $pending_upload}<input type="hidden" name="KeepUpload" value="{$pending_upload.file|wash}" />{/if}
+<input type="file" id="sq-file" name="SourceFile"{if is_set( $errors.SourceFile )} aria-invalid="true" aria-describedby="sq-file-error"{else} aria-describedby="sq-file-help"{/if} />
+<span class="a4-help" id="sq-file-help">{if is_set( $source.original_name )}{'Uploaded: %name. Choose a file only to replace it.'|i18n( 'extension/sqliimport/edit',, hash( '%name', $source.original_name ) )|wash}{else}{'At most %mb MB.'|i18n( 'extension/sqliimport/edit',, hash( '%mb', $max_megabytes ) )}{/if}</span>
+{if is_set( $errors.SourceFile )}<span class="a4-field-error" id="sq-file-error">{$errors.SourceFile|wash}</span>{/if}
 </div>
 <div class="a4-field">
 <label for="sq-url">{'Address'|i18n( 'extension/sqliimport/edit' )}</label>
-<input type="url" id="sq-url" name="SourceURL" value="{if is_set( $source.url )}{$source.url|wash}{/if}" placeholder="https://"{if is_set( $errors.SourceURL )} aria-invalid="true"{/if} />
+<input type="url" id="sq-url" name="SourceURL" value="{if is_set( $source.url )}{$source.url|wash}{/if}" placeholder="https://" {if is_set( $errors.SourceURL )} aria-invalid="true" aria-describedby="sq-url-error"{/if}/>
+{if is_set( $errors.SourceURL )}<span class="a4-field-error" id="sq-url-error">{$errors.SourceURL|wash}</span>{/if}
 </div>
 {if $allowed_paths|count|gt( 0 )}
 <div class="a4-field">
 <label for="sq-path">{'Server file'|i18n( 'extension/sqliimport/edit' )}</label>
-<input type="text" id="sq-path" name="SourcePath" value="{if is_set( $source.path )}{$source.path|wash}{/if}" />
+<input type="text" id="sq-path" name="SourcePath" value="{if is_set( $source.path )}{$source.path|wash}{/if}" {if is_set( $errors.SourcePath )} aria-invalid="true" aria-describedby="sq-path-error"{/if}/>
+{if is_set( $errors.SourcePath )}<span class="a4-field-error" id="sq-path-error">{$errors.SourcePath|wash}</span>{/if}
 <span class="a4-help">{'Inside: %paths'|i18n( 'extension/sqliimport/edit',, hash( '%paths', $allowed_paths|implode( ', ' ) ) )|wash}</span>
 </div>
 {/if}
@@ -81,17 +87,19 @@
 {/if}
 {undef $sq_src_legacy}
 
-{def $sq_src_type = $source_type}
-{if is_set( $sources[$sq_src_type] )}
-<fieldset class="a4-field a4-field-wide">
-<legend>{'Options of the source (%type)'|i18n( 'extension/sqliimport/edit',, hash( '%type', $sources[$sq_src_type].label ) )|wash}</legend>
+{* the options of every format, each under its own name (SourceOptions[<format>][<option>]); the chosen one is shown,
+   sqliimport_admin.js shows another when its format is chosen (without the script, saving shows it) *}
+{if is_set( $errors.SourceOptions )}<p class="a4-notice is-warn" role="status">{$errors.SourceOptions|wash}</p>{/if}
+{foreach $sources as $sq_sid => $sq_s}
+{if and( eq( $sq_s.status, 'enabled' ), $sq_s.schema|count|gt( 0 ) )}
+<fieldset class="a4-field a4-field-wide a4-sqliimport-source-options" data-sq-source-options="{$sq_sid|wash}"{if ne( $sq_sid, $source_type )} hidden="hidden"{/if}>
+<legend>{'Options of the source (%type)'|i18n( 'extension/sqliimport/edit',, hash( '%type', $sq_s.label ) )|wash}</legend>
 <div class="a4-form is-wide a4-sqliimport-options">
-{include uri='design:sqliimport/parts/option_fields.tpl' schema=$sources[$sq_src_type].schema values=$source prefix='SourceOptions' errors=$errors idprefix='sq-so'}
+{include uri='design:sqliimport/parts/option_fields.tpl' schema=$sq_s.schema values=$source_option_values[$sq_sid] prefix=concat( 'SourceOptions[', $sq_sid, ']' ) errors=$errors idprefix=concat( 'sq-so-', $sq_sid )}
 </div>
-<span class="a4-help">{'The options of another source type are shown after it is saved.'|i18n( 'extension/sqliimport/edit' )}</span>
 </fieldset>
 {/if}
-{undef $sq_src_type}
+{/foreach}
 
 <div class="a4-field">
 <label for="sq-mapfile-src">{'Load a mapping (optional)'|i18n( 'extension/sqliimport/edit' )}</label>

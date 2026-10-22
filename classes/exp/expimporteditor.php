@@ -84,6 +84,41 @@ class expImportEditor
 
     // ---- source ------------------------------------------------------------------------------------------------
 
+    /** The session variable of a file uploaded with a source step that could not be saved yet */
+    const PENDING_UPLOAD = 'SQLIImportPendingUpload';
+
+    /**
+     * The file uploaded with an earlier try of the source step, still in the uploads.
+     *
+     * @param eZHTTPTool $http
+     * @return array|null array( file, original_name )
+     */
+    public static function pendingUpload( eZHTTPTool $http )
+    {
+        $value = $http->hasSessionVariable( self::PENDING_UPLOAD ) ? $http->sessionVariable( self::PENDING_UPLOAD ) : null;
+        if ( !is_array( $value ) || empty( $value['file'] ) || !is_file( expImport::storageDirectory( 'uploads' ) . '/' . basename( (string)$value['file'] ) ) )
+            return null;
+        return array( 'file' => basename( (string)$value['file'] ), 'original_name' => isset( $value['original_name'] ) ? (string)$value['original_name'] : '' );
+    }
+
+    /**
+     * The options posted for a format: SourceOptions[<format>][<option>] (the editor's form, which holds every format's
+     * options), else a flat SourceOptions[<option>] when none of its keys is a format.
+     *
+     * @param array $posted the posted SourceOptions
+     * @param string $type the chosen format
+     * @param string[] $formats every format id
+     * @return array|null the options, null when the form did not hold this format's
+     */
+    public static function postedSourceOptions( array $posted, $type, array $formats )
+    {
+        if ( isset( $posted[$type] ) && is_array( $posted[$type] ) )
+            return $posted[$type];
+        if ( $posted && !array_intersect( array_keys( $posted ), $formats ) )
+            return $posted;
+        return null;
+    }
+
     /**
      * Saves the source step.
      * @return bool
@@ -105,9 +140,19 @@ class expImportEditor
         $config = $this->import ? $this->import->sourceConfig() : array();
         if ( !$legacy && isset( $sources[$type] ) )
         {
-            list( $options, $optionErrors ) = expImportOptionSchema::validate( $sources[$type]['schema'], $this->postArray( 'SourceOptions' ) );
+            // the form has the options of every format, each under its own id (SourceOptions[<format>][<option>]);
+            // a flat SourceOptions[<option>] (scripts, the form of 2.0.0-alpha.1) is the chosen format's
+            $posted = self::postedSourceOptions( $this->postArray( 'SourceOptions' ), $type, array_keys( $sources ) );
+            list( $options, $optionErrors ) = expImportOptionSchema::validate( $sources[$type]['schema'], $posted === null ? array() : $posted );
+            if ( $posted === null && $optionErrors )
+            {
+                // the form did not show this format's options (a browser without scripts): show them, no error per field
+                $this->errors['SourceOptions'] = ezpI18n::tr( 'extension/sqliimport/edit', 'Fill in the options of %format below, then save again.', null,
+                                                              array( '%format' => $sources[$type]['label'] ) );
+                $optionErrors = array();
+            }
             foreach ( $optionErrors as $key => $message )
-                $this->errors['SourceOptions_' . $key] = $message;
+                $this->errors['SourceOptions[' . $type . ']_' . $key] = $message;
             $config = array_intersect_key( $config, array_flip( array( 'file', 'original_name', 'manifest_file', 'handed_over_by' ) ) ) + $options;
             // the origins the format allows (a database or mailbox source reads its data itself: remote)
             $origins = !empty( $sources[$type]['origins'] ) ? array_values( $sources[$type]['origins'] ) : array( 'upload', 'url', 'path' );
@@ -122,11 +167,19 @@ class expImportEditor
                         $config['file'] = expImportSourceFiles::storeUpload( $file->attribute( 'filename' ), $file->attribute( 'original_filename' ),
                                                                              $sources[$type]['extensions'] );
                         $config['original_name'] = basename( (string)$file->attribute( 'original_filename' ) );
+                        // kept for this form: if another field is wrong, the file need not be chosen again
+                        $this->http->setSessionVariable( self::PENDING_UPLOAD, array( 'file' => $config['file'], 'original_name' => $config['original_name'] ) );
                     }
                     catch ( expImportSourceException $e )
                     {
                         $this->errors['SourceFile'] = $e->getMessage();
                     }
+                }
+                elseif ( ( $pending = self::pendingUpload( $this->http ) ) && $this->post( 'KeepUpload' ) === $pending['file'] )
+                {
+                    // the file uploaded with an earlier try of this form
+                    $config['file'] = $pending['file'];
+                    $config['original_name'] = $pending['original_name'];
                 }
                 elseif ( ( $handover = expImportExternalFile::pending() ) && $this->post( 'UseHandover' ) === '1' )
                 {
@@ -212,6 +265,8 @@ class expImportEditor
         // "Load a mapping": a mapping file of another import or installation, uploaded with the source
         if ( !$legacy && $this->loadMappingUpload() === false )
             return false;
+        // the step is saved: an upload kept for a retry is the import's source now
+        $this->http->removeSessionVariable( self::PENDING_UPLOAD );
         return true;
     }
 
@@ -531,7 +586,7 @@ class expImportEditor
                     'datatype' => $attribute->attribute( 'data_type_string' ),
                     'is_required' => (bool)$attribute->attribute( 'is_required' ),
                     'source' => isset( $field['source'] ) ? $field['source'] : '',
-                    'transforms' => isset( $field['transforms'] ) ? expImportTransforms::formatChain( (array)$field['transforms'] ) : '',
+                    'transforms' => isset( $field['transforms_text'] ) ? (string)$field['transforms_text'] : ( isset( $field['transforms'] ) ? expImportTransforms::formatChain( (array)$field['transforms'] ) : '' ),
                     'default' => isset( $field['default'] ) ? $field['default'] : '',
                     'required' => !empty( $field['required'] ),
                 );
@@ -572,7 +627,7 @@ class expImportEditor
                 $field = isset( $byLocale[$language['locale']][$id] ) ? $byLocale[$language['locale']][$id] : array();
                 $lines[] = array( 'attribute' => $id, 'name' => $attribute->attribute( 'name' ),
                                   'source' => isset( $field['source'] ) ? $field['source'] : '',
-                                  'transforms' => isset( $field['transforms'] ) ? expImportTransforms::formatChain( (array)$field['transforms'] ) : '' );
+                                  'transforms' => isset( $field['transforms_text'] ) ? (string)$field['transforms_text'] : ( isset( $field['transforms'] ) ? expImportTransforms::formatChain( (array)$field['transforms'] ) : '' ) );
             }
             $out[] = array( 'locale' => $language['locale'], 'name' => $language['name'],
                             'count' => isset( $byLocale[$language['locale']] ) ? count( $byLocale[$language['locale']] ) : 0, 'lines' => $lines );
@@ -865,6 +920,155 @@ class expImportEditor
         $this->import->setAttribute( 'is_enabled', $enable ? 1 : 0 );
         $this->save( false );
         return true;
+    }
+
+    // ---- a step that could not be saved shows what was entered ------------------------------------------------------
+
+    /** The id of the control of each form field of the editor (the error summary links to it) */
+    const FIELD_IDS = array(
+        'Name' => 'sq-name', 'Identifier' => 'sq-identifier', 'Description' => 'sq-description', 'SourceFile' => 'sq-file', 'SourceURL' => 'sq-url',
+        'SourcePath' => 'sq-path', 'LegacyHandler' => 'sq-legacy', 'LegacyOptions' => 'sq-legacy-options', 'ParentNodeID' => 'sq-parent',
+        'SectionID' => 'sq-section', 'Language' => 'sq-language', 'OwnerID' => 'sq-owner', 'ChunkSize' => 'sq-chunk', 'UpdatePolicy' => 'sq-policy',
+        'ConflictPolicy' => 'sq-conflict', 'UndoDays' => 'sq-undo', 'MaxRows' => 'sq-max', 'NotifyWhen' => 'sq-notify-when',
+        'NotifyEmails' => 'sq-notify-emails', 'ClassIdentifier' => 'sq-class', 'MappingLanguage' => 'sq-mlang', 'MatchPattern' => 'sq-pattern',
+        'MatchAttribute' => 'sq-mattr', 'LocationParentNodeID' => 'sq-lparent', 'LocationParentFrom' => 'sq-lfrom',
+        'LocationExtraParentsFrom' => 'sq-lextra', 'MappingFile' => 'sq-mapfile', 'RunAt' => 'sq-runat', 'Timezone' => 'sq-tz',
+        'IntervalMinutes' => 'sq-interval', 'CronExpr' => 'sq-cron', 'CatchUp' => 'sq-catch', 'Notify' => 'sq-notify',
+    );
+
+    /**
+     * The errors of a step for the summary at the top: each message with the id of its field, when it has one.
+     *
+     * @param array $errors key => message (expImportEditor::$errors)
+     * @param string $step the step shown (the mapping file field differs between source and mapping)
+     * @return array list of array( message, target ('' for none) )
+     */
+    public static function errorLinks( array $errors, $step = '' )
+    {
+        $out = array();
+        foreach ( $errors as $key => $message )
+        {
+            $key = (string)$key;
+            $target = '';
+            if ( isset( self::FIELD_IDS[$key] ) )
+                $target = $key === 'MappingFile' && $step === 'source' ? 'sq-mapfile-src' : self::FIELD_IDS[$key];
+            elseif ( preg_match( '/^SourceOptions\[([a-z0-9_]+)\]_([a-z0-9_]+)$/', $key, $m ) )
+                $target = 'sq-so-' . $m[1] . '-' . $m[2];
+            elseif ( preg_match( '/^HandlerOptions_([a-z0-9_]+)$/', $key, $m ) )
+                $target = 'sq-ho-' . $m[1];
+            elseif ( preg_match( '/^Fields_([a-z0-9_]+)$/', $key, $m ) )
+                $target = 'sq-f-' . $m[1] . '-transforms';
+            elseif ( strpos( $key, 'Schedule_' ) === 0 )
+                $target = 'sq-cron';
+            $out[] = array( 'message' => (string)$message, 'target' => $target );
+        }
+        return $out;
+    }
+
+    /** @return string a posted text as entered (null when not posted) */
+    protected function posted( $name )
+    {
+        return $this->http && $this->http->hasPostVariable( $name ) && is_scalar( $this->http->postVariable( $name ) ) ? (string)$this->http->postVariable( $name ) : null;
+    }
+
+    /**
+     * The values of the processing step as they were posted, in the shape the template shows (target, behaviour,
+     * handler, options, legacy_options), over the stored ones.
+     *
+     * @return array
+     */
+    public function processingFromPost()
+    {
+        $target = $this->import ? $this->import->target() : array( 'parent_node_id' => 0, 'section_id' => 0, 'language' => '', 'owner_id' => 0 );
+        $behaviour = $this->import ? $this->import->behaviour() : array();
+        foreach ( array( 'ParentNodeID' => 'parent_node_id', 'SectionID' => 'section_id', 'Language' => 'language', 'OwnerID' => 'owner_id' ) as $field => $key )
+            if ( ( $v = $this->posted( $field ) ) !== null )
+                $target[$key] = $v;
+        foreach ( array( 'ChunkSize' => 'chunk_size', 'UpdatePolicy' => 'update_policy', 'MaxRows' => 'max_rows', 'ConflictPolicy' => 'conflict_policy',
+                         'UndoDays' => 'undo_days', 'NotifyWhen' => 'notify_when' ) as $field => $key )
+            if ( ( $v = $this->posted( $field ) ) !== null )
+                $behaviour[$key] = $v;
+        if ( ( $v = $this->posted( 'NotifyStarter' ) ) !== null )
+            $behaviour['notify_starter'] = $v === '1';
+        if ( ( $v = $this->posted( 'NotifyEmails' ) ) !== null )
+            $behaviour['notify_emails'] = array_values( array_filter( array_map( 'trim', preg_split( '/[\s,;]+/', $v ) ), 'strlen' ) );
+        $options = $this->postArray( 'HandlerOptions' );
+        return array(
+            'target' => $target,
+            'behaviour' => $behaviour,
+            'handler' => ( $v = $this->posted( 'Handler' ) ) !== null ? $v : ( $this->import ? (string)$this->import->attribute( 'handler' ) : 'mapping' ),
+            'options' => $options ? $options : ( $this->import ? $this->import->options() : array() ),
+            'legacy_options' => ( $v = $this->posted( 'LegacyOptions' ) ) !== null ? expImportOptionSchema::fromLegacyText( $v ) : null,
+        );
+    }
+
+    /**
+     * The mapping as it was posted (class, language, match, location, the grid's lines and the translations), in the
+     * shape of a stored mapping, for the form of a mapping step that could not be saved.
+     *
+     * @return array
+     */
+    public function mappingFromPost()
+    {
+        $mapping = $this->mappingForForm();
+        if ( ( $v = $this->posted( 'ClassIdentifier' ) ) !== null )
+        {
+            if ( $v !== $mapping['class'] )
+                $mapping['fields'] = array();
+            $mapping['class'] = $v;
+        }
+        if ( ( $v = $this->posted( 'MappingLanguage' ) ) !== null )
+            $mapping['language'] = $v;
+        $type = $this->posted( 'MatchType' );
+        if ( $type !== null )
+            $mapping['match'] = $type === 'attribute'
+                ? array( 'type' => 'attribute', 'attribute' => (string)$this->posted( 'MatchAttribute' ), 'source' => (string)$this->posted( 'MatchSource' ) )
+                : array( 'type' => 'remote_id', 'pattern' => (string)$this->posted( 'MatchPattern' ) );
+        foreach ( array( 'LocationParentNodeID' => 'parent_node_id', 'LocationParentFrom' => 'parent_from', 'LocationParentPrefix' => 'parent_prefix',
+                         'LocationExtraParentsFrom' => 'extra_parents_from' ) as $field => $key )
+            if ( ( $v = $this->posted( $field ) ) !== null )
+                $mapping['location'][$key] = $v;
+        $lines = $this->postArray( 'Fields' );
+        $translations = $this->postArray( 'Translations' );
+        if ( $lines || $translations )
+        {
+            $fields = array();
+            foreach ( $lines as $attribute => $line )
+                if ( is_array( $line ) )
+                    $fields[] = array( 'source' => isset( $line['source'] ) ? (string)$line['source'] : '', 'attribute' => (string)$attribute,
+                                       'transforms_text' => isset( $line['transforms'] ) ? (string)$line['transforms'] : '', 'transforms' => array(),
+                                       'default' => isset( $line['default'] ) ? (string)$line['default'] : '', 'required' => !empty( $line['required'] ), 'language' => '' );
+            foreach ( $translations as $locale => $tlines )
+                foreach ( is_array( $tlines ) ? $tlines : array() as $attribute => $line )
+                    if ( is_array( $line ) && trim( isset( $line['source'] ) ? (string)$line['source'] : '' ) !== '' )
+                        $fields[] = array( 'source' => (string)$line['source'], 'attribute' => (string)$attribute, 'transforms' => array(),
+                                           'transforms_text' => isset( $line['transforms'] ) ? (string)$line['transforms'] : '', 'default' => '', 'required' => false,
+                                           'language' => (string)$locale );
+            if ( !$translations )
+                foreach ( $mapping['fields'] as $field )
+                    if ( isset( $field['language'] ) && $field['language'] !== '' )
+                        $fields[] = $field;
+            $mapping['fields'] = $fields;
+        }
+        return $mapping;
+    }
+
+    /**
+     * The schedule as it was posted, in the shape of scheduleForForm(), for a schedule step that could not be saved.
+     *
+     * @return array
+     */
+    public function scheduleFromPost()
+    {
+        $s = $this->scheduleForForm();
+        foreach ( array( 'ScheduleKind' => 'kind', 'RunAt' => 'run_at_local', 'IntervalMinutes' => 'interval_minutes', 'CronExpr' => 'cron_expr',
+                         'Timezone' => 'timezone', 'CatchUp' => 'catch_up', 'Notify' => 'notify' ) as $field => $key )
+            if ( ( $v = $this->posted( $field ) ) !== null )
+                $s[$key] = $v;
+        if ( $this->posted( 'ScheduleKind' ) !== null )
+            $s['is_active'] = (bool)$this->posted( 'ScheduleActive' );
+        $s['next'] = array();
+        return $s;
     }
 
     // ---- shared --------------------------------------------------------------------------------------------------

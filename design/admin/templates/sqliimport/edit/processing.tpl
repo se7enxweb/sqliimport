@@ -13,15 +13,15 @@
 <legend>{'How the records are processed'|i18n( 'extension/sqliimport/edit' )}</legend>
 <div class="a4-radios">
 {foreach $handlers as $hid => $h}{if and( $h.legacy|not, eq( $h.status, 'enabled' ) )}
-<label><input type="radio" name="Handler" value="{$hid|wash}"{if eq( $import.handler, $hid )} checked="checked"{/if} /> {$h.label|wash}{if ne( $hid, 'mapping' )} <span class="a4-meta">{$hid|wash}</span>{/if}</label>
+<label><input type="radio" name="Handler" value="{$hid|wash}"{if eq( $handler_choice, $hid )} checked="checked"{/if} /> {$h.label|wash}{if ne( $hid, 'mapping' )} <span class="a4-meta">{$hid|wash}</span>{/if}</label>
 {/if}{/foreach}
 </div>
 </fieldset>
-{if and( is_set( $handlers[$import.handler] ), $handlers[$import.handler].schema|count|gt( 0 ) )}
+{if and( is_set( $handlers[$handler_choice] ), $handlers[$handler_choice].schema|count|gt( 0 ) )}
 <fieldset class="a4-field a4-field-wide">
 <legend>{'Options of the handler'|i18n( 'extension/sqliimport/edit' )}</legend>
 <div class="a4-form is-wide a4-sqliimport-options">
-{include uri='design:sqliimport/parts/option_fields.tpl' schema=$handlers[$import.handler].schema values=$options prefix='HandlerOptions' errors=$errors idprefix='sq-ho'}
+{include uri='design:sqliimport/parts/option_fields.tpl' schema=$handlers[$handler_choice].schema values=$options prefix='HandlerOptions' errors=$errors idprefix='sq-ho'}
 </div>
 </fieldset>
 {/if}
