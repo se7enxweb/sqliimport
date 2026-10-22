@@ -1,0 +1,7 @@
+From: newsletter@example.com
+To: undisclosed-recipients:;
+Subject: Plain subject with =?utf-8?q?=C3=A4?= in the middle
+Date: Wed, 14 Oct 2026 18:30:00 +0000
+Content-Type: text/html; charset=utf-8
+
+<html><head><style>p { color: red; }</style></head><body><h1>Autumn teas</h1><p>First line<br>second line</p><p>&Uuml;bersicht &amp; mehr</p><script>alert(1)</script></body></html>

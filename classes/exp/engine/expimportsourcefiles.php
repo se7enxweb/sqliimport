@@ -132,9 +132,28 @@ class expImportSourceFiles
         $parts = parse_url( (string)$url );
         if ( !$parts || !isset( $parts['scheme'], $parts['host'] ) || !in_array( strtolower( $parts['scheme'] ), array( 'http', 'https' ), true ) )
             return 'only http and https addresses can be read';
+        return self::refuseHost( $parts['host'] );
+    }
+
+    /**
+     * Whether a host may be connected to (an address, a database server, a mailbox server): unless
+     * [SourceSettings] AllowPrivateHosts=enabled or the host is one of the trusted hosts given, not one in a private,
+     * loopback, link-local or reserved network, and not a name that resolves into one.
+     *
+     * @param string $host a name or an IP address (IPv6 with or without brackets)
+     * @param string[] $trusted host names or addresses an administrator allowed explicitly (compared case-insensitively)
+     * @return string|null the reason it is refused, null when it is fine
+     */
+    public static function refuseHost( $host, array $trusted = array() )
+    {
+        $host = trim( (string)$host, " []" );
+        if ( $host === '' || !preg_match( '/^[A-Za-z0-9.:_-]+$/', $host ) )
+            return 'a host name or an IP address is expected';
+        foreach ( $trusted as $allowed )
+            if ( strcasecmp( trim( (string)$allowed, " []" ), $host ) === 0 )
+                return null;
         if ( expImport::setting( 'SourceSettings', 'AllowPrivateHosts', 'disabled' ) === 'enabled' )
             return null;
-        $host = trim( $parts['host'], '[]' );
         $ips = filter_var( $host, FILTER_VALIDATE_IP ) ? array( $host ) : (array)@gethostbynamel( $host );
         if ( !$ips )
             return "the host $host cannot be resolved";

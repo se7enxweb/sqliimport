@@ -24,7 +24,7 @@ if ( isset( $Params['Example'] ) && $Params['Example'] !== false && $Params['Exa
         return $Module->handleError( eZError::KERNEL_NOT_AVAILABLE, 'kernel' );
     $types = array( 'csv' => 'text/csv', 'tsv' => 'text/tab-separated-values', 'json' => 'application/json', 'ndjson' => 'application/x-ndjson',
                     'xml' => 'application/xml', 'rss' => 'application/rss+xml', 'atom' => 'application/atom+xml', 'opml' => 'text/x-opml',
-                    'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'ods' => 'application/vnd.oasis.opendocument.spreadsheet' );
+                    'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'ods' => 'application/vnd.oasis.opendocument.spreadsheet', 'sqlite' => 'application/vnd.sqlite3' );
     $extension = strtolower( pathinfo( $example, PATHINFO_EXTENSION ) );
     while ( ob_get_level() > 0 )
         ob_end_clean();

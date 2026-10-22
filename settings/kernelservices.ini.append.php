@@ -39,6 +39,8 @@ Formats[]=Markdown
 Formats[]=iCalendar
 Formats[]=vCard
 Formats[]=ZIP
+Formats[]=SQL
+Formats[]=IMAP
 EntryURL=sqliimport/list
 Permission=sqliimport/manage|sqliimport/run|sqliimport/manageimports|sqliimport/listimports
 HelpPage=ext/sqliimport/README.md
@@ -192,6 +194,14 @@ Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: YouTube and Vimeo channel feeds
 
+[Service_sqliimport.source.imap]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportImapSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: e-mail inbox (IMAP)
+
 # platforms
 [Service_sqliimport.source.xrowextract]
 Class=expImportSourceEntry
@@ -200,6 +210,14 @@ Arguments[]=expImportXrowextractSource
 Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: export files of Export (xrowextract)
+
+[Service_sqliimport.source.sql]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportSqlSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: SQL database or query (MySQL, MariaDB, PostgreSQL, SQLite)
 
 [Service_sqliimport.source.cie]
 Class=expImportSourceEntry

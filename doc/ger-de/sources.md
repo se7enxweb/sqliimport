@@ -11,6 +11,7 @@ Laufs dieselben Daten liest.
 | `upload` | `file`: der gespeicherte Name einer hochgeladenen Datei | Der Upload (im Speicherverzeichnis der Website unter `sqliimport/uploads/`) wird in das Verzeichnis des Laufs kopiert |
 | `url` | `url`: eine Adresse mit `http` oder `https` | Die Adresse wird in das Verzeichnis des Laufs heruntergeladen, mit dem Zeitlimit `[ImportSettings] StreamTimeout` und dem Größenlimit `[SourceSettings] MaxSourceMegabytes` |
 | `path` | `path`: eine Datei auf dem Server | Die Datei wird an Ort und Stelle gelesen, aber nur, wenn sie in einem der Verzeichnisse von `[SourceSettings] AllowedPaths[]` liegt |
+| `remote` | die eigenen Optionen der Quelle (eine Datenbank, ein Postfach) | Die Quelle liest ihre Daten einmal pro Lauf selbst und schreibt sie als JSON Lines in das Verzeichnis des Laufs (`sql`, `imap`) |
 
 Regeln:
 
@@ -449,6 +450,130 @@ Gruppe: Daten. Eine Tabelle, die bei jedem Lauf über ihren Link gelesen wird: t
 Link sie ansehen kann (oder veröffentlichen Sie sie im Web), und geben Sie den Link als Adresse an. Der Link wird zum
 CSV-Export der Tabelle, mit dem Tabellenblatt des Links (`#gid=`); die erste Zeile benennt die Spalten. Die Optionen
 sind die von CSV, mit Komma und UTF-8.
+
+## SQL-Datenbank oder -Abfrage (`sql`)
+
+Gruppe: Plattformen. Herkunft: `remote`. Die Zeilen einer SQL-Abfrage an eine MySQL- oder MariaDB-, PostgreSQL- oder
+SQLite-Datenbank (eine Datenbank im Intranet, die Datenbank einer anderen Anwendung): Ein Datensatz ist eine Zeile,
+seine Felder sind die Spalten der Abfrage (mit `AS` bekommen sie die gewünschten Namen). Einmal pro Lauf führt die
+Quelle die Abfrage aus und schreibt die Zeilen in das Verzeichnis des Laufs, ein JSON-Objekt pro Zeile; binäre Werte,
+die kein UTF-8 sind, werden als `base64:...` geschrieben. Stichprobe und Vorschau des Editors lesen nur die ersten
+`[RunSettings] DryRunRows` Zeilen.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `driver` | `mysql` (MySQL oder MariaDB), `pgsql` (PostgreSQL), `sqlite` (eine Datei auf dem Server), `site` (die Datenbank dieser Website) | `mysql` |
+| `host`, `port` | der Datenbankserver; Port `0` ist der Standardport (3306, 5432) | |
+| `database` | der Name der Datenbank; bei SQLite der Pfad der Datei | |
+| `user` | der Datenbankbenutzer | |
+| `password` | der **Name** eines Geheimnisses (siehe unten), nie das Passwort | |
+| `query` | ein einzelnes `SELECT` (oder `WITH ... SELECT`) | Pflicht |
+| `key` | die Spalte, die eine Zeile benennt | die Position |
+
+Nur Lesen ist möglich, dreifach geprüft:
+
+- **Die Abfrage muss ein einzelnes `SELECT` sein** (oder `WITH ... SELECT`, auch in Klammern). Vor der Prüfung werden
+  Zeichenketten, Namen in Anführungszeichen und Kommentare im Dialekt des Treibers entfernt (Backslash-Escapes und
+  `#`-Kommentare von MySQL, Dollar-Quoting, `E'...'`-Zeichenketten und verschachtelte Kommentare von PostgreSQL). So
+  zählt ein Schlüsselwort in einem Text nicht, und eine hinter einem Kommentar oder einem Anführungszeichen
+  versteckte Anweisung wird gefunden. Abgelehnt werden ein `;`, auf das noch etwas folgt, eine nicht geschlossene
+  Zeichenkette oder ein nicht geschlossener Kommentar, die ausführbaren Kommentare `/*! ... */` und Hinweise
+  `/*+ ... */` von MySQL, Variablen (`@name`, `:=`) und außerhalb von Zeichenketten die Wörter `INSERT`, `UPDATE`,
+  `DELETE`, `DROP`, `ALTER`, `CREATE`, `GRANT`, `REVOKE`, `TRUNCATE`, `MERGE`, `CALL`, `EXEC`, `INTO` (auch
+  `INTO OUTFILE` und `SELECT ... INTO` von PostgreSQL), `LOAD`, `LOAD_FILE`, `COPY`, `ATTACH`, `PRAGMA`, `LOCK` (auch
+  `FOR UPDATE`) sowie Funktionen mit Nebenwirkungen (`pg_read_file`, `lo_import`, `dblink`, `set_config`, `nextval`,
+  `sleep`, `load_extension`, `writefile` ...). `REPLACE` ist nur als Funktion `REPLACE( ... )` erlaubt. Eine Spalte
+  mit einem solchen Namen lässt sich in Anführungszeichen setzen (`` `update` ``, `"update"`). Eine abgelehnte
+  Abfrage beendet den Lauf mit dem Grund.
+- **Die Verbindung ist schreibgeschützt:** MySQL und MariaDB `SET SESSION TRANSACTION READ ONLY`, PostgreSQL
+  `SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY`, SQLite schreibgeschützt geöffnet mit `PRAGMA query_only`.
+  Mehrfachanweisungen und emulierte Prepared Statements sind abgeschaltet, `LOCAL INFILE` von MySQL ebenso.
+- **Ein Zeitlimit** von `[SqlSourceSettings] QueryTimeout` Sekunden wird auf dem Server gesetzt, wo er eines kennt
+  (MySQL `MAX_EXECUTION_TIME`, MariaDB `max_statement_time`, PostgreSQL `statement_timeout`); das Lesen der Zeilen
+  bricht nach der zehnfachen Zeit ab.
+
+Wohin verbunden werden darf:
+
+- Ein Datenbankserver in einem privaten oder reservierten Netz wird wie eine Adresse abgelehnt, außer bei
+  `[SourceSettings] AllowPrivateHosts=enabled` oder wenn die Administration ihn in
+  `[SqlSourceSettings] AllowedHosts[]` einträgt (der übliche Fall: eine Datenbank im Intranet).
+- Eine SQLite-Datei muss in einem der Verzeichnisse von `[SourceSettings] AllowedPaths[]` liegen.
+- Die eigene Datenbank der Website (`site`) nur mit `[SqlSourceSettings] SiteDatabase=enabled`, über eine eigene,
+  schreibgeschützte Verbindung. Ihre Tabellen enthalten Benutzerkonten und Passwort-Hashes: Schalten Sie das nur ein,
+  wenn alle, die Importe bearbeiten, alles darin sehen dürfen.
+
+**Beispiel:** `share/examples/sql-teas.sqlite` ist eine kleine SQLite-Datenbank mit der Tabelle `teas` (`id`, `name`,
+`origin`, `kind`, `price`, `description`, `updated`). Kopieren Sie sie in ein Verzeichnis von `AllowedPaths[]` (zum
+Beispiel `var/import`) und legen Sie einen Import mit dem Treiber `sqlite`, dem Pfad der Datei als Datenbank, dem
+Schlüssel `id` und dieser Abfrage an:
+
+```sql
+SELECT id, name, origin, kind, price, description FROM teas WHERE kind <> 'herbal' ORDER BY id
+```
+
+### Geheimnisse
+
+Eine Quelle speichert nie ein Passwort. Ihre Option vom Typ `secret` enthält den **Namen** eines Geheimnisses, und
+der Wert wird gelesen, wenn ein Lauf ihn braucht:
+
+- `<Name>`: `sqliimport.ini [SecretSettings] Secrets[<Name>]=<Wert>`, gesetzt in den eigenen Einstellungen der
+  Website (`settings/override/sqliimport.ini.append.php` oder ein Siteaccess), die nicht in ein Repository gehören;
+- `env:<VARIABLE>`: eine Umgebungsvariable des PHP-Prozesses (der PHP-FPM-Pool, der Worker).
+
+**Importe, Einstellungen** listet die Namen der gesetzten Geheimnisse, nie einen Wert. Meldungen und Protokolle
+zeigen ein Geheimnis als `[secret <Name>]`, auch wenn ein Server es in einem Fehler zitiert.
+
+## E-Mail-Postfach über IMAP (`imap`)
+
+Gruppe: Inhalte. Herkunft: `remote`. Die Nachrichten eines IMAP-Postfachs (ein Presse-Postfach, eine Adresse für
+Einsendungen): Ein Datensatz ist eine Nachricht. Einmal pro Lauf liest die Quelle die passenden Nachrichten in das
+Verzeichnis des Laufs, eine pro Zeile; die Stichprobe des Editors liest die neuesten.
+
+| Feld | Inhalt |
+|---|---|
+| `message_id` | die Message-ID ohne `<>` (der Schlüssel); eine Nachricht ohne sie bekommt `sha1-...` ihres Inhalts |
+| `uid`, `mailbox` | die UID der Nachricht im Postfach und das Postfach |
+| `from` | `name`, `address` des Absenders (`from.address`) |
+| `to`, `cc`, `reply_to` | Listen aus `name`, `address` (`to.0.address`) |
+| `subject` | der Betreff, nach UTF-8 dekodiert |
+| `date` | das Datum in ISO 8601 mit Zeitzonenversatz (`2026-10-13T09:15:00+02:00`) |
+| `text` | der Text (`text/plain`; sonst der HTML-Teil als Text) |
+| `html` | der HTML-Teil, falls vorhanden |
+| `summary` | der erste Absatz des Texts |
+| `body` | der HTML-Teil, sonst der Text als HTML-Absätze |
+| `attachments` | Liste aus `name`, `mime`, `size` (Bytes) der Anhänge, nie ihr Inhalt; `attachment_count` |
+| `in_reply_to`, `size`, `truncated` | die beantwortete Nachricht, die Größe und ob nur die Kopfzeilen gelesen wurden |
+
+Kopfzeilen werden aus kodierten Wörtern nach RFC 2047 und Parametern nach RFC 2231 dekodiert, Inhalte aus
+Quoted-Printable und Base64 und aus ihrem Zeichensatz; 8-Bit-Text, der kein UTF-8 ist, gilt als Windows-1252.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `host`, `port` | der IMAP-Server | Port `993` |
+| `encryption` | `ssl` (TLS von Anfang an, Port 993), `tls` (STARTTLS, Port 143), `none` (nicht empfohlen: das Passwort geht im Klartext) | `ssl` |
+| `user` | die Anmeldung | |
+| `password` | der **Name** eines Geheimnisses, nie das Passwort | |
+| `mailbox` | der Ordner | `INBOX` |
+| `search` | IMAP-Suchkriterien: `ALL`, `UNSEEN`, `FROM "news@example.org"`, `SUBJECT "Presse"` ... | `ALL` |
+| `days` | nur die Nachrichten der letzten Tage (ergänzt `SINCE`); `0`: alle | `0` |
+| `mark_seen` | gelesene Nachrichten als gelesen markieren | nein |
+| `attachments` | die Anhänge auflisten (Namen, Typen und Größen) | ja |
+| `key` | das Schlüsselfeld | `message_id` |
+
+**Der Import ändert das Postfach nicht**, solange `mark_seen` nicht angekreuzt ist: Das Postfach wird
+schreibgeschützt geöffnet (`EXAMINE`, `OP_READONLY`), und Nachrichten werden gelesen, ohne `\Seen` zu setzen.
+Zertifikate werden geprüft. Ein Mailserver in einem privaten Netz wird abgelehnt, außer bei
+`AllowPrivateHosts=enabled` oder wenn er in `[ImapSourceSettings] AllowedHosts[]` steht. Eine Nachricht, die größer
+als `[ImapSourceSettings] MaxMessageMegabytes` ist, wird nur mit ihren Kopfzeilen gelesen und als `truncated`
+markiert; `[ImapSourceSettings] Timeout` begrenzt den Verbindungsaufbau und jede Antwort.
+
+Wo die PHP-Erweiterung `imap` installiert ist, wird sie verwendet; ohne sie (sie ist seit PHP 8.4 nicht mehr im Kern)
+spricht die Quelle IMAP selbst über einen TLS-Socket (`LOGIN`, `EXAMINE`/`SELECT`, `UID SEARCH`,
+`UID FETCH BODY.PEEK[]`, `LOGOUT`). Dieser Client braucht Benutzer und Passwort in druckbarem ASCII.
+
+Die Vorlage bildet eine Nachricht auf einen Artikel ab, der über die Remote-ID `mail-{message_id}` wiedergefunden
+wird (bei langen IDs mit einem Hash gekürzt): Titel aus `subject`, Einleitung aus `summary`, Text aus `body` (beide
+als Rich Text), Veröffentlichungsdatum aus `date`.
 
 ## Der Katalog der Formate
 

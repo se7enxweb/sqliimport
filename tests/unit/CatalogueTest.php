@@ -56,6 +56,9 @@ class CatalogueTest extends TestCase
         foreach ( self::entries() as $id => $entry )
         {
             $data = $entry->toArray();
+            // a format that reads its data itself (a database, a mailbox) has no file to read: testRemoteFormats
+            if ( $data['origins'] === array( 'remote' ) )
+                continue;
             foreach ( $data['examples'] as $example )
             {
                 if ( !isset( $example['file'] ) )
@@ -72,6 +75,34 @@ class CatalogueTest extends TestCase
                 $this->assertGreaterThan( 0, $n, "$id {$example['file']} has records" );
             }
         }
+    }
+
+    public function testRemoteFormats(): void
+    {
+        $remote = 0;
+        foreach ( self::entries() as $id => $entry )
+        {
+            $data = $entry->toArray();
+            if ( !in_array( 'remote', $data['origins'], true ) )
+                continue;
+            $remote++;
+            $this->assertTrue( method_exists( $data['class'], 'fetch' ), "$id reads its data itself" );
+            $this->assertSame( array(), $data['extensions'], "$id has no file name extensions" );
+            foreach ( $data['examples'] as $example )
+            {
+                // no file to read: the example says how it is configured, with options the schema accepts
+                $this->assertNotSame( '', trim( (string)( $example['label'] ?? '' ) ), "$id: an example describes its configuration" );
+                $this->assertNotEmpty( $example['options'] ?? array(), "$id: an example gives its options" );
+                list( , $errors ) = expImportOptionSchema::validate( $data['schema'], $example['options'] );
+                $this->assertSame( array(), $errors, "$id: the options of an example are valid" );
+                if ( isset( $example['file'] ) )
+                    $this->assertFileExists( dirname( __DIR__, 2 ) . '/share/examples/' . $example['file'] );
+                foreach ( $data['schema'] as $name => $def )
+                    if ( ( $def['type'] ?? '' ) === 'secret' && isset( $example['options'][$name] ) )
+                        $this->assertNull( expImportSecrets::get( $example['options'][$name] ), "$id: an example names a secret, it has none" );
+            }
+        }
+        $this->assertGreaterThanOrEqual( 2, $remote, 'sql and imap read their data themselves' );
     }
 
     public function testOpmlOutlines(): void
