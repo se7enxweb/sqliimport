@@ -10,7 +10,7 @@ A source type reads records from a local file. Where the file comes from is the 
 | `upload` | `file`: the stored name of an uploaded file | The upload (kept in the site's storage directory, `sqliimport/uploads/`) is copied into the run's directory |
 | `url` | `url`: an `http` or `https` address | The address is downloaded into the run's directory, with the time limit `[ImportSettings] StreamTimeout` and the size limit `[SourceSettings] MaxSourceMegabytes` |
 | `path` | `path`: a file on the server | The file is read in place, but only if it lies inside one of `[SourceSettings] AllowedPaths[]` |
-| `remote` | the source's own options (a database, a mailbox) | The source reads its data itself once per run and writes it into the run's directory as JSON Lines (`sql`, `imap`) |
+| `remote` | the source's own options (a database, a mailbox) | The source reads its data itself once per run and writes it into the run's directory as JSON Lines (`sql`, `mongodb`, `redis`, `imap`) |
 
 Rules:
 
@@ -628,6 +628,129 @@ client needs user and password in printable ASCII.
 The preset maps a message to an article, found again by the remote ID `mail-{message_id}` (shortened with a hash
 when it is long): title from `subject`, intro from `summary`, body from `body` (both as rich text), publish date from
 `date`.
+
+## MongoDB collection (`mongodb`)
+
+Group: data. Origin: `remote`. The documents of a MongoDB collection (the database of another application, a product
+or event store): one record is one document. Once per run the source reads the matching documents page by page and
+writes them into the run's directory, one JSON object per line; the editor's sample reads the first ones.
+
+| Option | Values | Default |
+|---|---|---|
+| `uri` | a host (`mongo.example.org`), `host:port`, or a `mongodb://` or `mongodb+srv://` URI **without user and password** (`mongodb://db1.example.org,db2.example.org/?replicaSet=rs0`) | required |
+| `port` | only with a host; `0` is 27017 | `0` |
+| `tls` | encrypt the connection (certificates are verified); `mongodb+srv://` always uses TLS | no |
+| `user` | the database user | |
+| `password` | the **name** of a secret (see [Secrets](#secrets)), never the password | |
+| `auth_source` | the database the user is defined in; empty: the database of the URI, else `admin` | |
+| `database`, `collection` | what to read | required |
+| `filter` | a query document in JSON, e.g. `{"status": "published"}`; Extended JSON for types: `{"$oid": "..."}`, `{"$date": "2026-01-01T00:00:00Z"}` | every document |
+| `projection` | the fields to read, e.g. `{"title": 1, "author.name": 1}` | all |
+| `sort` | e.g. `{"published_at": -1}` (needs the paging `skip`) | `_id` |
+| `paging` | `id`: each page after the last `_id` (fast, in `_id` order); `skip`: skip and limit (any sort order) | `id` |
+| `batch_size` | documents per page (at most `[MongoDbSourceSettings] MaxBatchSize`) | `500` |
+| `limit` | the most documents; `0`: all | `0` |
+| `arrays` | `json` (`["a","b"]`) or `join` (`a, b`; an array of documents stays JSON) | `json` |
+| `separator` | what stands between the values of a joined array | `, ` |
+| `read_preference` | `primary`, `primaryPreferred`, `secondaryPreferred`, `secondary`, `nearest` | `primary` |
+| `key` | the key field; a nested field by its dotted name (`meta.sku`) | `_id` |
+
+**Fields.** Nested documents are flattened into dotted names: `{"author": {"name": "...", "address": {"city": "..."}}}`
+gives the fields `author.name` and `author.address.city`. Documents nested deeper than 32 levels are written as JSON.
+The BSON types are written as text:
+
+| BSON | Field value |
+|---|---|
+| ObjectId | its 24 hex digits (`6717a1f0c2d4e5f601234561`) |
+| Date (UTCDateTime) | ISO 8601 in UTC: `2026-04-02T08:30:00Z`, with milliseconds when it has them (`...08:30:00.250Z`) |
+| Decimal128 | its decimal string (`12.50`), never a float |
+| Binary | base64; a UUID (subtype 3 or 4) as `0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0` |
+| Int64, Int32, Double, Boolean, Null | as they are |
+| Timestamp | ISO 8601 of its seconds |
+| Regular expression, JavaScript | `/pattern/flags`, the code |
+| Array | JSON, or a joined list (option `arrays`); BSON values inside are written the same way |
+
+**Only reading is possible.** The source runs nothing but a find (`MongoDB\Driver\Query`) with the filter,
+projection and sort: no command, no aggregation, no write. Refused, at any depth of the filter, projection or sort,
+are the operators that run code on the server or write: `$where`, `$function`, `$accumulator`, `$out` and `$merge`.
+A filter must be one JSON object; a pipeline (a list of stages) is not accepted. System collections (`system.*`) are
+not read. Give the import a database user with the role `read` on that database only.
+
+**Secrets and hosts.** The URI must not hold a user or a password (nor URI options that carry one); the user is an
+option and the password the name of a secret, handed to the driver as connection options and masked as
+`[secret <name>]` in every message. A server in a private or reserved network is refused unless
+`[SourceSettings] AllowPrivateHosts=enabled` or it is listed in `[MongoDbSourceSettings] AllowedHosts[]` (each host
+of the URI; for `mongodb+srv://` the SRV name, or every host its SRV record names). `[MongoDbSourceSettings] Timeout`
+limits connecting, choosing a server and each query on the server (`maxTimeMS`).
+
+**Test connection.** On the source step, *Test connection* connects with the options of the form, reads the first
+matching document and shows its fields, or the error (masked). Nothing is saved.
+
+**Driver.** The PECL extension `mongodb` (1.15 or later; the composer library `mongodb/mongodb` is not needed) in the
+PHP of the job queue's workers, which read the runs, and in the web server's PHP for the editor's test and sample.
+RHEL: `php-pecl-mongodb` of Remi or `pecl install mongodb`; Debian: `php-mongodb`; Plesk: `pecl install mongodb` for
+its PHP. The catalogue and the source step show whether this server and the workers have it.
+
+**Example:** `share/examples/mongodb-articles.ndjson` is what a run reads from a collection of articles (three
+documents, flattened), to try a mapping; the catalogue's other examples are configurations.
+
+## Redis keys (`redis`)
+
+Group: data. Origin: `remote`. The keys of a Redis database that match a pattern (a cache of product data, the store
+of another application): one record is one key. Once per run the source walks the keys with `SCAN` and writes them
+into the run's directory, one JSON object per line.
+
+| Option | Values | Default |
+|---|---|---|
+| `host`, `port` | the Redis server | port `6379` |
+| `tls` | encrypt the connection (the certificate is verified) | no |
+| `database` | the database index (`SELECT`) | `0` |
+| `user` | an ACL user (Redis 6 and later); empty: the password only | |
+| `password` | the **name** of a secret, never the password; empty: no `AUTH` | |
+| `pattern` | the keys to read, as `SCAN ... MATCH` reads it: `product:*`, `news:[0-9]*` | `*` |
+| `types` | the types to read, separated by commas: `hash`, `string`, `list`, `set`, `zset`, `stream` | all six |
+| `scan_count` | the `COUNT` of each `SCAN` (a hint how many keys the server looks at per step) | `100` |
+| `max_items` | the most values (entries) read of one list, set, sorted set or stream | `1000` |
+| `limit` | the most keys; `0`: all | `0` |
+| `decode_json` | a string value that is a JSON object or list is read as its fields (`value.title`) | yes |
+| `arrays` | `keep` (a list: `values.0`, `values.1` ...), `json` or `join` | `keep` |
+| `separator` | what stands between the values of a joined list | `, ` |
+| `key` | the key field | `_key` |
+
+Every record has `_key` (the key), `_type` and `_ttl` (seconds, `-1` without expiry), and by type:
+
+| Type | Fields | Command |
+|---|---|---|
+| hash | its fields as fields (a field named `_key`, `_type` or `_ttl` is left out) | `HGETALL` |
+| string | `value`: the text, or its fields when it is JSON | `GET` |
+| list | `values`, the first `max_items` | `LRANGE` |
+| set | `values`, sorted, so two runs give the same record | `SMEMBERS` |
+| sorted set | `values` (the members, by score) and `scores` | `ZRANGE ... WITHSCORES` |
+| stream | `entries`: a list of `id` and the entry's fields, the first `max_items` | `XRANGE - + COUNT` |
+
+Values that are not UTF-8 are written as `base64:...`. Keys of other types (modules such as RedisJSON) are left out.
+
+**Only reading is possible.** After `AUTH` and `SELECT` the source sends only `SCAN`, `TYPE`, `TTL`, `HGETALL`,
+`GET`, `LRANGE`, `SMEMBERS`, `ZRANGE` and `XRANGE`; the client refuses any other command before it reaches the
+server. `KEYS` is never used: `SCAN` walks the keys in steps without blocking the server, and a key it gives twice
+is read once. A run stops when more than `[RedisSourceSettings] MaxScannedKeys` keys match (narrow the pattern).
+Give the import an ACL user that may only read, e.g. `ACL SETUSER reader on >... ~product:* +@read`.
+
+**Secrets and hosts.** The password is the name of a secret and masked in every message. A server in a private or
+reserved network is refused unless `AllowPrivateHosts=enabled` or it is listed in `[RedisSourceSettings]
+AllowedHosts[]`. `[RedisSourceSettings] Timeout` limits connecting and each answer.
+
+**Test connection.** *Test connection* connects, looks for the first matching key of the chosen types (in at most
+`[RedisSourceSettings] TestScanRounds` steps of `SCAN`) and shows its fields, or the masked error.
+
+**Drivers.** The PECL extension `redis` (phpredis) where it is installed (RHEL: `php-pecl-redis` of Remi or `pecl
+install redis`; Debian: `php-redis`); without it, a small client of the extension speaks RESP over a socket (driver
+`socket`, with `openssl` for TLS), so the source works on every PHP. `[RedisSourceSettings] Client` chooses: `auto`
+(the default), `phpredis` or `socket`. The built-in client refuses a value larger than `MaxValueMegabytes`.
+
+**Example:** `share/examples/redis-products.ndjson` is what a run reads from the keys `product:*` (two hashes, a JSON
+string and a set), to try a mapping.
+
 ## Pages of a site by its sitemap (`sitemap`) and the web page scraper (`webpage`)
 
 Group: platforms. These two formats read public web pages themselves (the origin `remote`): once per run they crawl
