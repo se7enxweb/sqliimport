@@ -596,6 +596,12 @@ der Wert wird gelesen, wenn ein Lauf ihn braucht:
 **Importe, Einstellungen** listet die Namen der gesetzten Geheimnisse, nie einen Wert. Meldungen und Protokolle
 zeigen ein Geheimnis als `[secret <Name>]`, auch wenn ein Server es in einem Fehler zitiert.
 
+**Ab Exponential 6.0.15** antwortet zuerst der Geheimnisspeicher des Kernels: Werte, die unter **Setup, Secrets**
+gesetzt sind (verschlüsselt gespeichert, nie wieder angezeigt; der Bereich dieses Werkzeugs ist `sqliimport`),
+`secrets.ini` und `env:`; `sqliimport.ini [SecretSettings] Secrets[]` bleibt als Rückfall, bestehende Importe brauchen
+also keine Änderung. Um einen Wert umzuziehen, setzen Sie ihn unter Setup, Secrets mit demselben Namen und entfernen
+ihn aus den Einstellungen. **Importe, Einstellungen** verlinkt dann auf diese Seite.
+
 ## Elasticsearch- oder OpenSearch-Index (`elasticsearch`)
 
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Dokumente eines Elasticsearch- oder OpenSearch-Index, eines Alias oder eines

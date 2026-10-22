@@ -17,6 +17,7 @@
 <section class="a4-section" aria-labelledby="sq-set-secrets">
 <div class="a4-section-head"><h2 class="a4-h2" id="sq-set-secrets">{'Secrets'|i18n( 'extension/sqliimport' )}</h2></div>
 <p class="a4-help">{'The names an import can give as a password (database, mailbox). The values are set in [SecretSettings] Secrets[] of the settings of the site and are never shown; env:VARIABLE names an environment variable instead.'|i18n( 'extension/sqliimport' )}</p>
+{if ne( $secrets_url, '' )}<p><a class="a4-btn" href={$secrets_url|ezurl}><span class="a4-icon a4-bi-key" aria-hidden="true"></span> {'Set the values in Setup, Secrets'|i18n( 'extension/sqliimport' )}</a></p>{/if}
 {if $secret_names|count|gt( 0 )}
 <ul class="a4-sqliimport-format-list">{foreach $secret_names as $name}<li><code>{$name|wash}</code></li>{/foreach}</ul>
 {else}

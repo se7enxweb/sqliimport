@@ -64,6 +64,7 @@ $tpl = eZTemplate::factory();
 $tpl->setVariable( 'settings', $settings );
 // the names of the secrets only, never a value
 $tpl->setVariable( 'secret_names', array_values( array_filter( array_map( 'strval', expImportSecrets::names() ), 'strlen' ) ) );
+$tpl->setVariable( 'secrets_url', expImportSecrets::manageUrl() );
 $tpl->setVariable( 'imports', expImportDefinition::fetchList( 0, 1000 ) );
 $tpl->setVariable( 'flash', $message );
 $Result = array();

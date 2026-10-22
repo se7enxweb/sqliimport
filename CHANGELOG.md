@@ -7,6 +7,10 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 
 ### Added
 
+- Added: Secrets from the kernel's secret store of Exponential 6.0.15 (Setup, Secrets, scope sqliimport) when it is
+  there, with sqliimport.ini [SecretSettings] Secrets[] and env: as before; a value in an address is masked too.
+- Added: The fields of a new data table guessed from an import's sample (column names, types, lengths, required,
+  unique), for the "Module table" wizard of Exponential 6.0.15; registered once the kernel has its interface.
 - Added: A bell in the administration's header (admin4 and admin4l, with the header slot of Exponential 6.0.15):
   the user's unread notices of runs that ended, with the count in the button's name, loaded from the new ezjscore
   call sqliimport::notices because the header is cached per user.

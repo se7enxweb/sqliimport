@@ -578,6 +578,11 @@ read when a run needs it:
 **Imports, Settings** lists the names of the secrets that are set, never a value. Messages and logs show a secret
 as `[secret <name>]`, also when a server quotes it in an error.
 
+**From Exponential 6.0.15 on**, the kernel's secret store answers first: values set in **Setup, Secrets** (stored
+encrypted, never shown again; this tool's scope is `sqliimport`), `secrets.ini` and `env:`; `sqliimport.ini
+[SecretSettings] Secrets[]` stays as the fallback, so existing imports need no change. To move a value, set it in
+Setup, Secrets under the same name and remove it from the settings. **Imports, Settings** then links to that page.
+
 ## Elasticsearch or OpenSearch index (`elasticsearch`)
 
 Group: NoSQL databases. Origin: `remote`. The documents of an Elasticsearch or OpenSearch index, alias or index pattern, read
