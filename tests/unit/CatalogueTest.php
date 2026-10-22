@@ -74,6 +74,25 @@ class CatalogueTest extends TestCase
         }
     }
 
+    public function testRemoteFormatsReadTheirSnapshot(): void
+    {
+        // a format that reads a site itself (origin remote) has fetch() and an example of what it reads, which
+        // records() reads like the snapshot of a run (testEveryExampleReads reads it)
+        $remote = array();
+        foreach ( self::entries() as $id => $entry )
+        {
+            $data = $entry->toArray();
+            if ( !in_array( 'remote', $data['origins'], true ) )
+                continue;
+            $remote[] = $id;
+            $this->assertTrue( method_exists( $data['class'], 'fetch' ), "$id reads its data with fetch()" );
+            foreach ( $data['examples'] as $example )
+                $this->assertArrayHasKey( 'file', $example, "$id: its example is a snapshot file" );
+        }
+        foreach ( array( 'drupal', 'exponential_site' ) as $id )
+            $this->assertContains( $id, $remote );
+    }
+
     public function testOpmlOutlines(): void
     {
         $file = dirname( __DIR__, 2 ) . '/share/examples/feeds.opml';

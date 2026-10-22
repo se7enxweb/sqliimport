@@ -450,6 +450,142 @@ Link sie ansehen kann (oder veröffentlichen Sie sie im Web), und geben Sie den 
 CSV-Export der Tabelle, mit dem Tabellenblatt des Links (`#gid=`); die erste Zeile benennt die Spalten. Die Optionen
 sind die von CSV, mit Komma und UTF-8.
 
+## Websites, die die Quelle selbst liest (`drupal`, `exponential_site`)
+
+Diese Formate brauchen keine Datei: Die Quelle liest die Schnittstelle der anderen Website selbst. Einmal je Lauf
+schreibt sie das Gelesene als Abzug (`source.ndjson`) in das Verzeichnis des Laufs, den dann jeder Abschnitt des Laufs
+liest. Der Probelauf des Editors liest nur so viele Datensätze, wie er zeigt. Es gilt:
+
+- Jede Adresse wird wie bei einer URL-Quelle geprüft: nur `http` und `https`, und keine privaten oder reservierten
+  Netze, außer bei `[SourceSettings] AllowPrivateHosts=enabled`. Weiterleitungen werden höchstens dreimal verfolgt,
+  jede Adresse wird erneut geprüft, und der Header `Authorization` geht nie an einen anderen Host. Ein Link „nächste
+  Seite“ einer Antwort wird nur auf demselben Schema, Host und Port verfolgt.
+- **Passwörter, Client-Secrets und Tokens werden nie im Import gespeichert.** Ihre Optionen nehmen den *Namen* eines
+  Geheimnisses: `Secrets[<Name>]` aus `[SecretSettings]` in den eigenen Einstellungen der Website, oder
+  `env:<VARIABLE>` des PHP-Prozesses. Fehlermeldungen zeigen den Namen eines Geheimnisses, nie seinen Wert.
+- `[PlatformSettings]` begrenzt einen Lauf: `MaxPages` (Anfragen je Lauf, 200), `MaxItems` (Knoten je Lauf von einer
+  anderen Exponential-Website, 5000) und `MaxResponseMegabytes` (eine Antwort, 20). Die Zeitgrenze ist
+  `[ImportSettings] StreamTimeout`.
+
+### Drupal (`drupal`)
+
+Gruppe: Plattformen. Inhalte einer Drupal-Website über die JSON:API des Drupal-Kerns (ab Drupal 8.7). Die Quelle
+fragt `<Website>/jsonapi/<Entitätstyp>/<Bundle>` ab und folgt `links.next` Seite für Seite.
+
+| Option | Bedeutung | Vorgabe |
+|---|---|---|
+| `base_url` | Pflicht. Die Adresse der Website, z. B. `https://www.example.org` | |
+| `resource` | Entitätstyp und Bundle: `node--article`, `node--page`, `taxonomy_term--tags`, `media--image` | `node--article` |
+| `page_size` | Ressourcen je Anfrage (JSON:API liefert höchstens 50) | `50` |
+| `include` | Die Beziehungen, deren Ressourcen mitkommen, durch Kommas getrennt | `field_image,uid,field_tags` |
+| `filter` | JSON:API-Abfrageparameter, wie sie sind, z. B. `filter[status]=1&sort=-created` | leer |
+| `auth` | `none` (öffentliche Inhalte), `basic` (`user` und `password_secret`, das Modul basic_auth) oder `bearer` (`token_secret`, ein OAuth-Zugriffstoken) | `none` |
+| `key` | das Schlüsselfeld | `id` (die UUID) |
+
+Ein Datensatz hat die Felder `id` (die UUID), `type`, `internal_id` (und `nid`, `vid`, `tid` … unter ihrem Namen),
+`title` (der `name` eines Begriffs oder Mediums), `body` (das verarbeitete HTML) mit `body_value`, `body_summary` und
+`body_format`, `intro` (die Zusammenfassung, sonst der erste Absatz des Textes), `created`, `changed`, `status`,
+`path` (der Alias), `url` (die Adresse des Alias), `langcode` und jedes weitere Attribut unter seinem Namen. Eine
+Beziehung wird zu `<Name>` (die verknüpfte Ressource mit den Attributen der mitgelieferten; eine Liste bei einem
+mehrfachen Feld), `<Name>_id`, `<Name>_url` bei Dateien und Medien (ein Medium wird bis zu seiner Datei verfolgt) und
+`<Name>_names` bei Listen von Begriffen. `image_url` und `image_alt` nennen das erste Bild (`field_image`, dann ein
+Medium), `author` den Benutzer von `uid` und `tags` die Namen von `field_tags`.
+
+Die Vorlage bildet eine Ressource auf einen `article` ab: Titel, Einleitung und Text als Rich Text und, wo die Klasse
+sie hat, Veröffentlichungsdatum (`created`), Bild (`image_url`, heruntergeladen; eine Objektbeziehung erhält ein
+Bildobjekt) und Schlagwörter. Die Remote-ID ist `drupal-<UUID>`, sodass ein späterer Lauf die Objekte aktualisiert.
+
+### Eine andere Exponential-Website (`exponential_site`)
+
+Gruppe: Plattformen. Inhalte einer anderen Exponential-Website über ihre REST-API v1 (die Erweiterung ezprestapi, die
+Schnittstelle der mobilen Anwendungen): Die Quelle fragt
+`<Website>/api/ezp/v1/content/node/<Knoten>/list/offset/<n>/limit/<m>?ResponseGroups=Metadata,Fields` Seite für Seite
+ab, und die Kinder jedes Knotens bis zur gewählten Tiefe.
+
+| Option | Bedeutung | Vorgabe |
+|---|---|---|
+| `base_url` | Pflicht. Die Adresse der anderen Website | |
+| `parent_node` | Der Knoten, dessen Kinder gelesen werden | `2` |
+| `depth` | `1`: die Kinder; `2`: auch deren Kinder, bis 10 | `1` |
+| `class` | Nur die Objekte dieser Klasse (in die anderen wird trotzdem abgestiegen) | jede Klasse |
+| `translation` | Die zu lesende Sprache, z. B. `ger-DE` | die der Website |
+| `page_size` | Knoten je Anfrage (höchstens 100) | `50` |
+| `max_items` | Die meisten Knoten eines Laufs (nie mehr als `[PlatformSettings] MaxItems`) | `1000` |
+| `auth` | `none`, `basic` (`user`, `password_secret`), `bearer` (`token_secret`: ein OAuth-Zugriffstoken oder ein persönlicher API-Schlüssel), `oauth_password` (`client_id`, `client_secret`, `user`, `password_secret`) oder `oauth_refresh` (`client_id`, `client_secret`, `refresh_token_secret`) | `none` |
+| `token_url` | Der Token-Endpunkt von OAuth2 (auf derselben Website) | `<Website>/api/oauth/token` |
+| `key` | das Schlüsselfeld | `remote_id` |
+
+Der Token-Endpunkt einer Exponential-Website gibt Tokens für die Grants `authorization_code` und `refresh_token`:
+Verwenden Sie dort ein Refresh-Token (`oauth_refresh`) oder einen persönlichen API-Schlüssel (`bearer`); der
+Password-Grant ist für Websites, deren OAuth-Server ihn anbietet. Die REST-API einer Website verlangt normalerweise
+eine Anmeldung (`[Authentication] RequireAuthentication` ihrer `rest.ini`).
+
+Ein Datensatz hat die Felder `node_id`, `object_id`, `remote_id`, `node_remote_id`, `class_identifier`, `name`,
+`published`, `modified` (Zeitstempel), `url` (die volle Adresse), `url_alias`, `parent_node_id`, `depth` und jedes
+Attribut in `fields.<Bezeichner>` mit seinem Datentyp in `field_types.<Bezeichner>`. Die REST-API liefert ein
+Attribut in seiner Textform: Rich Text als einfachen Text, ein Bild als seine Adresse auf der Website, eine Beziehung
+als Objekt-IDs der Website.
+
+Die Zuordnung entsteht beim Speichern des Imports aus dem ersten Datensatz: seine Klasse, jedes Attribut nach
+Bezeichner (Rich Text über `richtext`, Bilder über `image`; Beziehungen bleiben Ihnen überlassen), abgeglichen über
+die Remote-ID, sodass die Kopie dem Original bei jedem Lauf folgt.
+
+## Exporte anderer Systeme (`joomla`, `ezpkg`)
+
+### Joomla-Beiträge (`joomla`)
+
+Gruppe: Plattformen. Dateiendungen: `csv`, `xml`. Beiträge einer Joomla-Website (com_content), exportiert als CSV
+mit den Spalten der Beitragstabelle (`id`, `title`, `alias`, `introtext`, `fulltext`, `catid` oder `category_title`,
+`state`, `created`, `publish_up`, `language`, `metadesc`, `metakey`, `images` …) oder als XML: J2XML (Beiträge als
+`<content>`, Kategorien als `<category>`) oder ein Export mit einem `<article>` je Beitrag und den Feldern als
+Kindelementen. Die Variante wird an den ersten Bytes der Datei erkannt.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `variant` | `auto`, `csv`, `xml` | `auto` |
+| `site_url` | Die Adresse der Joomla-Website, damit die Bilder (`images/...`) zu Adressen werden | leer |
+| `status` | `published` (Status 1), `not_trashed` (veröffentlicht, unveröffentlicht, archiviert) oder `all` | `not_trashed` |
+| `key` | das Schlüsselfeld | `id` |
+
+Ein Datensatz hat die Felder `id`, `title`, `alias`, `intro` (der Einleitungstext), `fulltext`, `body` (Einleitung
+und Haupttext zusammengefügt, wie Joomla den Beitrag zeigt), `category` (ihr Titel: die Spalte `category_title`, die
+Kategorien des XML, sonst der letzte Teil des Pfads), `category_id`, `category_path`, `state`, `published`,
+`featured`, `created`, `modified`, `publish_up`, `date` (`publish_up`, sonst `created`), `language` (leer bei `*`,
+alle Sprachen), `metadesc`, `keywords` (die Meta-Schlüsselwörter als Liste), `author`, `hits` und die Bilder aus dem
+JSON `images`: `image_intro`, `image_fulltext`, `image_url` (das Bild des Haupttexts, sonst das Einleitungsbild, als
+Adresse: ein Pfad der Website braucht `site_url`) und ihre Alternativtexte (`image_alt`). Der Zusatz von Joomla 4 an einem Bildpfad (`#joomlaImage://...`) wird
+abgeschnitten.
+
+Die Vorlage bildet einen Beitrag auf einen `article` ab (Titel, Einleitung, Text und, wo die Klasse sie hat,
+Veröffentlichungsdatum, Bild und Schlüsselwörter als Schlagwörter), mit der Remote-ID `joomla-<id>`.
+
+### Exponential-Pakete (`ezpkg`)
+
+Gruppe: Plattformen. Dateiendungen: `ezpkg`, `tgz`. Ein Inhaltspaket einer Exponential-Website (Einrichtung, Pakete,
+der Export eines Pakets mit Inhaltsobjekten). Jedes Inhaltsobjekt ist ein Datensatz. Das Archiv wird mit PharData
+gelesen und nie entpackt: Ein Archiv mit einem Eintrag außerhalb (`..`, ein absoluter Pfad) wird abgelehnt, und das
+XML wird ohne Netzwerk gelesen. Nur Pakete im XML-Format können gelesen werden (ein als JSON exportiertes Paket sagt
+das).
+
+| Option | Bedeutung | Vorgabe |
+|---|---|---|
+| `class` | Nur die Objekte dieser Klasse | jedes Objekt |
+| `language` | Die zu lesende Übersetzung, z. B. `ger-DE`; Objekte ohne sie werden ausgelassen | die Ausgangssprache jedes Objekts |
+| `key` | das Schlüsselfeld | `remote_id` |
+
+Ein Datensatz hat die Felder `remote_id`, `object_id` (im Paket), `name`, `class_identifier`, `class_remote_id`,
+`language`, `languages`, `published`, `modified` (Zeitstempel), `section_id`, `node_remote_id`,
+`parent_node_remote_id` (des Hauptknotens), `parent_node_remote_ids` und jedes Attribut in `fields.<Bezeichner>` mit
+seinem Datentyp in `field_types.<Bezeichner>`. Die Werte haben die Form, die `fromString()` des Datentyps nimmt: Rich
+Text als sein XML, Datumsangaben als Zeitstempel, ein Link als `Adresse|Text`, Beziehungen als Listen von Remote-IDs,
+Schlagwörter als Listen. Ein Bild oder eine Datei heißt `source:<Pfad im Paket>` (mit dem Alternativtext eines Bildes
+in `fields.<Bezeichner>_alt`): Die Umwandlungen `image` und `file` holen sie aus der eigenen Kopie des Pakets im Lauf.
+
+Die Zuordnung entsteht beim Speichern des Imports aus dem Paket: die Klasse seiner Objekte (mit der Option `class`
+oder wenn alle Objekte dieselbe Klasse haben), jedes Attribut nach Bezeichner, dessen Datentyp in seiner
+`fromString()`-Form gelesen wird (Beziehungen bleiben Ihnen überlassen, sie nennen Objekte des Pakets), und die
+Remote-ID als Abgleich, sodass ein erneuter Import des Pakets die Objekte aktualisiert, statt neue anzulegen.
+
 ## Der Katalog der Formate
 
 **Importe, Katalog** zeigt die Formate nach Gruppen (Daten, Inhalte, Plattformen, Handel, Medien, Sonstiges). Jede

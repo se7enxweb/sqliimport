@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<j2xml version="19.2.0">
+  <content>
+    <id>101</id>
+    <title><![CDATA[Welcome to the example club]]></title>
+    <alias><![CDATA[welcome-to-the-example-club]]></alias>
+    <introtext><![CDATA[<p>The example club meets every Tuesday.</p>]]></introtext>
+    <fulltext><![CDATA[<p>Bring a friend, the first visit is free.</p>]]></fulltext>
+    <state>1</state>
+    <catid>club/club-news</catid>
+    <created>2026-03-02 09:00:00</created>
+    <created_by_alias>Club editor</created_by_alias>
+    <modified>2026-03-04 10:15:00</modified>
+    <publish_up>2026-03-02 09:00:00</publish_up>
+    <images><![CDATA[{"image_intro":"images/club/intro.jpg","image_intro_alt":"The club house","image_fulltext":"images/club/full.jpg","image_fulltext_alt":"The club house at night"}]]></images>
+    <metakey><![CDATA[club, meeting]]></metakey>
+    <metadesc><![CDATA[The example club meets weekly]]></metadesc>
+    <featured>1</featured>
+    <language>*</language>
+    <hits>42</hits>
+  </content>
+  <content>
+    <id>102</id>
+    <title><![CDATA[A summer trip to the lake]]></title>
+    <alias><![CDATA[a-summer-trip-to-the-lake]]></alias>
+    <introtext><![CDATA[<p>Our trip to the lake is booked.</p>]]></introtext>
+    <fulltext><![CDATA[]]></fulltext>
+    <state>1</state>
+    <catid>club/club-news</catid>
+    <created>2026-05-10 14:30:00</created>
+    <publish_up>2026-05-12 08:00:00</publish_up>
+    <images><![CDATA[{"image_intro":"","image_fulltext":""}]]></images>
+    <metakey><![CDATA[lake]]></metakey>
+    <language>en-GB</language>
+  </content>
+  <content>
+    <id>103</id>
+    <title><![CDATA[Old minutes]]></title>
+    <alias><![CDATA[old-minutes]]></alias>
+    <introtext><![CDATA[<p>The minutes of the last year.</p>]]></introtext>
+    <state>-2</state>
+    <catid>archive</catid>
+    <created>2025-01-01 12:00:00</created>
+    <language>*</language>
+  </content>
+  <category>
+    <id>8</id>
+    <title><![CDATA[Club news]]></title>
+    <alias><![CDATA[club-news]]></alias>
+    <path><![CDATA[club/club-news]]></path>
+    <extension>com_content</extension>
+  </category>
+  <category>
+    <id>9</id>
+    <title><![CDATA[Archive]]></title>
+    <alias><![CDATA[archive]]></alias>
+    <path><![CDATA[archive]]></path>
+    <extension>com_content</extension>
+  </category>
+</j2xml>
