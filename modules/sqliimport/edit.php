@@ -38,6 +38,7 @@ $sample = null;
 $sampleError = '';
 $preview = null;
 $previewError = '';
+$sqlTest = null;
 if ( $isPost && $http->hasPostVariable( 'Step' ) )
 {
     $step = in_array( $http->postVariable( 'Step' ), expImportEditor::STEPS, true ) ? (string)$http->postVariable( 'Step' ) : $step;
@@ -45,6 +46,12 @@ if ( $isPost && $http->hasPostVariable( 'Step' ) )
     switch ( $step )
     {
         case 'source':
+            if ( $http->hasPostVariable( 'TestConnectionButton' ) )
+            {
+                // the SQL source's "Test connection": connects and reads one row with the options of the form; nothing is saved
+                $sqlTest = $editor->testSqlConnection();
+                break;
+            }
             $ok = $editor->saveSource();
             break;
         case 'processing':
@@ -204,14 +211,19 @@ if ( !$editor->import )
     if ( $handover && $param( 'Preset' ) === '' && $param( 'Source' ) === '' && isset( $toolFormats[$handover['tool']], $sources[$toolFormats[$handover['tool']]] ) )
         $preselect = $toolFormats[$handover['tool']];
 }
-$tpl->setVariable( 'source_type', $editor->import ? (string)$editor->import->attribute( 'source_type' ) : $preselect );
+$tpl->setVariable( 'source_type', $sqlTest ? 'sql' : ( $editor->import ? (string)$editor->import->attribute( 'source_type' ) : $preselect ) );
 $tpl->setVariable( 'entry_parent', $entryParent );
 $tpl->setVariable( 'entry_parent_name', $entryParentName );
 $tpl->setVariable( 'entry_class', $entryClass );
 $tpl->setVariable( 'handover', $handover );
 $tpl->setVariable( 'handlers', $registry->handlers() );
 $tpl->setVariable( 'transforms', expImportTransforms::catalogue() );
-$tpl->setVariable( 'source', $editor->import ? $editor->import->sourceConfig() : array( 'origin' => 'upload' ) );
+$sourceForForm = $editor->import ? $editor->import->sourceConfig() : array( 'origin' => 'upload' );
+if ( $sqlTest )
+    $sourceForForm = array_merge( $sourceForForm, $sqlTest['options'], array( 'origin' => 'remote' ) );
+$tpl->setVariable( 'source', $sourceForForm );
+$tpl->setVariable( 'sql_test', $sqlTest ? $sqlTest : false );
+$tpl->setVariable( 'sql_drivers', $step === 'source' ? expImportSqlSource::drivers() : array() );
 $tpl->setVariable( 'target', $editor->import ? $editor->import->target() : array( 'parent_node_id' => (int)expImport::setting( 'ImportSettings', 'DefaultParentNodeID', 2 ), 'section_id' => 0, 'language' => '', 'owner_id' => 0 ) );
 $tpl->setVariable( 'behaviour', $editor->import ? $editor->import->behaviour() : array( 'chunk_size' => (int)expImport::setting( 'RunSettings', 'ChunkSize', 200 ), 'update_policy' => 'update', 'max_rows' => 0, 'conflict_policy' => 'overwrite', 'undo_days' => '', 'notify_when' => 'errors', 'notify_starter' => true, 'notify_emails' => array() ) );
 $tpl->setVariable( 'options', $editor->import ? $editor->import->options() : array() );

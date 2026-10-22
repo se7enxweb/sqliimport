@@ -216,6 +216,41 @@ class expImportEditor
     }
 
     /**
+     * The source step's "Test connection" of the SQL source: the options of the form, checked as Save checks them,
+     * then a connection that reads the first row of the query (expImportSqlSource::test()). Nothing is saved; the
+     * view that calls it checks the same permission as saving.
+     *
+     * @return array the result of expImportSqlSource::test(), with 'options' (the options of the form, for the form
+     *               again) and 'form' (name, identifier, description as posted)
+     */
+    public function testSqlConnection()
+    {
+        $sources = expImportRegistry::instance()->sources();
+        $all = $this->postArray( 'SourceOptions' );
+        // the options of the form, by format (SourceOptions[sql][<option>]) or flat (SourceOptions[<option>])
+        $posted = isset( $all['sql'] ) && is_array( $all['sql'] ) ? $all['sql'] : $all;
+        $result = array( 'ok' => false, 'columns' => array(), 'rows' => 0, 'driver' => isset( $posted['driver'] ) ? (string)$posted['driver'] : '', 'message' => '' );
+        if ( (string)$this->post( 'SourceType' ) !== 'sql' || !isset( $sources['sql'] ) || $sources['sql']['status'] !== 'enabled' )
+            $result['message'] = ezpI18n::tr( 'extension/sqliimport/edit', 'Test connection works for the source type SQL database or query.' );
+        else
+        {
+            list( $options, $errors ) = expImportOptionSchema::validate( $sources['sql']['schema'], $posted );
+            foreach ( $errors as $key => $message )
+                $this->errors['SourceOptions_' . $key] = $message;
+            if ( $errors )
+                $result['message'] = ezpI18n::tr( 'extension/sqliimport/edit', 'Correct the options first.' );
+            else
+            {
+                $result = expImportSqlSource::test( $options );
+                $posted = $options;
+            }
+        }
+        $result['options'] = $posted;
+        $result['form'] = array( 'name' => (string)$this->post( 'Name' ), 'identifier' => (string)$this->post( 'Identifier' ), 'description' => (string)$this->post( 'Description' ) );
+        return $result;
+    }
+
+    /**
      * The preset of a format for a source: the format's own, or one made from the file itself when the format can
      * (presetFor(), e.g. an export's column manifest).
      *

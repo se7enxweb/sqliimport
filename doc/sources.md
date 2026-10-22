@@ -445,17 +445,17 @@ tab of the link (`#gid=`); the first row names the columns. The options are thos
 
 ## SQL database or query (`sql`)
 
-Group: platforms. Origin: `remote`. The rows of an SQL query against a MySQL or MariaDB, PostgreSQL or SQLite
-database (an intranet database, the database of another application): one record is one row, its fields the
+Group: platforms. Origin: `remote`. The rows of an SQL query against a MySQL or MariaDB, PostgreSQL, SQLite, Oracle or
+Microsoft SQL Server database (an intranet database, the database of another application): one record is one row, its fields the
 columns of the query (name them with `AS` to get the field names you want). Once per run the source runs the query
 and writes the rows into the run's directory, one JSON object per line; binary values that are not UTF-8 are written
 as `base64:...`. The editor's sample and preview read the first `[RunSettings] DryRunRows` rows only.
 
 | Option | Values | Default |
 |---|---|---|
-| `driver` | `mysql` (MySQL or MariaDB), `pgsql` (PostgreSQL), `sqlite` (a file on the server), `site` (this site's database) | `mysql` |
-| `host`, `port` | the database server; port `0` is the default port (3306, 5432) | |
-| `database` | the database name; SQLite: the path of the file | |
+| `driver` | `mysql` (MySQL or MariaDB), `pgsql` (PostgreSQL), `sqlite` (a file on the server), `oracle` (Oracle), `sqlsrv` (Microsoft SQL Server), `site` (this site's database) | `mysql` |
+| `host`, `port` | the database server; port `0` is the default port (3306, 5432, Oracle 1521, SQL Server 1433) | |
+| `database` | the database name; SQLite: the path of the file; Oracle: the service name (see below) | |
 | `user` | the database user | |
 | `password` | the **name** of a secret (see below), never the password | |
 | `query` | a single `SELECT` (or `WITH ... SELECT`) | required |
@@ -474,12 +474,79 @@ Only reading is possible, checked three times:
   (`pg_read_file`, `lo_import`, `dblink`, `set_config`, `nextval`, `sleep`, `load_extension`, `writefile` ...).
   `REPLACE` is allowed only as the function `REPLACE( ... )`. A column with such a name can be quoted
   (`` `update` ``, `"update"`). A refused query stops the run with the reason.
+  - **T-SQL (SQL Server)** in addition: `[bracketed names]` (with `]]` inside), `N'...'` strings and nested
+    comments are read as SQL Server reads them; `TOP` and `OFFSET ... FETCH` page the rows. Refused are
+    `EXEC`/`EXECUTE`, system procedures (`sp_...`, `xp_...`, also bracketed), `SELECT ... INTO` (it creates a table),
+    `MERGE`, `OPENROWSET`, `OPENQUERY`, `OPENDATASOURCE`, `WITH ... DELETE`/`UPDATE`/`MERGE`/`INSERT`, a second
+    statement without a `;` (`BEGIN`, `DECLARE`, `SET`, `USE`, `WAITFOR`, `DBCC`, `BULK`, `COMMIT` ...), locking hints
+    (`UPDLOCK`, `XLOCK`, `HOLDLOCK`, `TABLOCK`, `TABLOCKX`, `PAGLOCK`) and `NEXT VALUE FOR`.
+  - **Oracle** in addition: `q'[...]'` strings (any delimiter, also `nq'...'`) are read as Oracle reads them.
+    Refused are PL/SQL blocks (`BEGIN`, `DECLARE`, also `WITH FUNCTION`), `FOR UPDATE` (it locks rows), calls of the
+    packages `DBMS_...`, `UTL_...`, `OWA_...`, `HTP`, `HTF` and of `HTTPURITYPE` (also as quoted names such as
+    `"DBMS_PIPE"."SEND_MESSAGE"`), database links (`table@link`), `sequence.NEXTVAL`, `COMMIT` and `ROLLBACK`.
+    Oracle gives unquoted column names in capitals: name the key column that way, or use `AS "id"`.
 - **The connection is read-only:** MySQL and MariaDB `SET SESSION TRANSACTION READ ONLY`, PostgreSQL
-  `SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY`, SQLite opened read-only with `PRAGMA query_only`. Multiple
-  statements and emulated prepares are off, MySQL's `LOCAL INFILE` too.
+  `SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY`, SQLite opened read-only with `PRAGMA query_only`, Oracle a
+  connection of its own with `SET TRANSACTION READ ONLY` that is never committed (a write in it fails with
+  ORA-01456). SQL Server has no read-only session: the connection asks for `ApplicationIntent=ReadOnly` (which sends
+  it to a readable secondary of an availability group, where there is one), runs `SET NOCOUNT ON`,
+  `SET IMPLICIT_TRANSACTIONS OFF` and `SET LOCK_TIMEOUT`, and otherwise relies on the query check. **Give the import
+  a database user that may only read** (on SQL Server the role `db_datareader`, on Oracle `CREATE SESSION` and
+  `SELECT` on the tables it needs, on the others a user with `SELECT` rights only). Multiple statements and emulated
+  prepares are off, MySQL's `LOCAL INFILE` too.
 - **A time limit** of `[SqlSourceSettings] QueryTimeout` seconds is set on the server where it has one (MySQL
-  `MAX_EXECUTION_TIME`, MariaDB `max_statement_time`, PostgreSQL `statement_timeout`); reading the rows stops after
-  ten times as long.
+  `MAX_EXECUTION_TIME`, MariaDB `max_statement_time`, PostgreSQL `statement_timeout`, Oracle the call timeout of
+  oci8, SQL Server the query timeout of pdo_sqlsrv or pdo_dblib); reading the rows stops after ten times as long.
+
+**Drivers.** Oracle and SQL Server need a PHP extension that not every host has:
+
+| Database | Driver, in this order | Character set |
+|---|---|---|
+| Oracle | `oci8`, else `pdo_oci` (`[SqlSourceSettings] OracleDriver`) | AL32UTF8 (UTF-8) |
+| SQL Server | `pdo_sqlsrv`, else `pdo_dblib` (FreeTDS), else `PDO_ODBC` with an ODBC driver for SQL Server (`[SqlSourceSettings] SqlServerDriver`, `OdbcDriver`) | UTF-8 (the UTF-8 encoding of pdo_sqlsrv, `charset=UTF-8` of dblib, `ClientCharset=UTF-8` of the FreeTDS ODBC driver) |
+
+What the host needs for a missing driver (packages of the system or of the PHP distribution; Plesk and other control
+panels have their own):
+
+- **Oracle:** the Oracle Instant Client (RHEL: `oracle-instantclient-basic`; Debian: the Instant Client from
+  Oracle) and the PECL extension `oci8` (RHEL: `php-oci8` of Remi; Debian: built with PECL), or `pdo_oci`.
+- **SQL Server:** the Microsoft ODBC Driver 18 (`msodbcsql18` from Microsoft's repository, RHEL and Debian) and the
+  PECL extension `pdo_sqlsrv` (RHEL: `php-sqlsrv` of Remi; Debian: `php-sqlsrv` or PECL); or `pdo_dblib` with FreeTDS
+  (RHEL: `php-pdo-dblib`, `freetds`; Debian: `php-sybase`, `freetds-common`); or `PDO_ODBC` with an ODBC driver
+  (RHEL: `php-odbc`, `unixODBC` and `msodbcsql18` or `freetds`; Debian: `php-odbc`, `unixodbc` and `msodbcsql18` or
+  `tdsodbc`).
+
+The **catalogue** (the card of the format) and the editor's source step show which databases this server can read:
+green with the driver used, grey with what the host needs. Runs are read by the **job queue's workers**, and their
+PHP is not always the PHP of the web server (the administration may be served by another PHP than the one the
+queue's cron job starts). The workers note their PHP and its drivers at every run; the list then also says "in the
+workers" for a database the web server's PHP cannot read, and a test or a sample in the editor says that runs still
+work. Encryption of SQL Server connections: `[SqlSourceSettings] SqlServerEncrypt` (enabled) and
+`SqlServerTrustServerCertificate` (disabled). The Microsoft ODBC driver gives text in the locale of the PHP process:
+give the workers a UTF-8 locale (`LANG=C.UTF-8`), or name the character set in `[SqlSourceSettings] OdbcCharset` to
+have it converted.
+
+**Oracle connections**, in one of three forms:
+
+- host, port and the **service name** as database: `ora.example.org`, `1521`, `ORCLPDB1`;
+- no host, and **Easy Connect** as database: `//ora.example.org:1521/ORCLPDB1` (the host is checked the same way);
+- no host, and a **TNS name** as database: only one the administrator lists in `[SqlSourceSettings]
+  AllowedTnsNames[]`, since the server's `tnsnames.ora` decides where it leads.
+
+Connect descriptors (`(DESCRIPTION=...)`) are not accepted. Dates and timestamps come in ISO 8601
+(`2026-10-22T10:11:12`, `...T10:11:12.500000`: the session's `NLS_DATE_FORMAT` and `NLS_TIMESTAMP_FORMAT`), numbers
+as Oracle writes them, with a decimal point (`3.5`, `.25`; `TO_CHAR` in the query for another form), `CLOB` and
+`NCLOB` as text, `BLOB` and `RAW` as `base64:...`.
+
+**SQL Server example:**
+
+```sql
+SELECT TOP 100 [Id], [Name], [Description] FROM [dbo].[Products] ORDER BY [Changed] DESC
+```
+
+**Test connection.** On the source step of an import of this format, *Test connection* connects with the options of
+the form, runs the query for its first row and shows its columns, or the error (a password never appears: it is
+masked). Nothing is saved; it needs the same permission as saving the import.
 
 Where it may connect:
 

@@ -13,16 +13,16 @@
 {/if}
 <div class="a4-field">
 <label for="sq-name">{'Name'|i18n( 'extension/sqliimport/edit' )} <span class="a4-required-mark" aria-hidden="true">*</span></label>
-<input type="text" id="sq-name" name="Name" value="{if $import}{$import.name|wash}{/if}" required="required" maxlength="255"{if is_set( $errors.Name )} aria-invalid="true"{/if} />
+<input type="text" id="sq-name" name="Name" value="{if $sql_test}{$sql_test.form.name|wash}{elseif $import}{$import.name|wash}{/if}" required="required" maxlength="255"{if is_set( $errors.Name )} aria-invalid="true"{/if} />
 </div>
 <div class="a4-field">
 <label for="sq-identifier">{'Identifier'|i18n( 'extension/sqliimport/edit' )}</label>
-<input type="text" id="sq-identifier" name="Identifier" value="{if $import}{$import.identifier|wash}{/if}" maxlength="100" />
+<input type="text" id="sq-identifier" name="Identifier" value="{if $sql_test}{$sql_test.form.identifier|wash}{elseif $import}{$import.identifier|wash}{/if}" maxlength="100" />
 <span class="a4-help">{'Names the import on the command line (ext:sqliimport:run followed by the identifier). Empty: made from the name.'|i18n( 'extension/sqliimport/edit' )}</span>
 </div>
 <div class="a4-field a4-field-wide">
 <label for="sq-description">{'Description'|i18n( 'extension/sqliimport/edit' )}</label>
-<textarea id="sq-description" name="Description" rows="2">{if $import}{$import.description|wash}{/if}</textarea>
+<textarea id="sq-description" name="Description" rows="2">{if $sql_test}{$sql_test.form.description|wash}{elseif $import}{$import.description|wash}{/if}</textarea>
 </div>
 
 <fieldset class="a4-field a4-field-wide">
@@ -88,6 +88,7 @@
 <div class="a4-form is-wide a4-sqliimport-options">
 {include uri='design:sqliimport/parts/option_fields.tpl' schema=$sources[$sq_src_type].schema values=$source prefix='SourceOptions' errors=$errors idprefix='sq-so'}
 </div>
+{if eq( $sq_src_type, 'sql' )}{include uri='design:sqliimport/edit/sql_test.tpl'}{/if}
 <span class="a4-help">{'The options of another source type are shown after it is saved.'|i18n( 'extension/sqliimport/edit' )}</span>
 </fieldset>
 {/if}
