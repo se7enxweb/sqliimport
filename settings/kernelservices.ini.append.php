@@ -82,4 +82,45 @@ Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: OPML outlines and feed lists
 
+[Service_sqliimport.source.ical]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportIcalSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: iCalendar events and tasks (.ics)
+
+[Service_sqliimport.source.vcard]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportVcardSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: vCard contacts (.vcf)
+
+# commerce
+[Service_sqliimport.source.google_merchant]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportGoogleMerchantSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: Google Merchant product feeds
+
+[Service_sqliimport.source.shopify]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportShopifyCsvSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: Shopify product CSV exports
+
+[Service_sqliimport.source.woocommerce]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportWooCommerceCsvSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: WooCommerce product CSV exports
+
 */ ?>

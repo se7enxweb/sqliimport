@@ -24,6 +24,17 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   the run is left alone and listed. A run is undone once, within the days set by UndoDays (30, per import too).
 - Added: Conflict rules for objects a person changed since the last run: overwrite, skip, fill_empty (only empty
   fields) and merge (only the fields nobody changed), decided by the field values the import wrote.
+- Added: The format iCalendar (.ics, file or address): one record per event (and per task on request) with start
+  and end as written, in ISO 8601 UTC and as timestamps (time zones and all-day dates included), recurrence rule,
+  categories and organizer; read as a stream. Preset: the class event.
+- Added: The format vCard (.vcf, 3.0 and 4.0): one record per contact with name parts, e-mail addresses, phone
+  numbers, organization, address, birthday and photo address; read as a stream. No preset.
+- Added: The format Google Merchant product feed (RSS with the g: namespace): ID, title, description, images, price
+  and sale price with currency, availability, brand, GTIN, MPN, categories, shipping and tax. Preset: the class
+  product of the webshop.
+- Added: The formats Shopify product CSV (the rows of one handle are one product with its variants and images) and
+  WooCommerce product CSV (variations nested in their variable product), with prices as decimals, the currency as
+  an option and the tax fields. Preset: the class product of the webshop.
 
 ### Updated
 
