@@ -1162,6 +1162,11 @@ class expImportSqlSource extends expImportJsonSource
             foreach ( self::WORKER_SOURCES as $class )
                 if ( class_exists( $class ) && method_exists( $class, 'localDrivers' ) )
                     $sources[(string)call_user_func( array( $class, 'identifier' ) )] = (array)call_user_func( array( $class, 'localDrivers' ) );
+            // the other sources that need something of the host, as <prefix>.<driver> (expImportSearchSource::withWorker())
+            foreach ( array( 'search' => 'expImportSearchSource', 'duckdb' => 'expImportDuckDbSource' ) as $prefix => $class )
+                if ( class_exists( $class ) )
+                    foreach ( (array)call_user_func( array( $class, 'drivers' ) ) as $id => $row )
+                        $drivers[$prefix . '.' . $id] = (string)$row['via'];
             $now = array( 'php' => PHP_BINARY, 'version' => PHP_VERSION, 'drivers' => $drivers, 'sources' => $sources );
             $old = is_file( $file ) ? json_decode( (string)file_get_contents( $file ), true ) : null;
             if ( is_array( $old ) && isset( $old['at'] ) && array_diff_key( $old, array( 'at' => 1 ) ) == $now && time() - (int)$old['at'] < 86400 )

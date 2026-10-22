@@ -145,6 +145,19 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   MaxScannedKeys, TestScanRounds).
 - Added: Test connection and the list of drivers (with what the job queue's workers have) for the MongoDB and Redis
   sources; the example snapshots share/examples/mongodb-articles.ndjson and redis-products.ndjson.
+- Added: The format Elasticsearch or OpenSearch index (elasticsearch): the documents of an index, alias or pattern
+  through the search API, _source flattened to dotted field names with _id and _index; paged with a point in time
+  (Elasticsearch 7.10 and later, OpenSearch 2.4 and later), search_after or a scroll for older servers. Only searches
+  are sent, a query may hold only query, sort and _source, scripts are refused anywhere in it; basic, API key and
+  bearer authentication by the names of secrets; [SearchSourceSettings] AllowedHosts[] and MaxPages. With Test
+  connection, the driver list and the example snapshot share/examples/search-articles.ndjson.
+- Added: The format DuckDB query over files (duckdb): a single SELECT over Parquet, CSV or JSON files (also a pattern)
+  as the view data, or over a DuckDB database file opened read-only, paged with LIMIT and OFFSET. Files only inside
+  [SourceSettings] AllowedPaths[], addresses only with [DuckDbSourceSettings] AllowRemoteFiles=enabled; the query
+  check refuses COPY, ATTACH, INSTALL, LOAD, SET, PRAGMA and the functions that read other files; the session cannot
+  load extensions, is sandboxed to the import's files (Sandbox, DuckDB 1.3 and later) and its configuration locked.
+  Through the duckdb program (no shell, time and size limits) or PHP FFI with libduckdb; with Test connection, the
+  driver list and the example share/examples/duckdb-teas.csv.
 
 ### Updated
 

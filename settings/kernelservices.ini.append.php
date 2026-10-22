@@ -41,6 +41,10 @@ Formats[]=vCard
 Formats[]=ZIP
 Formats[]=SQL
 Formats[]=IMAP
+Formats[]=Elasticsearch
+Formats[]=OpenSearch
+Formats[]=Parquet
+Formats[]=DuckDB
 EntryURL=sqliimport/list
 Permission=sqliimport/manage|sqliimport/run|sqliimport/manageimports|sqliimport/listimports
 HelpPage=ext/sqliimport/README.md
@@ -109,6 +113,22 @@ Arguments[]=ndjson
 Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: JSON Lines (NDJSON)
+
+[Service_sqliimport.source.elasticsearch]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportSearchSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: Elasticsearch or OpenSearch index (read-only search)
+
+[Service_sqliimport.source.duckdb]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportDuckDbSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: DuckDB query over Parquet, CSV or JSON files
 
 [Service_sqliimport.source.google_sheets]
 Class=expImportSourceEntry

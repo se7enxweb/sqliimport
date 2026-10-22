@@ -10,7 +10,7 @@ A source type reads records from a local file. Where the file comes from is the 
 | `upload` | `file`: the stored name of an uploaded file | The upload (kept in the site's storage directory, `sqliimport/uploads/`) is copied into the run's directory |
 | `url` | `url`: an `http` or `https` address | The address is downloaded into the run's directory, with the time limit `[ImportSettings] StreamTimeout` and the size limit `[SourceSettings] MaxSourceMegabytes` |
 | `path` | `path`: a file on the server | The file is read in place, but only if it lies inside one of `[SourceSettings] AllowedPaths[]` |
-| `remote` | the source's own options (a database, a mailbox) | The source reads its data itself once per run and writes it into the run's directory as JSON Lines (`sql`, `mongodb`, `redis`, `imap`) |
+| `remote` | the source's own options (a database, a search index, a mailbox) | The source reads its data itself once per run and writes it into the run's directory as JSON Lines (`sql`, `elasticsearch`, `duckdb`, `imap`) |
 
 Rules:
 
@@ -577,6 +577,128 @@ read when a run needs it:
 
 **Imports, Settings** lists the names of the secrets that are set, never a value. Messages and logs show a secret
 as `[secret <name>]`, also when a server quotes it in an error.
+
+## Elasticsearch or OpenSearch index (`elasticsearch`)
+
+Group: data. Origin: `remote`. The documents of an Elasticsearch or OpenSearch index, alias or index pattern, read
+through the search API over HTTP. One record is one document: its `_source` with nested objects flattened to dotted
+field names (`author.name`, `author.address.city`), a list of plain values kept as a list (`tags`), a list of objects
+numbered (`images.0.url`), and `_id` and `_index` besides. Once per run the source pages through the search and writes
+the documents into the run's directory, one JSON object per line.
+
+| Option | Values | Default |
+|---|---|---|
+| `base_url` | the address of the cluster, `https://search.example.org:9200` (no query, no credentials in it) | required |
+| `index` | an index, an alias or a pattern: `articles`, `logs-2026-*`, `news,blog` | required |
+| `auth` | `none`, `basic` (user and password), `api_key`, `bearer` (a token) | `none` |
+| `user` | with `basic`: the user name | |
+| `password_secret` | with `basic`: the **name** of the secret with the password | |
+| `api_key_secret` | with `api_key`: the **name** of the secret with the encoded API key (the `encoded` value Elasticsearch gives; sent as `Authorization: ApiKey ...`) | |
+| `token_secret` | with `bearer`: the **name** of the secret with the token | |
+| `query` | query DSL as JSON: a query (`{"term": {"status": "published"}}`) or a body with `query`, `sort` and `_source` | all documents |
+| `source_fields` | the fields of `_source` to read, one per line (`title`, `author.*`) | all |
+| `sort` | fields with `:asc` or `:desc`, comma separated: `published_at:desc,_id` | the sort of the query, else the index order |
+| `page_size` | documents per request, 1 to 10000 | `500` |
+| `paging` | `auto`, `pit` (point in time), `search_after`, `scroll` | `auto` |
+| `key` | the field that names a document | `_id` |
+
+**Read-only.** The source builds only these requests: `GET /` (the version), `POST <index>/_search`, and the requests
+that open, use and close a point in time or a scroll for that search. The index is checked before anything is sent
+(letters, digits, `_ . - * +` and commas; no path such as `articles/_delete_by_query`, no remote cluster `other:index`,
+nothing starting with `_` or `-`). The query may only be a query clause or a body with `query`, `sort` and `_source`
+at its top; anything else (`size`, `aggs`, `pit`, `script_fields`, `runtime_mappings`, `suggest`, `rescore` ...) is
+refused, and so is a script anywhere in it (`script`, `script_score`, `scripted_metric`, `script_fields`,
+`runtime_mappings`). Give the import a user or an API key with the `read` privilege on the index only (and, for
+the version, `monitor` on the cluster; without it the source still works and pages with `search_after` or a scroll).
+
+**Paging** (`auto`): Elasticsearch 7.10 and later through a point in time (`_pit`) with `search_after` and the implicit
+tie-breaker `_shard_doc`; OpenSearch 2.4 and later through its point in time (`_search/point_in_time`) when the import
+gives a sort; otherwise `search_after` alone when the last field of the sort is unique (`_id`), else a scroll (`_doc`
+order), which also serves old servers. A point in time or a scroll stays open two minutes between pages and is closed
+at the end, also when a run stops early. `[SearchSourceSettings] MaxPages` limits the pages of a run (1000).
+
+**Test connection** reads the version (`GET /`) and searches for one document: it shows the server
+(`Elasticsearch 8.11.0`, `OpenSearch 2.11.0`) and the fields of that document, or the error with the server's reason
+(`index_not_found_exception`, `parsing_exception`). A password, key or token never appears: it is masked as
+`[secret <name>]`, also when a server quotes it. Nothing is saved.
+
+**What the host needs:** PHP's `http` and `https` streams (`allow_url_fopen=On` and the extension `openssl`) in the
+web server's PHP and in the PHP of the job queue's workers; the catalogue and the source step list them. curl is not
+needed. Certificates are verified, answers are limited to `[PlatformSettings] MaxResponseMegabytes`, the time limit
+is `[ImportSettings] StreamTimeout`, and a redirect to another host loses the credentials. A server in a private or
+reserved network is refused unless `[SourceSettings] AllowPrivateHosts=enabled` or it is listed in
+`[SearchSourceSettings] AllowedHosts[]` (the usual case: an intranet cluster).
+
+**Example:** `share/examples/search-articles.ndjson` is a snapshot of three articles as the source writes it. A query
+for the published articles, newest first:
+
+```json
+{"query": {"term": {"status": "published"}}, "sort": [{"published_at": "desc"}]}
+```
+
+## DuckDB query over files (`duckdb`)
+
+Group: data. Origin: `remote`. The rows of a DuckDB query over files on the server: Parquet, CSV or JSON files (one,
+several, or a pattern such as `var/import/exports/*.parquet`), or a DuckDB database file. One record is one row, its
+fields the columns of the query. The files are the view `data` of the query (`SELECT * FROM data WHERE ...`); a
+database file is opened read-only and the query names its tables. Once per run the source runs the query page by page
+and writes the rows into the run's directory, one JSON object per line.
+
+| Option | Values | Default |
+|---|---|---|
+| `paths` | one path per line, inside `[SourceSettings] AllowedPaths[]`; a pattern (`*`, `?`, `[...]`) reads every file it matches | required |
+| `reader` | `auto` (by the file name: `.parquet`, `.csv`/`.tsv`, `.json`/`.ndjson`/`.jsonl`, `.duckdb`/`.db`), `parquet`, `csv` (delimiter and header detected), `json`, `duckdb` | `auto` |
+| `query` | a single `SELECT` (or `WITH ... SELECT`) | `SELECT * FROM data` |
+| `page_size` | rows per query (`LIMIT` and `OFFSET` around the query); `0`: all rows at once | `10000` |
+| `key` | the column that names a row | the position |
+
+Give the query an `ORDER BY` when it has more rows than a page: the pages are separate queries, and only a sorted
+result gives them the same order.
+
+**Read-only**, checked three times:
+
+- **The files:** every path must lie inside `[SourceSettings] AllowedPaths[]` (the real path, so a link out of it is
+  refused), `..` is refused, a pattern must match at least one file, at most `[DuckDbSourceSettings] MaxFiles`. A
+  database is a single file and is opened with `-readonly` (FFI: `access_mode=READ_ONLY`). Addresses (`https://`,
+  `s3://`) only with `[DuckDbSourceSettings] AllowRemoteFiles=enabled`; an http host in a private network only when
+  listed in `[DuckDbSourceSettings] AllowedHosts[]`; DuckDB's `httpfs` extension must be installed.
+- **The query** is checked like the SQL source's, in the dialect of PostgreSQL (whose parser DuckDB uses: dollar
+  quoting, `E'...'` strings, nested comments), and in addition refused with `COPY`, `ATTACH`, `DETACH`, `INSTALL`,
+  `LOAD`, `SET`, `RESET`, `PRAGMA`, `EXPORT`, `IMPORT`, `CHECKPOINT`, `USE`, `SECRET`, the functions that read other
+  files or run SQL (`read_csv`, `read_parquet`, `read_json`, `read_text`, `read_blob`, `glob`, `query`, `query_table`,
+  `sqlite_scan`, `postgres_scan` ...), `getenv`, and a file named as a table (`FROM 'file.csv'`,
+  `FROM "file.csv"`). A column with such a name can be quoted (`"query"`).
+- **The session:** before the query, DuckDB may neither install nor load extensions on its own
+  (`autoinstall_known_extensions`, `autoload_known_extensions` off); with `[DuckDbSourceSettings] Sandbox=enabled`
+  (DuckDB 1.3 or later) it may reach only the files of the import (`allowed_paths` and
+  `enable_external_access=false`); then the configuration is locked (`lock_configuration`), so the query cannot
+  change any of it. Set `Sandbox=disabled` only for an older DuckDB; then the query check alone keeps it to the files.
+
+**Drivers**, in this order (`[DuckDbSourceSettings] Driver`: `auto`, `cli`, `ffi`):
+
+- **The duckdb program** (`[DuckDbSourceSettings] Binary`, a name looked up in the `PATH`, `/usr/local/bin` and
+  `/opt/duckdb`, or a full path). It is started without a shell (the arguments as a list), with `-json`, `-bail`,
+  `-init /dev/null` (no `~/.duckdbrc`) and a reduced environment (no secrets of the PHP process), the statements on its
+  input. It is stopped after `[DuckDbSourceSettings] QueryTimeout` seconds (60) per page or when a page's output is
+  larger than `MaxOutputMegabytes` (100). Values come as DuckDB writes them in JSON (numbers, text, lists).
+- **PHP FFI with libduckdb** (`[DuckDbSourceSettings] Library`, else `libduckdb.so` in `/usr/local/lib`, `/usr/lib64`,
+  `/usr/lib` ...), when the PHP extension FFI is loaded with `ffi.enable=On` (or `preload` for the workers' CLI). Values
+  come as text; the time limit is not enforced.
+
+**What the host needs** without either: the duckdb command line program, a single file from duckdb.org (install it as
+`/usr/local/bin/duckdb`), in the PHP of the job queue's workers too; or the PHP extension FFI (RHEL: `php-ffi`;
+Debian: part of the `php` package) with `libduckdb.so` from duckdb.org. The catalogue and the source step list both
+drivers, green with what is used, grey with what is missing, and what the workers had at their last run.
+
+**Test connection** checks the files and the query, runs it for its first row and shows the columns and the driver,
+or the error of DuckDB. Nothing is saved.
+
+**Example:** `share/examples/duckdb-teas.csv` (five teas). Copy it into a directory of `AllowedPaths[]` (for example
+`var/import`) and create an import with that path, the key `id` and the query
+
+```sql
+SELECT id, name, origin, kind, price FROM data WHERE kind <> 'herbal' ORDER BY id
+```
 
 ## E-mail inbox via IMAP (`imap`)
 
