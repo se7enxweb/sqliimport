@@ -940,7 +940,7 @@ class expImportStatistics
         $buckets = self::buckets( $period['from'], $period['to'], 'day', $tz );
         $trends = self::trends( $runs, $buckets, 'day', $tz );
         $failing = array();
-        if ( $s['failed'] > 0 || $s['with_errors'] + $s['failed_runs'] > 0 )
+        if ( (int)$s['failed'] > 0 || (int)$s['with_errors'] + (int)$s['failed_runs'] > 0 )
         {
             $per = self::perImport( $runs, self::loadMessages( $filter ), $imports, $buckets, 'day', $tz );
             usort( $per, function ( $a, $b )
@@ -949,7 +949,7 @@ class expImportStatistics
                     ?: $b['stats']['failed'] <=> $a['stats']['failed'];
             } );
             foreach ( $per as $i )
-                if ( $i['stats']['failed'] > 0 || $i['stats']['with_errors'] + $i['stats']['failed_runs'] > 0 )
+                if ( (int)$i['stats']['failed'] > 0 || (int)$i['stats']['with_errors'] + (int)$i['stats']['failed_runs'] > 0 )
                     $failing[] = self::importRowForTemplate( $i );
             $failing = array_slice( $failing, 0, 5 );
         }

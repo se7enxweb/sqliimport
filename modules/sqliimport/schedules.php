@@ -38,7 +38,8 @@ if ( $legacyRef !== '' )
         if ( !expImportAdmin::can( 'manage' ) )
             return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
         expImportLegacy::flash( 'info', ezpI18n::tr( 'extension/sqliimport', 'There is no 1.x handler to schedule: the site lists none in sqliimport.ini [ImportSettings] AvailableSourceHandlers[]. Schedule a 2.x import in its editor instead.' ) );
-        return $Module->redirectTo( '/sqliimport/schedules' );
+        $Module->redirectTo( '/sqliimport/schedules' );
+        return;
     }
     $posted = null;
     if ( strtoupper( (string)eZSys::serverVariable( 'REQUEST_METHOD', true ) ) === 'POST' && $http->hasPostVariable( 'LegacyScheduleSaveButton' ) )
@@ -52,7 +53,8 @@ if ( $legacyRef !== '' )
             $saved = expImportLegacy::saveScheduled( $scheduled ? (int)$scheduled->attribute( 'id' ) : 0, $posted );
             expImportLegacy::flash( 'ok', ezpI18n::tr( 'extension/sqliimport', 'The 1.x scheduled import "%name" is saved.', null,
                                                        array( '%name' => $saved->attribute( 'label' ) !== '' ? $saved->attribute( 'label' ) : '#' . $saved->attribute( 'id' ) ) ) );
-            return $Module->redirectTo( '/sqliimport/schedules' );
+            $Module->redirectTo( '/sqliimport/schedules' );
+            return;
         }
         catch ( expImportValidationException $e )
         {
