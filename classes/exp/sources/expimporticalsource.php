@@ -251,7 +251,7 @@ class expImportIcalSource extends expImportContentLineSource
      *
      * @param array $property a parsed line
      * @param DateTimeZone $zone the zone of floating times and dates
-     * @return array( 'raw', 'iso', 'timestamp', 'timezone', 'all_day' )
+     * @return array the keys raw, iso, timestamp, timezone and all_day
      */
     public function dateValue( array $property, DateTimeZone $zone )
     {

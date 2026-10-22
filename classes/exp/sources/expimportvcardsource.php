@@ -203,7 +203,7 @@ class expImportVcardSource extends expImportContentLineSource
     /**
      * The address of a photo: an http(s) URL is kept, an embedded image (base64, data:) is not.
      *
-     * @return array( string url, bool embedded )
+     * @return array the address (string) and whether it is embedded (bool)
      */
     protected static function photo( array $property )
     {

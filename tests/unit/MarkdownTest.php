@@ -19,14 +19,14 @@ class MarkdownTest extends TestCase
 
     public function testFrontMatter(): void
     {
-        list( $front, $body, $format ) = expImportFrontMatter::split( "---\ntitle: \"A: B\"\ntags: [a, 'b c']\ncount: 3\nok: true\nlist:\n  - x\n  - y\nmap:\n  k: v\ntext: |\n  one\n  two\n---\nBody" );
+        list( $front, $body, $format ) = expImportFrontMatter::split( "---\ntitle: \"A: B\"\ntags: [a, 'b c']\ncount: 3\nok: true\nlist:\n  - first\n  - second\nmap:\n  k: v\ntext: |\n  one\n  two\n---\nBody" );
         $this->assertSame( 'yaml', $format );
         $this->assertSame( 'Body', $body );
         $this->assertSame( 'A: B', $front['title'] );
         $this->assertSame( array( 'a', 'b c' ), $front['tags'] );
         $this->assertSame( 3, $front['count'] );
         $this->assertTrue( $front['ok'] );
-        $this->assertSame( array( 'x', 'y' ), $front['list'] );
+        $this->assertSame( array( 'first', 'second' ), $front['list'] );
         $this->assertSame( array( 'k' => 'v' ), $front['map'] );
         $this->assertSame( "one\ntwo", $front['text'] );
         list( $front, , $format ) = expImportFrontMatter::split( "+++\ntitle = \"T\"\ntags = [\"a\", \"b\"]\n[params]\norigin = 'X'\n+++\n" );

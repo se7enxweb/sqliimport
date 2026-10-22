@@ -52,7 +52,7 @@ class expImportCommerce
      *
      * @param string $value
      * @param string $currency the currency when the value names none
-     * @return array( 'amount' => decimal string, 'currency' => ISO 4217 code or '' )
+     * @return array amount (a decimal string) and currency (an ISO 4217 code or '')
      */
     public static function money( $value, $currency = '' )
     {
