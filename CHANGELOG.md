@@ -58,6 +58,11 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 - Added: expImportStatistics, the aggregation of the run history as pure functions (tested without a database)
   and loaders with generic SQL for MySQL, PostgreSQL, SQLite and Oracle.
 
+- Added: Podcast feeds (podcast) and YouTube or Vimeo channel feeds (video_feed): enclosure type and length,
+  duration, episode, season, image, video ID, embed address and views on every RSS and Atom record.
+- Added: YAML and TOML data files (yaml, toml), read by a parser of the extension (the same on every server).
+- Added: Google Sheets by its link (google_sheets), read as the sheet's CSV export at every run.
+
 ### Updated
 
 - Updated: The tick also runs within the cron part expqueue, so schedules need no cron line of their own; a lock

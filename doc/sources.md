@@ -403,6 +403,45 @@ The preset maps a photo to an `image` object (name, caption, the image and, wher
 as tags) with the remote ID `media-{sha1}`. The metadata is read in memory: no file is written for it. A file in the
 ZIP larger than 256 MB is refused.
 
+## Podcast feeds (`podcast`) and YouTube or Vimeo channel feeds (`video_feed`)
+
+Group: media. Both are the RSS source (`rss`) with a preset of their own; every RSS and Atom record also has these
+fields:
+
+| Field | What it holds |
+|---|---|
+| `enclosure`, `enclosure_type`, `enclosure_length` | the episode's file, its media type and size |
+| `duration` | the iTunes duration in seconds (`38:21` is `2301`) |
+| `episode`, `season`, `explicit` | the iTunes episode and season numbers, and whether it is marked explicit |
+| `image` | the episode's or video's image (iTunes image, media thumbnail) |
+| `video_id`, `channel_id`, `embed_url` | the YouTube video and channel IDs, or the Vimeo video ID, and the player address to embed |
+| `views`, `media_description` | the YouTube view count and the video's description |
+
+The podcast preset imports an episode into a `file` object (name, description, and the episode file through the
+transform `file`). The video preset stores a video as a `link` (name, description, address), matched by
+`video-{video_id}`. A YouTube channel's feed is `https://www.youtube.com/feeds/videos.xml?channel_id=<channel ID>`
+(a playlist: `?playlist_id=`), a Vimeo user's `https://vimeo.com/<user>/videos/rss`.
+
+## YAML and TOML data files (`yaml`, `toml`)
+
+Group: data. File name extensions: `yaml`, `yml`, `toml`. The list of records is at the top or at `record_path`
+(`teas`, `data.items`); in TOML usually an array of tables (`[[teas]]`). A mapping of mappings is a list too: its
+keys become the field `_key`. Nested values are mapped by their path (`price.amount`). The file is read whole, by
+the extension's own parser: a file reads the same on every server, with or without the PHP extension yaml (YAML
+1.2: `y` and `n` are text). Anchors and aliases are not read. Front matter of Markdown files uses the same parser.
+
+| Option | Values | Default |
+|---|---|---|
+| `format` | `auto` (by the file name), `yaml`, `toml` | `auto` (`toml` for the format `toml`) |
+| `record_path` | the path of the list | the top |
+| `key` | the key field | empty |
+
+## Google Sheets (`google_sheets`)
+
+Group: data. A spreadsheet read at every run from its link: share it so that anyone with the link can view it (or
+publish it to the web) and give the link as the address. The link is turned into the sheet's CSV export, keeping the
+tab of the link (`#gid=`); the first row names the columns. The options are those of CSV, with a comma and UTF-8.
+
 ## The catalogue of formats
 
 **Imports, Catalogue** lists the formats by group (data, content, platforms, commerce, media, other). Each card says

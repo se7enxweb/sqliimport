@@ -409,6 +409,47 @@ Die Vorlage bildet ein Foto auf ein `image`-Objekt ab (Name, Bildunterschrift, d
 die Stichwörter als Schlagwörter) mit der Remote-ID `media-{sha1}`. Die Metadaten werden im Speicher gelesen; dafür
 wird keine Datei geschrieben. Eine Datei im ZIP über 256 MB wird abgelehnt.
 
+## Podcast-Feeds (`podcast`) und YouTube- oder Vimeo-Kanal-Feeds (`video_feed`)
+
+Gruppe: Medien. Beide sind die RSS-Quelle (`rss`) mit einer eigenen Vorlage; jeder RSS- und Atom-Datensatz hat auch
+diese Felder:
+
+| Feld | Inhalt |
+|---|---|
+| `enclosure`, `enclosure_type`, `enclosure_length` | die Datei der Folge, ihr Medientyp und ihre Größe |
+| `duration` | die iTunes-Dauer in Sekunden (`38:21` ist `2301`) |
+| `episode`, `season`, `explicit` | die iTunes-Nummern von Folge und Staffel und ob sie als explizit markiert ist |
+| `image` | das Bild der Folge oder des Videos (iTunes-Bild, Media-Thumbnail) |
+| `video_id`, `channel_id`, `embed_url` | die IDs von YouTube-Video und -Kanal oder die Vimeo-Video-ID und die Adresse des Players zum Einbetten |
+| `views`, `media_description` | die YouTube-Aufrufe und die Beschreibung des Videos |
+
+Die Podcast-Vorlage importiert eine Folge in ein `file`-Objekt (Name, Beschreibung und die Datei der Folge über die
+Umwandlung `file`). Die Video-Vorlage speichert ein Video als `link` (Name, Beschreibung, Adresse), zugeordnet über
+`video-{video_id}`. Der Feed eines YouTube-Kanals ist `https://www.youtube.com/feeds/videos.xml?channel_id=<Kanal-ID>`
+(eine Playlist: `?playlist_id=`), der eines Vimeo-Nutzers `https://vimeo.com/<Nutzer>/videos/rss`.
+
+## YAML- und TOML-Datendateien (`yaml`, `toml`)
+
+Gruppe: Daten. Dateiendungen: `yaml`, `yml`, `toml`. Die Liste der Datensätze steht ganz oben oder unter
+`record_path` (`teas`, `data.items`); in TOML meist ein Array von Tabellen (`[[teas]]`). Eine Zuordnung von
+Zuordnungen ist auch eine Liste: ihre Schlüssel werden zum Feld `_key`. Verschachtelte Werte werden über ihren Pfad
+zugeordnet (`price.amount`). Die Datei wird ganz gelesen, vom eigenen Parser der Erweiterung: eine Datei liest sich auf
+jedem Server gleich, mit oder ohne PHP-Erweiterung yaml (YAML 1.2: `y` und `n` sind Text). Anker und Aliase werden
+nicht gelesen. Das Front Matter von Markdown-Dateien nutzt denselben Parser.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `format` | `auto` (nach dem Dateinamen), `yaml`, `toml` | `auto` (`toml` beim Format `toml`) |
+| `record_path` | der Pfad der Liste | ganz oben |
+| `key` | das Schlüsselfeld | leer |
+
+## Google Sheets (`google_sheets`)
+
+Gruppe: Daten. Eine Tabelle, die bei jedem Lauf über ihren Link gelesen wird: teilen Sie sie so, dass jeder mit dem
+Link sie ansehen kann (oder veröffentlichen Sie sie im Web), und geben Sie den Link als Adresse an. Der Link wird zum
+CSV-Export der Tabelle, mit dem Tabellenblatt des Links (`#gid=`); die erste Zeile benennt die Spalten. Die Optionen
+sind die von CSV, mit Komma und UTF-8.
+
 ## Der Katalog der Formate
 
 **Importe, Katalog** zeigt die Formate nach Gruppen (Daten, Inhalte, Plattformen, Handel, Medien, Sonstiges). Jede
