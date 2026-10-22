@@ -252,6 +252,38 @@ Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: fields picked from web pages (scraper)
 
+[Service_sqliimport.source.exponential_site]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportExponentialSiteSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: content of another Exponential site through its REST API
+
+[Service_sqliimport.source.ezpkg]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportEzpkgSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: content objects of an Exponential package (.ezpkg)
+
+[Service_sqliimport.source.drupal]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportDrupalSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: Drupal content through JSON:API
+
+[Service_sqliimport.source.joomla]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportJoomlaSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: Joomla articles exported as CSV or XML
+
 [Service_sqliimport.source.media]
 Class=expImportSourceEntry
 Factory=expImportSourceEntry::of

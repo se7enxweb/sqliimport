@@ -98,6 +98,19 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   most [CrawlSettings] MaxPages pages with the checks of an address source, sends no cookies or credentials and runs
   no JavaScript; a page it may not or could not read is a failed row of the run.
 
+- Added: The format Drupal (drupal): content of a Drupal site read through JSON:API page by page, with the included
+  images, authors and tags flattened into fields (title, body, intro, path, image_url, tags); the preset makes
+  articles. Authentication none, basic or a bearer token, by secret name.
+- Added: The format Another Exponential site (exponential_site): the children of a node of another site (or a subtree
+  to a depth), read through its REST API v1 with every attribute; authentication none, basic, a token or API key,
+  or OAuth2 (password or refresh token grant). The mapping is made from the first record and matches the remote ID.
+- Added: The format Joomla articles (joomla): CSV and XML (J2XML or <article>) exports; intro and full text joined,
+  the images JSON read, categories by title; the preset makes articles.
+- Added: The format Exponential packages (ezpkg): every content object of a .ezpkg is a record with its attributes,
+  read with PharData without extracting the archive; the mapping comes from the package and matches the remote IDs,
+  so importing a package again updates its objects. Images and files of a package are taken from the run's copy.
+- Added: [PlatformSettings] MaxPages, MaxItems and MaxResponseMegabytes for the sources that read a site themselves.
+
 ### Updated
 
 - Updated: The tick also runs within the cron part expqueue, so schedules need no cron line of their own; a lock

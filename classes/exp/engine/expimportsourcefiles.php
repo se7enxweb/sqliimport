@@ -266,10 +266,25 @@ class expImportSourceFiles
         if ( is_file( $target ) )
             return $target;
         $zip = new ZipArchive();
-        if ( $zip->open( $snapshot, ZipArchive::RDONLY ) !== true )
-            throw new expImportTransformException( "$kind: the source is no ZIP to take $member from" );
-        $content = $zip->getFromName( $member );
-        $zip->close();
+        if ( $zip->open( $snapshot, ZipArchive::RDONLY ) === true )
+        {
+            $content = $zip->getFromName( $member );
+            $zip->close();
+        }
+        else
+        {
+            // a package (.ezpkg, a tar.gz): its images and files are read from the archive, which is never extracted
+            try
+            {
+                $content = expImportEzpkgSource::member( $snapshot, $member );
+            }
+            catch ( expImportSourceException $e )
+            {
+                throw new expImportTransformException( "$kind: the source is no ZIP or package to take $member from" );
+            }
+            if ( $content === null )
+                $content = false;
+        }
         if ( $content === false )
             throw new expImportTransformException( "$kind: the source has no file $member" );
         if ( strlen( $content ) > self::maxBytes() )

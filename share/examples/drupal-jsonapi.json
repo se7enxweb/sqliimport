@@ -1,0 +1,98 @@
+{
+  "jsonapi": { "version": "1.0", "meta": { "links": { "self": { "href": "http://jsonapi.org/format/1.0/" } } } },
+  "data": [
+    {
+      "type": "node--article",
+      "id": "6f1c2a3e-1111-4c1d-9e6a-0a1b2c3d4e01",
+      "links": { "self": { "href": "https://drupal.example.org/jsonapi/node/article/6f1c2a3e-1111-4c1d-9e6a-0a1b2c3d4e01" } },
+      "attributes": {
+        "drupal_internal__nid": 11,
+        "drupal_internal__vid": 21,
+        "langcode": "en",
+        "status": true,
+        "title": "Planting trees in the example park",
+        "created": "2026-04-01T09:30:00+00:00",
+        "changed": "2026-04-02T11:00:00+00:00",
+        "promote": true,
+        "sticky": false,
+        "path": { "alias": "/news/planting-trees", "pid": 5, "langcode": "en" },
+        "body": {
+          "value": "<p>Volunteers planted twenty trees.</p><p>More are planned for autumn.</p>",
+          "format": "basic_html",
+          "processed": "<p>Volunteers planted twenty trees.</p>\n<p>More are planned for autumn.</p>",
+          "summary": ""
+        }
+      },
+      "relationships": {
+        "node_type": { "data": { "type": "node_type--node_type", "id": "a1b2c3d4-0000-4000-8000-000000000001" } },
+        "uid": { "data": { "type": "user--user", "id": "u0000000-0000-4000-8000-000000000007" } },
+        "field_image": {
+          "data": { "type": "file--file", "id": "f0000000-0000-4000-8000-000000000101",
+                    "meta": { "alt": "Young trees in a row", "title": "", "width": 800, "height": 600 } }
+        },
+        "field_tags": {
+          "data": [
+            { "type": "taxonomy_term--tags", "id": "t0000000-0000-4000-8000-000000000001" },
+            { "type": "taxonomy_term--tags", "id": "t0000000-0000-4000-8000-000000000002" }
+          ]
+        }
+      }
+    },
+    {
+      "type": "node--article",
+      "id": "6f1c2a3e-2222-4c1d-9e6a-0a1b2c3d4e02",
+      "attributes": {
+        "drupal_internal__nid": 12,
+        "langcode": "en",
+        "status": false,
+        "title": "A new reading room",
+        "created": "2026-04-10T15:00:00+00:00",
+        "changed": "2026-04-10T15:00:00+00:00",
+        "path": { "alias": null, "pid": null, "langcode": "en" },
+        "body": {
+          "value": "The reading room opens in May.",
+          "format": "plain_text",
+          "processed": "<p>The reading room opens in May.</p>\n",
+          "summary": "A quiet room for everyone."
+        }
+      },
+      "relationships": {
+        "uid": { "data": { "type": "user--user", "id": "u0000000-0000-4000-8000-000000000007" } },
+        "field_image": { "data": null },
+        "field_tags": { "data": [] }
+      }
+    }
+  ],
+  "included": [
+    {
+      "type": "file--file",
+      "id": "f0000000-0000-4000-8000-000000000101",
+      "attributes": {
+        "drupal_internal__fid": 101,
+        "filename": "trees.jpg",
+        "uri": { "value": "public://2026-04/trees.jpg", "url": "/sites/default/files/2026-04/trees.jpg" },
+        "filemime": "image/jpeg",
+        "filesize": 4503
+      }
+    },
+    {
+      "type": "user--user",
+      "id": "u0000000-0000-4000-8000-000000000007",
+      "attributes": { "drupal_internal__uid": 7, "display_name": "Example Editor", "name": "Example Editor" }
+    },
+    {
+      "type": "taxonomy_term--tags",
+      "id": "t0000000-0000-4000-8000-000000000001",
+      "attributes": { "drupal_internal__tid": 1, "name": "Park" }
+    },
+    {
+      "type": "taxonomy_term--tags",
+      "id": "t0000000-0000-4000-8000-000000000002",
+      "attributes": { "drupal_internal__tid": 2, "name": "Volunteers" }
+    }
+  ],
+  "links": {
+    "self": { "href": "https://drupal.example.org/jsonapi/node/article?page%5Blimit%5D=2" },
+    "next": { "href": "https://drupal.example.org/jsonapi/node/article?page%5Blimit%5D=2&page%5Boffset%5D=2" }
+  }
+}

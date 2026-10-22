@@ -79,30 +79,37 @@ class CatalogueTest extends TestCase
 
     public function testRemoteFormats(): void
     {
-        $remote = 0;
+        // a format that reads its data itself (origin remote) has fetch(); its example is either a snapshot of what it
+        // reads (a file, which testEveryExampleReads reads like a run's snapshot) or a configuration: a label and
+        // options the schema accepts, naming secrets that do not exist
+        $remote = array();
         foreach ( self::entries() as $id => $entry )
         {
             $data = $entry->toArray();
             if ( !in_array( 'remote', $data['origins'], true ) )
                 continue;
-            $remote++;
+            $remote[] = $id;
             $this->assertTrue( method_exists( $data['class'], 'fetch' ), "$id reads its data itself" );
-            $this->assertSame( array(), $data['extensions'], "$id has no file name extensions" );
+            $this->assertNotEmpty( $data['examples'], "$id has an example" );
             foreach ( $data['examples'] as $example )
             {
-                // no file to read: the example says how it is configured, with options the schema accepts
-                $this->assertNotSame( '', trim( (string)( $example['label'] ?? '' ) ), "$id: an example describes its configuration" );
-                $this->assertNotEmpty( $example['options'] ?? array(), "$id: an example gives its options" );
-                list( , $errors ) = expImportOptionSchema::validate( $data['schema'], $example['options'] );
-                $this->assertSame( array(), $errors, "$id: the options of an example are valid" );
+                $this->assertNotSame( '', trim( (string)( $example['label'] ?? '' ) ), "$id: an example says what it is" );
                 if ( isset( $example['file'] ) )
                     $this->assertFileExists( dirname( __DIR__, 2 ) . '/share/examples/' . $example['file'] );
+                else
+                    $this->assertNotEmpty( $example['options'] ?? array(), "$id: an example without a file gives its options" );
+                if ( !empty( $example['options'] ) )
+                {
+                    list( , $errors ) = expImportOptionSchema::validate( $data['schema'], $example['options'] );
+                    $this->assertSame( array(), $errors, "$id: the options of an example are valid" );
+                }
                 foreach ( $data['schema'] as $name => $def )
                     if ( ( $def['type'] ?? '' ) === 'secret' && isset( $example['options'][$name] ) )
                         $this->assertNull( expImportSecrets::get( $example['options'][$name] ), "$id: an example names a secret, it has none" );
             }
         }
-        $this->assertGreaterThanOrEqual( 2, $remote, 'sql and imap read their data themselves' );
+        foreach ( array( 'sql', 'imap', 'sitemap', 'webpage', 'drupal', 'exponential_site' ) as $id )
+            $this->assertContains( $id, $remote, "$id reads its data itself" );
     }
 
     public function testOpmlOutlines(): void

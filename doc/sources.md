@@ -651,6 +651,140 @@ over all pages of an address), `status` and the picks.
 No preset. Example: `page-products.html` (a list of three products, read as if it were
 `https://example.org/products/`, with the item `.product`).
 
+## Sites that are read by the source (`drupal`, `exponential_site`)
+
+These formats need no file: the source reads the other site's API itself. Once per run it writes what it read as a
+snapshot (`source.ndjson`) into the run's directory, which every chunk of the run then reads. The dry run of the
+editor reads only as many records as it shows. Their rules:
+
+- Every address is checked like a URL source: `http` and `https` only, and no private or reserved networks unless
+  `[SourceSettings] AllowPrivateHosts=enabled`. Redirects are followed at most three times, every address is checked
+  again, and the `Authorization` header is never sent to another host. A "next page" link of an answer is followed
+  only on the same scheme, host and port.
+- **Passwords, client secrets and tokens are never stored in the import.** Their options take the *name* of a secret:
+  `Secrets[<name>]` of `[SecretSettings]` in the site's own settings, or `env:<VARIABLE>` of the PHP process. Error
+  messages show the name of a secret, never its value.
+- `[PlatformSettings]` limits a run: `MaxPages` (requests per run, 200), `MaxItems` (nodes per run of another
+  Exponential site, 5000) and `MaxResponseMegabytes` (one answer, 20). The time limit is
+  `[ImportSettings] StreamTimeout`.
+
+### Drupal (`drupal`)
+
+Group: platforms. Content of a Drupal site through the JSON:API of Drupal core (Drupal 8.7 and later). The source
+requests `<site>/jsonapi/<entity type>/<bundle>` and follows `links.next` page by page.
+
+| Option | Meaning | Default |
+|---|---|---|
+| `base_url` | Required. The address of the site, e.g. `https://www.example.org` | |
+| `resource` | The entity type and bundle: `node--article`, `node--page`, `taxonomy_term--tags`, `media--image` | `node--article` |
+| `page_size` | Resources per request (JSON:API answers at most 50) | `50` |
+| `include` | The relationships whose resources come along, comma separated | `field_image,uid,field_tags` |
+| `filter` | JSON:API query parameters as they are, e.g. `filter[status]=1&sort=-created` | empty |
+| `auth` | `none` (public content), `basic` (`user` and `password_secret`, the module basic_auth) or `bearer` (`token_secret`, an OAuth access token) | `none` |
+| `key` | the key field | `id` (the UUID) |
+
+A record has the fields `id` (the UUID), `type`, `internal_id` (and `nid`, `vid`, `tid` ... by their name),
+`title` (the `name` of a term or a media), `body` (the processed HTML) with `body_value`, `body_summary` and
+`body_format`, `intro` (the summary, else the first paragraph of the body), `created`, `changed`, `status`, `path`
+(the alias), `url` (the address of the alias), `langcode` and every other attribute by its name. A relationship
+becomes `<name>` (the related resource with the attributes of the included one; a list for a multiple field),
+`<name>_id`, `<name>_url` for files and media (a media is followed to its file) and `<name>_names` for lists of
+terms. `image_url` and `image_alt` name the first image (`field_image`, then a media), `author` the user of `uid`
+and `tags` the names of `field_tags`.
+
+The preset maps a resource to an `article`: title, intro and body as rich text, and, where the class has them,
+publish date (`created`), image (`image_url`, downloaded; an object relation gets an image object) and tags. The
+remote ID is `drupal-<UUID>`, so a later run updates the objects.
+
+### Another Exponential site (`exponential_site`)
+
+Group: platforms. Content of another Exponential site through its REST API v1 (the extension ezprestapi, the API of
+the mobile applications): the source requests
+`<site>/api/ezp/v1/content/node/<node>/list/offset/<n>/limit/<m>?ResponseGroups=Metadata,Fields` page by page, and
+the children of every node down to the depth.
+
+| Option | Meaning | Default |
+|---|---|---|
+| `base_url` | Required. The address of the other site | |
+| `parent_node` | The node whose children are read | `2` |
+| `depth` | `1`: the children; `2`: their children too, up to 10 | `1` |
+| `class` | Only the objects of this class (the others are still descended into) | every class |
+| `translation` | The language to read, e.g. `ger-DE` | the site's |
+| `page_size` | Nodes per request (at most 100) | `50` |
+| `max_items` | The most nodes of a run (never more than `[PlatformSettings] MaxItems`) | `1000` |
+| `auth` | `none`, `basic` (`user`, `password_secret`), `bearer` (`token_secret`: an OAuth access token or a personal API key), `oauth_password` (`client_id`, `client_secret`, `user`, `password_secret`) or `oauth_refresh` (`client_id`, `client_secret`, `refresh_token_secret`) | `none` |
+| `token_url` | The token end point of OAuth2 (on the same site) | `<site>/api/oauth/token` |
+| `key` | the key field | `remote_id` |
+
+An Exponential site's token end point gives tokens for the grants `authorization_code` and `refresh_token`: use a
+refresh token (`oauth_refresh`) or a personal API key (`bearer`) there; the password grant is for sites whose OAuth
+server offers it. The REST API of a site normally needs authentication (`[Authentication] RequireAuthentication` of
+its `rest.ini`).
+
+A record has the fields `node_id`, `object_id`, `remote_id`, `node_remote_id`, `class_identifier`, `name`,
+`published`, `modified` (timestamps), `url` (the full address), `url_alias`, `parent_node_id`, `depth`, and every
+attribute in `fields.<identifier>` with its datatype in `field_types.<identifier>`. The REST API gives an attribute
+in its text form: rich text as plain text, an image as its address on the site, a relation as object IDs of the site.
+
+The mapping is made from the first record when the import is saved: its class, every attribute by identifier (rich
+text through `richtext`, images through `image`; relations are left to you), matched by the remote ID, so the copy
+follows the original at every run.
+
+## Exports of other systems (`joomla`, `ezpkg`)
+
+### Joomla articles (`joomla`)
+
+Group: platforms. File name extensions: `csv`, `xml`. Articles of a Joomla site (com_content) exported as CSV, with
+the columns of the articles table (`id`, `title`, `alias`, `introtext`, `fulltext`, `catid` or `category_title`,
+`state`, `created`, `publish_up`, `language`, `metadesc`, `metakey`, `images` ...), or as XML: J2XML (articles as
+`<content>`, categories as `<category>`) or an export with one `<article>` per article and the fields as child
+elements. The variant is detected from the first bytes of the file.
+
+| Option | Values | Default |
+|---|---|---|
+| `variant` | `auto`, `csv`, `xml` | `auto` |
+| `site_url` | The address of the Joomla site, so the images (`images/...`) become addresses | empty |
+| `status` | `published` (state 1), `not_trashed` (published, unpublished, archived) or `all` | `not_trashed` |
+| `key` | the key field | `id` |
+
+A record has the fields `id`, `title`, `alias`, `intro` (the intro text), `fulltext`, `body` (intro and full text
+joined, as Joomla shows the article), `category` (its title: the column `category_title`, the categories of the XML,
+else the last part of the path), `category_id`, `category_path`, `state`, `published`, `featured`, `created`,
+`modified`, `publish_up`, `date` (`publish_up`, else `created`), `language` (empty for `*`, every language),
+`metadesc`, `keywords` (the meta keywords as a list), `author`, `hits`, and the images of the `images` JSON:
+`image_intro`, `image_fulltext`, `image_url` (the full text image, else the intro image, as an address: a path of
+the site needs `site_url`) and their alternative texts (`image_alt`). Joomla 4's suffix of an image path
+(`#joomlaImage://...`) is cut off.
+
+The preset maps an article to an `article` (title, intro, body, and, where the class has them, publish date, image
+and keywords as tags), with the remote ID `joomla-<id>`.
+
+### Exponential packages (`ezpkg`)
+
+Group: platforms. File name extensions: `ezpkg`, `tgz`. A content package of an Exponential site (Setup, Packages,
+the export of a package with content objects). Every content object is a record. The archive is read with PharData
+and never extracted: an archive with an entry outside it (`..`, an absolute path) is refused, and the XML is read
+without the network. Only packages in the XML format can be read (a package exported as JSON says so).
+
+| Option | Meaning | Default |
+|---|---|---|
+| `class` | Only the objects of this class | every object |
+| `language` | The translation to read, e.g. `ger-DE`; objects without it are left out | the initial language of each object |
+| `key` | the key field | `remote_id` |
+
+A record has the fields `remote_id`, `object_id` (in the package), `name`, `class_identifier`, `class_remote_id`,
+`language`, `languages`, `published`, `modified` (timestamps), `section_id`, `node_remote_id`,
+`parent_node_remote_id` (of the main node), `parent_node_remote_ids`, and every attribute in `fields.<identifier>`
+with its datatype in `field_types.<identifier>`. The values have the form the datatype's `fromString()` takes: rich
+text as its XML, dates as timestamps, a link as `address|text`, relations as lists of remote IDs, tags as lists of
+keywords. An image or file is named `source:<path in the package>` (with the alternative text of an image in
+`fields.<identifier>_alt`): the transforms `image` and `file` take it out of the run's own copy of the package.
+
+The mapping is made from the package when the import is saved: the class of its objects (with the option `class`, or
+when every object has the same class), every attribute by identifier whose datatype is read in its `fromString()`
+form (relations are left to you, they name objects of the package), and the remote ID as the match, so importing the
+package again updates the objects instead of creating new ones.
+
 ## The catalogue of formats
 
 **Imports, Catalogue** lists the formats by group (data, content, platforms, commerce, media, other). Each card says
