@@ -94,6 +94,7 @@ CREATE TABLE sqliimport_run (
   total_count INTEGER(11) NOT NULL DEFAULT '0',
   trigger_kind varchar(20) NOT NULL DEFAULT 'manual',
   unchanged_count INTEGER(11) NOT NULL DEFAULT '0',
+  undone_count INTEGER(11) NOT NULL DEFAULT '0',
   updated_count INTEGER(11) NOT NULL DEFAULT '0',
   user_id INTEGER(11) NOT NULL DEFAULT '0'
 );

@@ -73,6 +73,20 @@
 </select>
 </div>
 <div class="a4-field">
+<label for="sq-conflict">{'When someone edited an object since the last run'|i18n( 'extension/sqliimport/edit' )}</label>
+<select id="sq-conflict" name="ConflictPolicy">
+<option value="overwrite"{if eq( $behaviour.conflict_policy, 'overwrite' )} selected="selected"{/if}>{'Overwrite with the source'|i18n( 'extension/sqliimport/edit' )}</option>
+<option value="merge"{if eq( $behaviour.conflict_policy, 'merge' )} selected="selected"{/if}>{'Merge: keep the fields that were edited'|i18n( 'extension/sqliimport/edit' )}</option>
+<option value="fill_empty"{if eq( $behaviour.conflict_policy, 'fill_empty' )} selected="selected"{/if}>{'Only fill empty fields'|i18n( 'extension/sqliimport/edit' )}</option>
+<option value="skip"{if eq( $behaviour.conflict_policy, 'skip' )} selected="selected"{/if}>{'Skip the object'|i18n( 'extension/sqliimport/edit' )}</option>
+</select>
+</div>
+<div class="a4-field">
+<label for="sq-undo">{'Days a run can be undone'|i18n( 'extension/sqliimport/edit' )}</label>
+<input type="number" id="sq-undo" name="UndoDays" value="{$behaviour.undo_days|wash}" min="0" max="3650"{if is_set( $errors.UndoDays )} aria-invalid="true"{/if} />
+<span class="a4-help">{'Empty: the setting ([RunSettings] UndoDays, %days days). 0: no undo.'|i18n( 'extension/sqliimport/edit',, hash( '%days', $undo_days_default ) )}</span>
+</div>
+<div class="a4-field">
 <label for="sq-max">{'At most this many records per run'|i18n( 'extension/sqliimport/edit' )}</label>
 <input type="number" id="sq-max" name="MaxRows" value="{$behaviour.max_rows|wash}" min="0" />
 <span class="a4-help">{'0: no limit.'|i18n( 'extension/sqliimport/edit' )}</span>

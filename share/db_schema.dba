@@ -599,6 +599,13 @@ $schema = array (
         'not_null' => '1',
         'default' => 0,
       ),
+      'undone_count' => 
+      array (
+        'length' => 11,
+        'type' => 'int',
+        'not_null' => '1',
+        'default' => 0,
+      ),
       'updated_count' => 
       array (
         'length' => 11,

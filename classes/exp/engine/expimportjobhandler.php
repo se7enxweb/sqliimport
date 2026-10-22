@@ -103,10 +103,12 @@ class expImportJobHandler extends expQueueHandlerBase
     {
         $run->moveTo( expImportRun::STATUS_RUNNING, array( 'started_at' => expImport::now() ) );
         expImportRunner::syncLegacyItem( $run );
-        $handler = expImportRegistry::instance()->handlerFor( $import );
+        $handler = $this->handlerOf( $run, $import );
         $context = $this->context( $run, $import, $log, null );
         $total = null;
-        if ( $run->attribute( 'run_kind' ) === 'retry' )
+        if ( $run->attribute( 'run_kind' ) === 'undo' )
+            $total = (int)expImportRunRow::countByRun( $run->attribute( 'parent_run_id' ), array( 'outcome' => array( array( 'created', 'updated' ) ) ) );
+        elseif ( $run->attribute( 'run_kind' ) === 'retry' )
             $total = expImportRunRow::countByRun( $run->attribute( 'parent_run_id' ), array( 'outcome' => 'failed', 'data_json' => array( '!=', '' ) ) );
         elseif ( $handler instanceof expImportRecordProviderInterface )
             $total = $handler->count( $context );
@@ -140,6 +142,8 @@ class expImportJobHandler extends expQueueHandlerBase
     /** @return int the row limit of the run (0 = none) */
     protected function maxRows( expImportRun $run, expImportDefinition $import )
     {
+        if ( in_array( $run->attribute( 'run_kind' ), array( 'undo', 'retry' ), true ) )
+            return 0;
         $summary = $run->summaryArray();
         if ( isset( $summary['max_rows'] ) && (int)$summary['max_rows'] > 0 )
             return (int)$summary['max_rows'];
@@ -204,12 +208,48 @@ class expImportJobHandler extends expQueueHandlerBase
     {
         if ( $run->attribute( 'run_kind' ) === 'retry' )
             return $this->failedRecords( (int)$run->attribute( 'parent_run_id' ), isset( $cursor['offset'] ) ? (int)$cursor['offset'] : 0 );
+        if ( $run->attribute( 'run_kind' ) === 'undo' )
+            return $this->undoRecords( (int)$run->attribute( 'parent_run_id' ), isset( $cursor['offset'] ) ? (int)$cursor['offset'] : 0 );
         if ( $handler instanceof expImportRecordProviderInterface )
             return $handler->records( $context, $cursor );
         $file = (string)$run->attribute( 'source_ref' );
         if ( $file === '' || !is_file( $file ) )
             throw new expImportSourceException( 'the snapshot of the source is missing' );
         return $this->source( $import, $file )->records( $cursor );
+    }
+
+    /** @return expImportHandlerInterface the handler of a run: the undo handler for an undo run, else the import's */
+    protected function handlerOf( expImportRun $run, expImportDefinition $import )
+    {
+        if ( $run->attribute( 'run_kind' ) === 'undo' )
+            return new expImportUndoHandler();
+        return expImportRegistry::instance()->handlerFor( $import );
+    }
+
+    /**
+     * The rows of a run that created or updated an object, newest first (children before their parents), as records
+     * of an undo run.
+     * @return Generator
+     */
+    protected function undoRecords( $parentRunID, $offset )
+    {
+        $index = $offset;
+        while ( true )
+        {
+            $rows = eZPersistentObject::fetchObjectList( expImportRunRow::definition(), null,
+                                                         array( 'run_id' => (int)$parentRunID, 'outcome' => array( array( 'created', 'updated' ) ) ),
+                                                         array( 'row_index' => 'desc', 'id' => 'desc' ), array( 'offset' => $index, 'length' => 100 ) );
+            if ( !$rows )
+                return;
+            foreach ( $rows as $row )
+            {
+                $data = array( 'object_id' => (int)$row->attribute( 'object_id' ), 'outcome' => $row->attribute( 'outcome' ),
+                               'version_before' => (int)$row->attribute( 'version_before' ), 'version_after' => (int)$row->attribute( 'version_after' ),
+                               'remote_id' => $row->attribute( 'remote_id' ) );
+                yield new expImportRecord( $row->attribute( 'row_ref' ), $index, $data, array( 'offset' => $index + 1 ) );
+                $index++;
+            }
+        }
     }
 
     /** @return Generator the stored records of the failed rows of a run */
@@ -245,7 +285,7 @@ class expImportJobHandler extends expQueueHandlerBase
             $cursor = $checkpoint['cursor'];
             $log->notice( 'chunk ' . ( $n + 1 ) . ' continues after its last checkpoint (attempt ' . $queue->attempt() . ')' );
         }
-        $handler = expImportRegistry::instance()->handlerFor( $import );
+        $handler = $this->handlerOf( $run, $import );
         $context = $this->context( $run, $import, $log, $queue );
         $chunkSize = max( 1, (int)$context->behaviour['chunk_size'] );
         if ( $handler instanceof expImportRecordProviderInterface && !$handler->resumable() )
@@ -347,6 +387,12 @@ class expImportJobHandler extends expQueueHandlerBase
         }
         elseif ( $result->message !== '' && $result->outcome === expImportRowResult::SKIPPED )
             $log->info( $result->message, $record->ref );
+        if ( $result->written && $result->outcome !== expImportRowResult::FAILED )
+        {
+            $data = expImport::json( array( 'written' => $result->written ) );
+            if ( strlen( $data ) > 262144 )
+                $data = '';
+        }
         $nodes = $result->nodesAdded ? array( 'added' => $result->nodesAdded ) : array();
         if ( $result->diff )
             $nodes['diff'] = $result->diff;
@@ -412,7 +458,7 @@ class expImportJobHandler extends expQueueHandlerBase
         $ids = array();
         if ( $run->attribute( 'run_kind' ) !== 'dry_run' )
         {
-            foreach ( (array)expImport::db()->arrayQuery( "SELECT DISTINCT object_id FROM sqliimport_run_row WHERE run_id = $runID AND outcome IN ('created', 'updated') AND object_id > 0" ) as $row )
+            foreach ( (array)expImport::db()->arrayQuery( "SELECT DISTINCT object_id FROM sqliimport_run_row WHERE run_id = $runID AND outcome IN ('created', 'updated', 'undone') AND object_id > 0" ) as $row )
                 $ids[] = (int)$row['object_id'];
         }
         $cacheNote = $this->clearCaches( $ids );

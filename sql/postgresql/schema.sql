@@ -128,6 +128,7 @@ CREATE TABLE IF NOT EXISTS sqliimport_run (
   total_count integer DEFAULT 0 NOT NULL,
   trigger_kind character varying(20) DEFAULT 'manual'::character varying NOT NULL,
   unchanged_count integer DEFAULT 0 NOT NULL,
+  undone_count integer DEFAULT 0 NOT NULL,
   updated_count integer DEFAULT 0 NOT NULL,
   user_id integer DEFAULT 0 NOT NULL
 );

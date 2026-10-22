@@ -165,6 +165,7 @@ class expImportSchema
                     'total_count' => $int,
                     'trigger_kind' => $varchar( 20, 'manual' ),
                     'unchanged_count' => $int,
+                    'undone_count' => $int,
                     'updated_count' => $int,
                     'user_id' => $int,
                 ),

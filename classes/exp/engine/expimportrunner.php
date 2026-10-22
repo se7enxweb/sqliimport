@@ -41,9 +41,9 @@ class expImportRunner
         if ( !expImport::queueReady() )
             throw new expImportException( 'the job queue (expqueue) is not installed: activate the extension expqueue and run ./console ext:expqueue:install-schema' );
         $kind = isset( $options['run_kind'] ) ? (string)$options['run_kind'] : 'import';
-        if ( !in_array( $kind, array( 'import', 'dry_run', 'retry' ), true ) )
+        if ( !in_array( $kind, array( 'import', 'dry_run', 'retry', 'undo' ), true ) )
             throw new expImportException( "unknown run kind $kind" );
-        if ( $kind !== 'dry_run' && !(int)$import->attribute( 'is_enabled' ) )
+        if ( !in_array( $kind, array( 'dry_run', 'undo' ), true ) && !(int)$import->attribute( 'is_enabled' ) )
             throw new expImportException( 'the import is disabled' );
         $target = $import->target();
         $userID = isset( $options['user_id'] ) ? (int)$options['user_id'] : expImport::currentUserID();
@@ -133,6 +133,57 @@ class expImportRunner
             expImport::audit( 'run.cancel', array( 'id' => (int)$run->attribute( 'id' ) ) );
         }
         return $changed;
+    }
+
+    /**
+     * Starts a run that undoes an earlier run (expImportUndoHandler): what it created goes to the trash, what it
+     * updated gets the version before the run again, unless it changed since.
+     *
+     * @param expImportRun $run
+     * @return expImportRun
+     */
+    public static function undo( expImportRun $run )
+    {
+        $refusal = expImportUndoHandler::refusal( $run );
+        if ( $refusal !== null )
+            throw new expImportException( 'the run cannot be undone: ' . $refusal );
+        $import = $run->import();
+        if ( !$import )
+            throw new expImportException( 'the import of the run no longer exists' );
+        $undo = self::start( $import, array( 'run_kind' => 'undo', 'parent_run_id' => (int)$run->attribute( 'id' ), 'trigger' => 'manual' ) );
+        $summary = $run->summaryArray();
+        $summary['undone_by'] = (int)$undo->attribute( 'id' );
+        $run->setAttribute( 'summary', expImport::json( $summary ) );
+        $run->store( array( 'summary' ) );
+        return $undo;
+    }
+
+    /**
+     * Marks the runs whose time to undo is over ([RunSettings] UndoDays, or the import's undo_days), so they no longer
+     * offer Undo (called by the cron part).
+     *
+     * @return int runs marked
+     */
+    public static function expireUndo()
+    {
+        $days = max( 1, (int)expImport::setting( 'RunSettings', 'UndoDays', 30 ) );
+        $n = 0;
+        // the oldest runs that are still undoable; an import with a longer undo_days keeps its runs
+        foreach ( expImportRun::fetchList( array( 'status' => array( expImportRun::finalStatuses() ), 'finished_at' => array( '<', expImport::now() - 86400 ) ), 0, 500 ) as $run )
+        {
+            $summary = $run->summaryArray();
+            if ( !empty( $summary['undo_expired'] ) || !in_array( $run->attribute( 'run_kind' ), array( 'import', 'retry' ), true ) )
+                continue;
+            $refusal = expImportUndoHandler::refusal( $run );
+            if ( $refusal !== null && strpos( $refusal, 'the time to undo' ) === 0 )
+            {
+                $summary['undo_expired'] = true;
+                $run->setAttribute( 'summary', expImport::json( $summary ) );
+                $run->store( array( 'summary' ) );
+                $n++;
+            }
+        }
+        return $n;
     }
 
     /**

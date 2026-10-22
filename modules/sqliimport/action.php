@@ -1,7 +1,7 @@
 <?php
 /**
  * sqliimport/action: every change of the 2.x pages, POST only (ezformtoken checks the form token of every POST):
- *   run, dryrun, duplicate, delete, enable, disable (ImportID); cancel, retry (RunID);
+ *   run, dryrun, duplicate, delete, enable, disable (ImportID); cancel, retry, undo (RunID);
  *   schedule_pause, schedule_resume, schedule_delete (ScheduleID)
  * The result is shown on the next page (a session message); RedirectURI must be a page of this module.
  *
@@ -46,13 +46,22 @@ try
             break;
         case 'cancel':
         case 'retry':
+        case 'undo':
             $run = expImportRun::fetch( (int)$http->postVariable( 'RunID' ) );
             $import = $run ? $run->import() : null;
             if ( !$run || !$import )
                 throw new expImportException( ezpI18n::tr( 'extension/sqliimport', 'The run does not exist.' ) );
-            if ( !expImportAdmin::can( 'run', (string)$import->attribute( 'handler' ) ) )
+            // an undo removes and reverts content: Manage imports; cancel and retry: Run imports
+            if ( !expImportAdmin::can( $action === 'undo' ? 'manage' : 'run', (string)$import->attribute( 'handler' ) ) )
                 return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
-            if ( $action === 'cancel' )
+            if ( $action === 'undo' )
+            {
+                $undo = expImportRunner::undo( $run );
+                $flash( 'ok', ezpI18n::tr( 'extension/sqliimport', 'Run #%id undoes run #%parent.', null,
+                                           array( '%id' => $undo->attribute( 'id' ), '%parent' => $run->attribute( 'id' ) ) ) );
+                $redirect = '/sqliimport/run/' . (int)$undo->attribute( 'id' );
+            }
+            elseif ( $action === 'cancel' )
             {
                 $done = expImportRunner::cancel( $run );
                 $flash( $done ? 'ok' : 'warn', $done ? ezpI18n::tr( 'extension/sqliimport', 'Run #%id is cancelled.', null, array( '%id' => $run->attribute( 'id' ) ) )

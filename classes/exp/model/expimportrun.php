@@ -25,7 +25,8 @@ class expImportRun extends eZPersistentObject
 
     /** The outcome counters a row adds to, outcome => column */
     const COUNTERS = array( 'created' => 'created_count', 'updated' => 'updated_count', 'unchanged' => 'unchanged_count',
-                            'skipped' => 'skipped_count', 'failed' => 'failed_count', 'processed' => 'processed_count' );
+                            'skipped' => 'skipped_count', 'failed' => 'failed_count', 'processed' => 'processed_count',
+                            'undone' => 'undone_count' );
 
     public static function definition()
     {

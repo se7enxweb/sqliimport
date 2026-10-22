@@ -49,6 +49,8 @@ class expImportCommand
             'status' => array( 'The recent runs, or one run with its log: status [<run id>].', '[limit:][json]',
                                array( 'limit' => 'runs or log lines to show (default 20)', 'json' => 'print JSON' ) ),
             'cancel' => array( 'Cancels a run: cancel <run id>.', '', array() ),
+            'undo' => array( 'Undoes a run: undo <run id> (what it created to the trash, what it updated back to the version before).', '[wait]',
+                             array( 'wait' => 'process the undo here and print its result' ) ),
             'retry' => array( 'Starts a run of the failed rows of a run: retry <run id>.', '[wait]',
                               array( 'wait' => 'process the run here and print its result' ) ),
             'migrate-1x' => array( 'Migrates the handlers, scheduled imports and history of sqliimport 1.x (reports only without --apply).', '[apply][roles]',
@@ -200,6 +202,13 @@ class expImportCommand
         }
         $this->cli->output( 'PASS run #' . $run->attribute( 'id' ) . ' cancelled' );
         return 0;
+    }
+
+    protected function cmdUndo()
+    {
+        $run = expImportRunner::undo( $this->runArgument() );
+        $this->cli->output( 'PASS run #' . $run->attribute( 'id' ) . ' undoes run #' . $run->attribute( 'parent_run_id' ) );
+        return !empty( $this->options['wait'] ) ? $this->wait( $run ) : 0;
     }
 
     protected function cmdRetry()

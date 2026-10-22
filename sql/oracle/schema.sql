@@ -156,6 +156,7 @@ CREATE TABLE sqliimport_run (
   total_count INTEGER DEFAULT 0 NOT NULL,
   trigger_kind VARCHAR2(20) DEFAULT 'manual',
   unchanged_count INTEGER DEFAULT 0 NOT NULL,
+  undone_count INTEGER DEFAULT 0 NOT NULL,
   updated_count INTEGER DEFAULT 0 NOT NULL,
   user_id INTEGER DEFAULT 0 NOT NULL,
   PRIMARY KEY ( id )

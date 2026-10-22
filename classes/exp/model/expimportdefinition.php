@@ -136,6 +136,8 @@ class expImportDefinition extends eZPersistentObject
             'update_policy' => 'update',
             'trash_policy' => 'skip',
             'max_rows' => 0,
+            'conflict_policy' => 'overwrite',
+            'undo_days' => '',
         );
     }
 

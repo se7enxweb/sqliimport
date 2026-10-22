@@ -229,6 +229,12 @@ class expImportEditor
         $policy = (string)$this->post( 'UpdatePolicy', $behaviour['update_policy'] );
         if ( !in_array( $policy, array( 'update', 'create_only', 'update_only' ), true ) )
             $policy = 'update';
+        $conflict = (string)$this->post( 'ConflictPolicy', $behaviour['conflict_policy'] );
+        if ( !in_array( $conflict, array( 'overwrite', 'skip', 'fill_empty', 'merge' ), true ) )
+            $conflict = 'overwrite';
+        $undoDays = trim( (string)$this->post( 'UndoDays', $behaviour['undo_days'] ) );
+        if ( $undoDays !== '' && ( !ctype_digit( $undoDays ) || (int)$undoDays > 3650 ) )
+            $this->errors['UndoDays'] = ezpI18n::tr( 'extension/sqliimport/edit', 'Undo days: a number of days, or empty for the setting.' );
         if ( $this->errors )
             return false;
         if ( !expImportAdmin::can( 'edit', $handler ) )
@@ -240,7 +246,8 @@ class expImportEditor
         $this->import->setAttribute( 'options_json', expImport::json( $options ) );
         $this->import->setAttribute( 'target_json', expImport::json( array( 'parent_node_id' => $parent, 'section_id' => $section, 'language' => $language, 'owner_id' => $owner ) ) );
         $this->import->setAttribute( 'behaviour_json', expImport::json( array( 'chunk_size' => $chunk, 'update_policy' => $policy,
-                                                                                'trash_policy' => 'skip', 'max_rows' => max( 0, (int)$this->post( 'MaxRows', $behaviour['max_rows'] ) ) ) ) );
+                                                                                'trash_policy' => 'skip', 'max_rows' => max( 0, (int)$this->post( 'MaxRows', $behaviour['max_rows'] ) ),
+                                                                                'conflict_policy' => $conflict, 'undo_days' => $undoDays ) ) );
         $this->save( false );
         return true;
     }

@@ -14,7 +14,7 @@ $run = expImportSchema::installed() ? expImportRun::fetch( (int)$Params['RunID']
 if ( !$run )
     return $Module->handleError( eZError::KERNEL_NOT_AVAILABLE, 'kernel' );
 $import = $run->import();
-$outcomes = array( 'created', 'updated', 'unchanged', 'skipped', 'failed', 'processed' );
+$outcomes = array( 'created', 'updated', 'unchanged', 'skipped', 'failed', 'processed', 'undone' );
 $outcome = isset( $Params['Outcome'] ) && in_array( $Params['Outcome'], $outcomes, true ) ? (string)$Params['Outcome'] : '';
 $offset = isset( $Params['Offset'] ) ? max( 0, (int)$Params['Offset'] ) : 0;
 $limit = max( 5, (int)expImport::setting( 'AdminSettings', 'ListLimit', 25 ) );
@@ -70,6 +70,11 @@ $tpl->setVariable( 'prev_url', $offset > 0 ? $here . ( $offset - $limit > 0 ? '/
 $tpl->setVariable( 'next_url', $offset + $limit < $rowCount ? $here . '/(offset)/' . ( $offset + $limit ) : '' );
 $tpl->setVariable( 'flash', $flash );
 $tpl->setVariable( 'can_run', $import ? expImportAdmin::can( 'run', (string)$import->attribute( 'handler' ) ) : false );
+$undoRefusal = expImportUndoHandler::refusal( $run );
+$summary = $run->summaryArray();
+$tpl->setVariable( 'can_undo', $undoRefusal === null && $import && expImportAdmin::can( 'manage', (string)$import->attribute( 'handler' ) ) );
+$tpl->setVariable( 'undo_refusal', $undoRefusal );
+$tpl->setVariable( 'undone_by', isset( $summary['undone_by'] ) ? (int)$summary['undone_by'] : 0 );
 $tpl->setVariable( 'can_retry', $run->isFinal() && (int)$run->attribute( 'failed_count' ) > 0 && $import
                                  && expImportRunRow::countByRun( $run->attribute( 'id' ), array( 'outcome' => 'failed', 'data_json' => array( '!=', '' ) ) ) > 0 );
 

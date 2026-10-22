@@ -149,10 +149,10 @@ class expImportAdmin
         $labels = array(
             'status' => array( 'queued' => 'Queued', 'running' => 'Running', 'completed' => 'Completed', 'completed_with_errors' => 'Completed with errors',
                                'failed' => 'Failed', 'cancelled' => 'Cancelled', 'active' => 'Running or queued' ),
-            'kind' => array( 'import' => 'Import', 'dry_run' => 'Dry run', 'retry' => 'Retry of failed rows' ),
+            'kind' => array( 'import' => 'Import', 'dry_run' => 'Dry run', 'retry' => 'Retry of failed rows', 'undo' => 'Undo' ),
             'trigger' => array( 'manual' => 'Started by hand', 'schedule' => 'Schedule', 'cli' => 'Command line', 'rest' => 'REST API', 'legacy' => '1.x import request' ),
             'outcome' => array( 'created' => 'Created', 'updated' => 'Updated', 'unchanged' => 'Unchanged', 'skipped' => 'Skipped', 'failed' => 'Failed',
-                                'processed' => 'Processed (1.x)' ),
+                                'processed' => 'Processed (1.x)', 'undone' => 'Undone' ),
         );
         if ( !isset( $labels[$group][$code] ) )
             return (string)$code;
@@ -196,6 +196,7 @@ class expImportAdmin
             'skipped' => (int)$run->attribute( 'skipped_count' ),
             'failed' => (int)$run->attribute( 'failed_count' ),
             'processed' => (int)$run->attribute( 'processed_count' ),
+            'undone' => (int)$run->attribute( 'undone_count' ),
             'queued_at' => (int)$run->attribute( 'queued_at' ),
             'started_at' => (int)$run->attribute( 'started_at' ),
             'finished_at' => (int)$run->attribute( 'finished_at' ),

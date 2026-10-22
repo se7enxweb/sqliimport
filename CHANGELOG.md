@@ -19,6 +19,11 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 - Added: Edit, Duplicate, Enable or Disable and Delete of an import in the list.
 - Added: Spreadsheet sources (XLSX and ODS), read without a library; date(format=excel) for spreadsheet dates.
 - Added: The one-line text of a transform chain in the mapping grid: trim | date(format=d.m.Y) | map(table={...}).
+- Added: Undo of a run (sqliimport/run, "Undo", and bin/php/undo.php): objects the run created go to the trash,
+  objects it updated get the version before the run published again as a new version. An object changed after
+  the run is left alone and listed. A run is undone once, within the days set by UndoDays (30, per import too).
+- Added: Conflict rules for objects a person changed since the last run: overwrite, skip, fill_empty (only empty
+  fields) and merge (only the fields nobody changed), decided by the field values the import wrote.
 
 ### Updated
 
@@ -29,6 +34,7 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 ### Fixed
 
 - Fixed: The run page of a queued or running run ended in an error (2.0.0-alpha.1).
+- Fixed: Spaces at the ends of a text argument of a transform (replace(search=" GmbH")) were cut off.
 
 ## 2.0.0-alpha.1 (2026-10-22)
 

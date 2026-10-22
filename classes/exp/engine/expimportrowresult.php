@@ -20,6 +20,8 @@ class expImportRowResult
     const FAILED = 'failed';
     /** A 1.x handler processed the record; what it did is not known */
     const PROCESSED = 'processed';
+    /** An undo run took the change of an earlier run back */
+    const UNDONE = 'undone';
 
     /** @var string */
     public $outcome;
@@ -44,6 +46,9 @@ class expImportRowResult
 
     /** @var array what a dry run would change: attribute => array( old, new ) */
     public $diff = array();
+
+    /** @var array what the handler wrote: language => attribute => value (kept for the conflict rule merge) */
+    public $written = array();
 
     public function __construct( $outcome, $message = '' )
     {
@@ -91,6 +96,6 @@ class expImportRowResult
     /** @return bool */
     public function isValid()
     {
-        return in_array( $this->outcome, array( self::CREATED, self::UPDATED, self::UNCHANGED, self::SKIPPED, self::FAILED, self::PROCESSED ), true );
+        return in_array( $this->outcome, array( self::CREATED, self::UPDATED, self::UNCHANGED, self::SKIPPED, self::FAILED, self::PROCESSED, self::UNDONE ), true );
     }
 }

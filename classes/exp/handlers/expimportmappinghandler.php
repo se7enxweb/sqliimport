@@ -101,6 +101,42 @@ class expImportMappingHandler implements expImportHandlerInterface
         if ( !$object && !$parents )
             throw new expImportException( 'the parent of the record does not exist (yet)' );
 
+        // an object someone edited since this import last wrote it (a field whose value is not the one the import wrote):
+        // the conflict rule decides; what the import wrote is kept per field across runs
+        $conflict = isset( $context->behaviour['conflict_policy'] ) ? (string)$context->behaviour['conflict_policy'] : 'overwrite';
+        $written = $object ? self::lastWritten( (int)$context->import->attribute( 'id' ), (int)$object->attribute( 'id' ) ) : array();
+        $all = $plan['fields'];
+        if ( $object && $conflict !== 'overwrite' && $written )
+        {
+            $edited = $this->editedFields( $object, $all, $language, $written );
+            if ( $edited )
+            {
+                if ( $conflict === 'skip' )
+                    return expImportRowResult::skipped( 'edited since the last run: ' . implode( ', ', array_keys( $edited ) ) . ' (conflict rule: skip)', $object->attribute( 'id' ) );
+                foreach ( $plan['fields'] as $fieldLanguage => $values )
+                {
+                    foreach ( $values as $attribute => $value )
+                    {
+                        $drop = $conflict === 'merge' ? isset( $edited[$attribute] )
+                                                      : trim( self::currentValue( $object, $fieldLanguage === '' ? $language : $fieldLanguage, $attribute ) ) !== '';
+                        if ( $drop )
+                            unset( $plan['fields'][$fieldLanguage][$attribute] );
+                    }
+                }
+            }
+        }
+        // what the import has written so far: the earlier values, then what this run writes
+        $writtenNow = $written;
+        foreach ( $plan['fields'] as $fieldLanguage => $values )
+            foreach ( $values as $attribute => $value )
+                $writtenNow[$fieldLanguage][$attribute] = (string)$value;
+        if ( $object && !array_filter( $plan['fields'] ) )
+        {
+            $result = expImportRowResult::unchanged( $object->attribute( 'id' ), 0, 'edited since the last run; nothing left to write (conflict rule: ' . $conflict . ')' );
+            $result->written = $writtenNow;
+            return $result;
+        }
+
         if ( $context->dryRun )
             return $this->dryRunResult( $object, $plan, $language );
 
@@ -148,7 +184,76 @@ class expImportMappingHandler implements expImportHandlerInterface
             $result = expImportRowResult::unchanged( $objectID, $versionAfter );
         $result->remoteID = $plan['remote_id'] !== '' ? $plan['remote_id'] : (string)eZContentObject::fetch( $objectID, false )['remote_id'];
         $result->nodesAdded = $nodesAdded;
+        // what the import has written, as the attributes read back after the publish (their toString(), so a later run
+        // compares like with like): the conflict rules of later runs find a person's edits by it
+        eZContentObject::clearCache( array( $objectID ) );
+        $published = eZContentObject::fetch( $objectID );
+        if ( $published )
+            foreach ( $plan['fields'] as $fieldLanguage => $values )
+                foreach ( $values as $attribute => $value )
+                    $writtenNow[$fieldLanguage][$attribute] = self::currentValue( $published, $fieldLanguage === '' ? $language : $fieldLanguage, $attribute );
+        $result->written = $writtenNow;
         return $result;
+    }
+
+    /**
+     * What the earlier runs of an import wrote into an object, field by field (the newest row that kept it).
+     *
+     * @param int $importID
+     * @param int $objectID
+     * @return array language => attribute => value ('' language = the import's)
+     */
+    public static function lastWritten( $importID, $objectID )
+    {
+        $rows = expImport::db()->arrayQuery( 'SELECT r.data_json FROM sqliimport_run_row r JOIN sqliimport_run u ON u.id = r.run_id
+                                              WHERE u.import_id = ' . (int)$importID . ' AND r.object_id = ' . (int)$objectID . "
+                                              AND r.outcome IN ('created', 'updated', 'unchanged') AND u.run_kind IN ('import', 'retry')
+                                              AND r.data_json <> '' ORDER BY r.id DESC",
+                                             array( 'limit' => 1 ) );
+        if ( !$rows )
+            return array();
+        $data = expImport::decode( $rows[0]['data_json'] );
+        return isset( $data['written'] ) && is_array( $data['written'] ) ? $data['written'] : array();
+    }
+
+    /** @return string the value of an attribute of an object in a language now (its datatype's toString()) */
+    public static function currentValue( eZContentObject $object, $language, $attribute )
+    {
+        static $maps = array();
+        $key = $object->attribute( 'id' ) . '/' . $object->attribute( 'current_version' ) . '/' . $language;
+        if ( !isset( $maps[$key] ) )
+        {
+            if ( count( $maps ) > 50 )
+                $maps = array();
+            $maps[$key] = $object->fetchDataMap( false, $language );
+        }
+        return isset( $maps[$key][$attribute] ) ? (string)$maps[$key][$attribute]->toString() : '';
+    }
+
+    /**
+     * The mapped attributes a person changed since the import wrote them.
+     *
+     * @param eZContentObject $object
+     * @param array $fields language => attribute => value (the plan)
+     * @param string $language the language of '' in $fields
+     * @param array $written what the import wrote before
+     * @return array attribute => true
+     */
+    protected function editedFields( eZContentObject $object, array $fields, $language, array $written )
+    {
+        $edited = array();
+        foreach ( $fields as $fieldLanguage => $values )
+        {
+            foreach ( array_keys( $values ) as $attribute )
+            {
+                if ( !isset( $written[$fieldLanguage][$attribute] ) )
+                    continue;
+                $now = self::currentValue( $object, $fieldLanguage === '' ? $language : $fieldLanguage, $attribute );
+                if ( $now !== (string)$written[$fieldLanguage][$attribute] )
+                    $edited[$attribute] = true;
+            }
+        }
+        return $edited;
     }
 
     public function close( expImportContext $context )

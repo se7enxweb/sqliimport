@@ -18,7 +18,7 @@ class expImportScheduler
      * One round.
      *
      * @param callable|null $out receives a line of progress
-     * @return array counters: started, skipped, ended, legacy, purged
+     * @return array counters: started, skipped, ended, legacy, purged, undo_expired
      */
     public static function tick( ?callable $out = null )
     {
@@ -27,7 +27,7 @@ class expImportScheduler
             if ( $out )
                 $out( $line );
         };
-        $stats = array( 'started' => 0, 'skipped' => 0, 'ended' => 0, 'legacy' => 0, 'purged' => 0 );
+        $stats = array( 'started' => 0, 'skipped' => 0, 'ended' => 0, 'legacy' => 0, 'purged' => 0, 'undo_expired' => 0 );
         if ( !expImportSchema::installed() )
         {
             $say( 'the tables of 7x SQLI Import are missing: ./console ext:sqliimport:install-schema' );
@@ -74,6 +74,7 @@ class expImportScheduler
         }
         $stats['legacy'] = self::legacyItems( $say );
         $stats['purged'] = self::purge();
+        $stats['undo_expired'] = expImportRunner::expireUndo();
         return $stats;
     }
 

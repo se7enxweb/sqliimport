@@ -152,7 +152,7 @@ $tpl->setVariable( 'handlers', $registry->handlers() );
 $tpl->setVariable( 'transforms', expImportTransforms::catalogue() );
 $tpl->setVariable( 'source', $editor->import ? $editor->import->sourceConfig() : array( 'origin' => 'upload' ) );
 $tpl->setVariable( 'target', $editor->import ? $editor->import->target() : array( 'parent_node_id' => (int)expImport::setting( 'ImportSettings', 'DefaultParentNodeID', 2 ), 'section_id' => 0, 'language' => '', 'owner_id' => 0 ) );
-$tpl->setVariable( 'behaviour', $editor->import ? $editor->import->behaviour() : array( 'chunk_size' => (int)expImport::setting( 'RunSettings', 'ChunkSize', 200 ), 'update_policy' => 'update', 'max_rows' => 0 ) );
+$tpl->setVariable( 'behaviour', $editor->import ? $editor->import->behaviour() : array( 'chunk_size' => (int)expImport::setting( 'RunSettings', 'ChunkSize', 200 ), 'update_policy' => 'update', 'max_rows' => 0, 'conflict_policy' => 'overwrite', 'undo_days' => '' ) );
 $tpl->setVariable( 'options', $editor->import ? $editor->import->options() : array() );
 $tpl->setVariable( 'legacy_options', $editor->import && $editor->import->isLegacy() ? $editor->import->options() : array() );
 $tpl->setVariable( 'mapping', $mapping );
@@ -167,6 +167,7 @@ $tpl->setVariable( 'schedule', $editor->scheduleForForm() );
 $tpl->setVariable( 'timezones', DateTimeZone::listIdentifiers() );
 $tpl->setVariable( 'problems', $editor->import ? $editor->problems() : array() );
 $tpl->setVariable( 'can_settings', expImportAdmin::can( 'settings' ) );
+$tpl->setVariable( 'undo_days_default', (int)expImport::setting( 'RunSettings', 'UndoDays', 30 ) );
 $tpl->setVariable( 'max_megabytes', (int)expImport::setting( 'SourceSettings', 'MaxSourceMegabytes', 200 ) );
 $tpl->setVariable( 'allowed_paths', (array)expImport::setting( 'SourceSettings', 'AllowedPaths', array() ) );
 

@@ -182,7 +182,8 @@ class expImportOptionSchema
             case 'text':
                 return array( str_replace( array( "\r\n", "\r" ), "\n", (string)$given ), null );
             default:
-                $text = trim( (string)$given );
+                // raw: spaces at the ends count (a prefix, a separator, a text to replace)
+                $text = !empty( $def['raw'] ) ? (string)$given : trim( (string)$given );
                 if ( strpos( $text, "\n" ) !== false )
                     return array( null, 'one line is expected' );
                 if ( isset( $def['pattern'] ) && !preg_match( $def['pattern'], $text ) )

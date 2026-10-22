@@ -79,6 +79,12 @@ class SpreadsheetAndChainTest extends TestCase
         $this->assertSame( array(), expImportTransforms::parseChain( '  ' ) );
     }
 
+    public function testSpacesInTextArgumentsCount(): void
+    {
+        $chain = expImportTransforms::parseChain( 'replace(search=" GmbH", replace="") | prefix(text="Firm: ")' );
+        $this->assertSame( 'Firm: Acme', expImportTransforms::applyChain( 'Acme GmbH', $chain ) );
+    }
+
     public function testChainTextErrors(): void
     {
         $this->expectException( expImportValidationException::class );
