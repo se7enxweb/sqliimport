@@ -176,8 +176,10 @@ if ( !$editor->import )
 {
     $node = ctype_digit( $param( 'Parent' ) ) ? eZContentObjectTreeNode::fetch( (int)$param( 'Parent' ) ) : null;
     if ( $node instanceof eZContentObjectTreeNode && $node->canCreate() )
+    {
         $entryParent = (int)$node->attribute( 'node_id' );
         $entryParentName = (string)$node->attribute( 'name' );
+    }
     if ( preg_match( '/^[a-z0-9_]+$/i', $param( 'Class' ) ) && eZContentClass::fetchByIdentifier( $param( 'Class' ) ) )
         $entryClass = $param( 'Class' );
     if ( $param( 'From' ) !== '' && $param( 'Job' ) !== '' && !$isPost )
@@ -211,7 +213,7 @@ $tpl->setVariable( 'handlers', $registry->handlers() );
 $tpl->setVariable( 'transforms', expImportTransforms::catalogue() );
 $tpl->setVariable( 'source', $editor->import ? $editor->import->sourceConfig() : array( 'origin' => 'upload' ) );
 $tpl->setVariable( 'target', $editor->import ? $editor->import->target() : array( 'parent_node_id' => (int)expImport::setting( 'ImportSettings', 'DefaultParentNodeID', 2 ), 'section_id' => 0, 'language' => '', 'owner_id' => 0 ) );
-$tpl->setVariable( 'behaviour', $editor->import ? $editor->import->behaviour() : array( 'chunk_size' => (int)expImport::setting( 'RunSettings', 'ChunkSize', 200 ), 'update_policy' => 'update', 'max_rows' => 0, 'conflict_policy' => 'overwrite', 'undo_days' => '' ) );
+$tpl->setVariable( 'behaviour', $editor->import ? $editor->import->behaviour() : array( 'chunk_size' => (int)expImport::setting( 'RunSettings', 'ChunkSize', 200 ), 'update_policy' => 'update', 'max_rows' => 0, 'conflict_policy' => 'overwrite', 'undo_days' => '', 'notify_when' => 'errors', 'notify_starter' => true, 'notify_emails' => array() ) );
 $tpl->setVariable( 'options', $editor->import ? $editor->import->options() : array() );
 $tpl->setVariable( 'legacy_options', $editor->import && $editor->import->isLegacy() ? $editor->import->options() : array() );
 $tpl->setVariable( 'mapping', $mapping );
