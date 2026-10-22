@@ -169,6 +169,7 @@ foreach ( array( 'Source', 'Preset' ) as $name )
     if ( $param( $name ) !== '' && isset( $sources[$param( $name )] ) )
         $preselect = $param( $name );
 $entryParent = 0;
+$entryParentName = '';
 $entryClass = '';
 $handover = null;
 if ( !$editor->import )
@@ -176,6 +177,7 @@ if ( !$editor->import )
     $node = ctype_digit( $param( 'Parent' ) ) ? eZContentObjectTreeNode::fetch( (int)$param( 'Parent' ) ) : null;
     if ( $node instanceof eZContentObjectTreeNode && $node->canCreate() )
         $entryParent = (int)$node->attribute( 'node_id' );
+        $entryParentName = (string)$node->attribute( 'name' );
     if ( preg_match( '/^[a-z0-9_]+$/i', $param( 'Class' ) ) && eZContentClass::fetchByIdentifier( $param( 'Class' ) ) )
         $entryClass = $param( 'Class' );
     if ( $param( 'From' ) !== '' && $param( 'Job' ) !== '' && !$isPost )
@@ -202,6 +204,7 @@ if ( !$editor->import )
 }
 $tpl->setVariable( 'source_type', $editor->import ? (string)$editor->import->attribute( 'source_type' ) : $preselect );
 $tpl->setVariable( 'entry_parent', $entryParent );
+$tpl->setVariable( 'entry_parent_name', $entryParentName );
 $tpl->setVariable( 'entry_class', $entryClass );
 $tpl->setVariable( 'handover', $handover );
 $tpl->setVariable( 'handlers', $registry->handlers() );

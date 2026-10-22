@@ -3,7 +3,7 @@
 {if $import|not}
 {if gt( $entry_parent, 0 )}<input type="hidden" name="EntryParent" value="{$entry_parent}" />{/if}
 {if ne( $entry_class, '' )}<input type="hidden" name="EntryClass" value="{$entry_class|wash}" />{/if}
-{if or( gt( $entry_parent, 0 ), ne( $entry_class, '' ) )}<p class="a4-notice is-info" role="status">{if gt( $entry_parent, 0 )}{'The objects will be created below node %node.'|i18n( 'extension/sqliimport/edit',, hash( '%node', $entry_parent ) )} {/if}{if ne( $entry_class, '' )}{'The mapping will start with the class %class.'|i18n( 'extension/sqliimport/edit',, hash( '%class', $entry_class ) )|wash}{/if}</p>{/if}
+{if or( gt( $entry_parent, 0 ), ne( $entry_class, '' ) )}<p class="a4-notice is-info" role="status">{if gt( $entry_parent, 0 )}{'The objects will be created in %folder.'|i18n( 'extension/sqliimport/edit',, hash( '%folder', $entry_parent_name ) )|wash} {/if}{if ne( $entry_class, '' )}{'The mapping will start with the class %class.'|i18n( 'extension/sqliimport/edit',, hash( '%class', $entry_class ) )|wash}{/if}</p>{/if}
 {if $handover}
 <div class="a4-field a4-field-wide">
 <label class="a4-check"><input type="checkbox" name="UseHandover" value="1" checked="checked" /> {'Use the file %name from %tool (job %job)'|i18n( 'extension/sqliimport/edit',, hash( '%name', $handover.original_name, '%tool', $handover.tool, '%job', $handover.job ) )|wash}</label>
