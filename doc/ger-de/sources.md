@@ -11,7 +11,7 @@ Laufs dieselben Daten liest.
 | `upload` | `file`: der gespeicherte Name einer hochgeladenen Datei | Der Upload (im Speicherverzeichnis der Website unter `sqliimport/uploads/`) wird in das Verzeichnis des Laufs kopiert |
 | `url` | `url`: eine Adresse mit `http` oder `https` | Die Adresse wird in das Verzeichnis des Laufs heruntergeladen, mit dem Zeitlimit `[ImportSettings] StreamTimeout` und dem Größenlimit `[SourceSettings] MaxSourceMegabytes` |
 | `path` | `path`: eine Datei auf dem Server | Die Datei wird an Ort und Stelle gelesen, aber nur, wenn sie in einem der Verzeichnisse von `[SourceSettings] AllowedPaths[]` liegt |
-| `remote` | die eigenen Optionen der Quelle (eine Datenbank, ein Suchindex, ein Postfach, ein Verzeichnisdienst, ein Dienst) | Die Quelle liest ihre Daten einmal pro Lauf selbst und schreibt sie als JSON Lines in das Verzeichnis des Laufs (`sql`, `mongodb`, `redis`, `couchdb`, `couchbase`, `cosmosdb`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion`, `dynamodb`, `firestore`, `bigquery`, `firebase_rtdb`, `cassandra`, `neo4j`, `arangodb`, `clickhouse`, `snowflake`, `influxdb`, `supabase`, `baserow`, `salesforce`, `hubspot`, `youtube`, `youtube_page` und die Websites der Gruppe Plattformen) |
+| `remote` | die eigenen Optionen der Quelle (eine Datenbank, ein Suchindex, ein Postfach, ein Verzeichnisdienst, ein Dienst) | Die Quelle liest ihre Daten einmal pro Lauf selbst und schreibt sie als JSON Lines in das Verzeichnis des Laufs (`sql`, `mongodb`, `redis`, `couchdb`, `couchbase`, `cosmosdb`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion`, `dynamodb`, `firestore`, `bigquery`, `firebase_rtdb`, `cassandra`, `neo4j`, `arangodb`, `clickhouse`, `snowflake`, `influxdb`, `supabase`, `baserow`, `salesforce`, `hubspot`, `youtube`, `youtube_page`, `rest_api` und die Websites der Gruppe Plattformen) |
 
 Regeln:
 
@@ -2359,6 +2359,125 @@ E-Mail-Adressen, Telefonnummern): Ordnen Sie nur zu, was die Website braucht. Ve
 die Gesamtzahl einer Suche).
 
 **Beispiel:** `share/examples/hubspot-companies.ndjson` (drei erfundene Firmen mit den IDs ihrer Kontakte).
+
+## Beliebige JSON-REST-API (`rest_api`)
+
+Gruppe: Daten. Herkunft: `remote`. Die Datensätze einer beliebigen REST-API, die mit JSON antwortet (die Produkt-API
+eines Shops, ein Veranstaltungskalender, die Inhalts-API eines CMS, ein interner Dienst): Einmal pro Lauf fragt die
+Quelle die Adresse ab, folgt ihren Seiten und schreibt die Datensätze als Momentaufnahme (`source.ndjson`) in das
+Verzeichnis des Laufs, das dann jeder Abschnitt des Laufs liest; der Probelauf des Editors liest nur so viele
+Datensätze, wie er zeigt. Ein Datensatz ist ein Objekt der Liste einer Antwort; verschachtelte Objekte werden zu
+Feldern mit Punkt (`price.amount`, `category.name`) wie beim Format MongoDB.
+
+| Option | Bedeutung | Standard |
+|---|---|---|
+| `base_url` | Pflicht. Die Adresse der Liste, `https` (`http` nur für einen Host aus `AllowedHosts[]`); ohne Query (siehe `query`), ohne Benutzer oder Passwort | |
+| `method` | `GET`, oder `POST` mit einem JSON-Body für einen Endpunkt, der **liest** (eine Suche oder Abfrage) | `GET` |
+| `body` | Nur `POST`: das gesendete JSON-Objekt; die Seitenparameter werden als seine obersten Schlüssel gesetzt | leer |
+| `query` | Parameter, einer pro Zeile als `name=wert` (`status=active`, `fields[]=id`) | keine |
+| `headers` | Zusätzliche Header, einer pro Zeile als `Name: Wert`; nur `Accept`, `Accept-Language` und `X-...` (siehe unten) | keine |
+| `record_path` | Der Pfad der Liste der Datensätze in einer Antwort (siehe *Pfade*); leer: die Antwort selbst, wenn sie eine Liste ist, sonst die erste Liste aus `data`, `items`, `results`, `records` oder `values` | leer |
+| `auth` | `none`, `bearer`, `basic`, `api_key_header`, `api_key_query` oder `oauth2` | `none` |
+| `auth_secret` | Der **Name** des Geheimnisses: das Bearer-Token, das Passwort, der API-Schlüssel oder das Client-Secret von OAuth 2.0 | leer |
+| `auth_user` | Basic: der Benutzer; OAuth 2.0: die Client-ID | leer |
+| `api_key_name` | Der Header (`X-Api-Key`) oder der Parameter (`api_key`), der den API-Schlüssel trägt | `X-Api-Key` / `api_key` |
+| `token_url`, `scope`, `client_auth` | OAuth 2.0: die Token-Adresse, ein optionaler (lesender) Scope und wie sich der Client ausweist (`basic`-Header, wie RFC 6749 empfiehlt, oder `body`) | `basic` |
+| `paging` | `none`, `page`, `offset`, `cursor`, `next_url` oder `link` (siehe *Seiten*) | `none` |
+| `page_param`, `page_start` | Seitennummer: der Parameter und die erste Seite (`0` oder `1`) | `page`, `1` |
+| `size_param` | Seitennummer, Cursor, nächste Adresse und Link: der Parameter der Seitengröße (`per_page`, `limit`); leer: keiner wird gesendet, die Seitengröße des Servers gilt | leer |
+| `offset_param`, `limit_param` | Offset und Limit: die beiden Parameter | `offset`, `limit` |
+| `cursor_path`, `cursor_param` | Cursor: wo eine Antwort den nächsten Cursor angibt (`meta.next_cursor`), und der Parameter, als der er gesendet wird | `cursor` |
+| `next_path` | Nächste Adresse: wo eine Antwort die Adresse der nächsten Seite angibt (`links.next`) | |
+| `total_path` | Optional: wo eine Antwort die Gesamtzahl angibt (`meta.total`) | leer |
+| `page_size` | Datensätze pro Anfrage | `100` |
+| `max_pages` | Nach so vielen Seiten aufhören; `0`: bis `[RestApiSourceSettings] MaxPages` | `0` |
+| `limit` | Die meisten Datensätze; `0`: alle | `0` |
+| `min_interval` | Die kürzeste Zeit zwischen zwei Anfragen in Sekunden (das Ratenlimit der API) | `0` |
+| `arrays`, `separator` | Arrays als JSON oder als verbundene Liste | `json`, `, ` |
+| `key` | das Schlüsselfeld | `id` |
+
+**Seiten.** `page` sendet `page=1`, `page=2` ... (mit `per_page`, wenn `size_param` gesetzt ist); `offset` sendet
+`offset=0&limit=100`, `offset=100&limit=100` ...; `cursor` sendet den Cursor der vorigen Antwort als Parameter;
+`next_url` fragt die Adresse ab, die eine Antwort unter `next_path` angibt (relative Adressen werden aufgelöst); `link`
+folgt dem `Link`-Header nach RFC 8288 mit `rel="next"` (GitHub, GitLab, WordPress und viele andere). Mit `POST` stehen
+die Seitenparameter statt in der Adresse im JSON-Body. Das Lesen endet bei einer **leeren Seite**, bei einer Seite,
+die kürzer als die Seitengröße ist (Seitennummer mit `size_param`, und Offset), wenn die Datensätze die Gesamtzahl
+unter `total_path` erreichen, wenn kein nächster Cursor oder keine nächste Adresse kommt (oder dieselbe noch einmal),
+und nach dem eigenen `max_pages` des Imports. Mehr Seiten als `[RestApiSourceSettings] MaxPages` (1000) sind ein
+Fehler, damit ein Lauf nie stillschweigend mitten in einer Liste endet.
+
+**Nur dieselbe Website.** Einer nächsten Adresse aus einer Antwort und einem `Link`-Header folgt die Quelle nur auf
+Schema, Host und Port von `base_url`; jede andere Adresse ist ein Fehler, und es wird nichts an sie gesendet.
+Weiterleitungen werden genauso behandelt (höchstens drei, nur dieselbe Website), damit nie ein Token, API-Schlüssel
+oder Cookie an einen Host geht, den der Import nicht genannt hat.
+
+**Pfade.** `record_path`, `cursor_path`, `next_path` und `total_path` nehmen eine Teilmenge von JSONPath:
+`data.items`, `$.data.items`, `results[0].hits`, `meta['next cursor']`. Platzhalter, Filter und rekursiver Abstieg
+(`*`, `?()`, `..`) werden abgelehnt.
+
+**Anmeldung und Geheimnisse.** Jede Zugangsangabe ist der **Name** eines Geheimnisses: `Secrets[<Name>]` aus
+`[SecretSettings]` in den Einstellungen der Website (oder der Geheimnisspeicher des Kernels von Exponential 6.0.15),
+oder `env:<VARIABLE>` des PHP-Prozesses; sie wird nie im Import gespeichert.
+
+- `bearer`: `Authorization: Bearer <Geheimnis>`.
+- `basic`: `Authorization: Basic` aus `auth_user` und dem Geheimnis.
+- `api_key_header`: das Geheimnis im Header `api_key_name` (nicht `Cookie`, `Host`, `Content-Type` oder ein
+  Weiterleitungs-Header).
+- `api_key_query`: das Geheimnis im Parameter `api_key_name`, auch bei nächsten Adressen.
+- `oauth2`: Client Credentials (RFC 6749, 4.4): ein `POST` an `token_url` mit `grant_type=client_credentials` und dem
+  `scope`, Client-ID und Secret als Basic-Header oder im Body; das Zugriffstoken gilt für den Lauf und wird eine
+  Minute vor seinem Ablauf neu geholt. `token_url` muss auf dem Host von `base_url` liegen oder in
+  `[RestApiSourceSettings] AllowedTokenHosts[]` stehen.
+
+Meldungen zeigen `[secret <Name>]` oder `[token]`, nie ein Geheimnis, die Basic-Zugangsdaten oder das Zugriffstoken,
+auch wenn der Server sie in einem Fehler zitiert; die Adresse in einer Meldung hat keine Query (also keinen Schlüssel
+aus einem Parameter). Ein Datensatz, der einen davon zurückgibt, erhält an seiner Stelle `[secret]`, sodass die
+Momentaufnahme und das Protokoll des Laufs nie einen `Authorization`-Wert enthalten.
+
+**Header und Parameter.** `headers` nimmt nur `Accept`, `Accept-Language` und `X-...`-Header, und davon nie eine
+Methodenüberschreibung (`X-HTTP-Method-Override`, `X-HTTP-Method`, `X-Method-Override`), einen Weiterleitungs- oder
+Adress-Header (`X-Forwarded-*`, `X-Real-IP`, `X-Original-URL`, `X-Rewrite-URL`, `X-Host`) oder einen, dessen Name
+sagt, dass er eine Zugangsangabe trägt (`X-Api-Key`, `X-Auth-Token`, `...-Secret`, `...-Session`); `Authorization`,
+`Cookie` und `Host` werden darüber nie gesetzt. `query` lehnt Parameter ab, die wie Zugangsangaben heißen (`api_key`,
+`access_token`, `token`, `key`, `client_secret`, `password`, `sig`). Zugangsangaben gehören in die Optionen der
+Anmeldung, wo sie Geheimnisse sind.
+
+**Nur-Lese-Garantie:** Die Quelle sendet `GET`, oder `POST` nur mit dem JSON-Body, den der Import angibt; sie sendet
+nie `PUT`, `PATCH` oder `DELETE`, und kein Header kann die Methode überschreiben. Ein `POST`-Endpunkt muss einer sein,
+der liest (eine Suche, eine Abfrage, eine GraphQL-Abfrage ohne Mutationen): Die Quelle kann nicht wissen, was ein
+Endpunkt mit einem Body tut; wählen Sie ihn also mit Sorgfalt und geben Sie den Zugangsdaten **nur lesende Rechte**
+(ein schreibgeschützter API-Schlüssel, ein Token oder OAuth-Client mit einem `read`-Scope).
+
+**Ratenlimits.** `min_interval` hält die kürzeste Zeit zwischen zwei Anfragen ein. Eine Antwort `429 Too Many
+Requests` oder `503 Service Unavailable` wird (bis zu viermal) wiederholt, nach der Zeit, die der Server verlangt:
+`Retry-After` in Sekunden oder als HTTP-Datum, sonst `X-RateLimit-Reset` oder `RateLimit-Reset` (Sekunden bis dahin,
+oder der Zeitpunkt in Sekunden seit 1970, wenn die Zahl so groß ist), sonst das `reset` eines `RateLimit`-Headers;
+ohne Hinweis fünf Sekunden. Eine Wartezeit über `[RestApiSourceSettings] MaxWaitSeconds` (120) beendet den Lauf mit
+einer klaren Meldung, statt den Worker warten zu lassen. `502` und `504` werden nach 2, 4, 6 ... Sekunden wiederholt.
+
+**Hosts.** `base_url` und `token_url` müssen `https` sein. Ein Host in einem privaten oder reservierten Netz (ein
+Intranet-Dienst, `localhost`) wird abgelehnt, außer er steht in `[RestApiSourceSettings] AllowedHosts[]`, und nur ein
+dort genannter Host darf auch über `http` gelesen werden. `[PlatformSettings] MaxResponseMegabytes` begrenzt eine
+Antwort (20), `[ImportSettings] StreamTimeout` die Zeit einer Anfrage.
+
+**Werte (Typzuordnung):** wie JSON sie liefert: Zeichenketten bleiben Text, Zahlen bleiben Zahlen (wie PHP JSON
+dekodiert: `8.90` wird `8.9`; genaue Dezimalzahlen sendet die API am besten als Text), `true`/`false` Wahrheitswerte,
+`null` bleibt leer; verschachtelte Objekte werden Felder mit Punkt (`price.amount`); Arrays werden JSON
+(`["tea","green"]`) oder mit `arrays=join` eine verbundene Liste (Arrays von Objekten bleiben JSON); ein
+Listeneintrag, der kein Objekt ist, wird ein Datensatz mit dem Feld `value`. Datumsangaben bleiben der Text, den die
+API liefert (meist ISO 8601); ordnen Sie sie mit den Datums-Transformationen zu.
+
+**Verbindung testen** liest nur die **erste Seite** und zeigt, wie viele Datensätze sie hat, ihre Felder (jedes Feld
+jedes Datensatzes der Seite) und mit `total_path` die Gesamtzahl; oder den Fehler, maskiert. Es wird nichts
+gespeichert.
+
+**Was der Host braucht:** die PHP-Erweiterung `openssl` mit `allow_url_fopen=On` (beide Teil der üblichen
+PHP-Pakete); ohne `allow_url_fopen` nutzt die Quelle die PHP-Erweiterung `curl` (RHEL und Debian: `php-curl`) mit
+denselben Prüfungen. *Womit dieser Server sich verbinden kann* zeigt beide (`streams`, `curl`). Der Server muss die
+Adresse der API über HTTPS erreichen können.
+
+**Beispiel:** `share/examples/rest-api-products.ndjson` (drei erfundene Produkte einer API mit verschachtelten Preisen
+und Kategorien).
 
 ## Exporte anderer Systeme (`joomla`, `ezpkg`)
 

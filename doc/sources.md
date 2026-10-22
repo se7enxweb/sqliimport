@@ -10,7 +10,7 @@ A source type reads records from a local file. Where the file comes from is the 
 | `upload` | `file`: the stored name of an uploaded file | The upload (kept in the site's storage directory, `sqliimport/uploads/`) is copied into the run's directory |
 | `url` | `url`: an `http` or `https` address | The address is downloaded into the run's directory, with the time limit `[ImportSettings] StreamTimeout` and the size limit `[SourceSettings] MaxSourceMegabytes` |
 | `path` | `path`: a file on the server | The file is read in place, but only if it lies inside one of `[SourceSettings] AllowedPaths[]` |
-| `remote` | the source's own options (a database, a search index, a mailbox, a directory, a service) | The source reads its data itself once per run and writes it into the run's directory as JSON Lines (`sql`, `mongodb`, `redis`, `couchdb`, `couchbase`, `cosmosdb`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion`, `dynamodb`, `firestore`, `bigquery`, `firebase_rtdb`, `cassandra`, `neo4j`, `arangodb`, `clickhouse`, `snowflake`, `influxdb`, `supabase`, `baserow`, `salesforce`, `hubspot`, `youtube`, `youtube_page` and the sites of the platforms group) |
+| `remote` | the source's own options (a database, a search index, a mailbox, a directory, a service) | The source reads its data itself once per run and writes it into the run's directory as JSON Lines (`sql`, `mongodb`, `redis`, `couchdb`, `couchbase`, `cosmosdb`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion`, `dynamodb`, `firestore`, `bigquery`, `firebase_rtdb`, `cassandra`, `neo4j`, `arangodb`, `clickhouse`, `snowflake`, `influxdb`, `supabase`, `baserow`, `salesforce`, `hubspot`, `youtube`, `youtube_page`, `rest_api` and the sites of the platforms group) |
 
 Rules:
 
@@ -2254,6 +2254,119 @@ values of a multiple checkbox stay joined with `;`. **Contacts hold personal dat
 numbers): map only what the site needs. Test connection reads one object (and the total of a search).
 
 **Example:** `share/examples/hubspot-companies.ndjson` (three invented companies with their contacts' IDs).
+
+## Any JSON REST API (`rest_api`)
+
+Group: data. Origin: `remote`. The records of any REST API that answers with JSON (a shop's product API, an event
+calendar, a CMS's content API, an internal service): once per run the source requests the address, follows its paging
+and writes the records as a snapshot (`source.ndjson`) into the run's directory, which every chunk of the run then
+reads; the editor's dry run reads only as many records as it shows. One record is one object of the list of an
+answer; nested objects become dotted fields (`price.amount`, `category.name`) as in the MongoDB format.
+
+| Option | Meaning | Default |
+|---|---|---|
+| `base_url` | Required. The address of the list, `https` (`http` only for a host of `AllowedHosts[]`); no query (see `query`), no user or password | |
+| `method` | `GET`, or `POST` with a JSON body for an endpoint that **reads** (a search or query endpoint) | `GET` |
+| `body` | `POST` only: the JSON object sent; the paging parameters are set as its top-level keys | empty |
+| `query` | Parameters, one per line as `name=value` (`status=active`, `fields[]=id`) | none |
+| `headers` | Extra headers, one per line as `Name: value`; only `Accept`, `Accept-Language` and `X-...` (see below) | none |
+| `record_path` | The path of the list of records in an answer (see *Paths*); empty: the answer itself when it is a list, else the first list of `data`, `items`, `results`, `records` or `values` | empty |
+| `auth` | `none`, `bearer`, `basic`, `api_key_header`, `api_key_query` or `oauth2` | `none` |
+| `auth_secret` | The **name** of the secret: the bearer token, the password, the API key or the OAuth 2.0 client secret | empty |
+| `auth_user` | Basic: the user; OAuth 2.0: the client ID | empty |
+| `api_key_name` | The header (`X-Api-Key`) or the parameter (`api_key`) that carries the API key | `X-Api-Key` / `api_key` |
+| `token_url`, `scope`, `client_auth` | OAuth 2.0: the token address, an optional (read) scope, and how the client authenticates (`basic` header as RFC 6749 recommends, or `body`) | `basic` |
+| `paging` | `none`, `page`, `offset`, `cursor`, `next_url` or `link` (see *Paging*) | `none` |
+| `page_param`, `page_start` | Page number: the parameter and the first page (`0` or `1`) | `page`, `1` |
+| `size_param` | Page number, cursor, next address and Link: the parameter of the page size (`per_page`, `limit`); empty: none is sent and the server's own page size applies | empty |
+| `offset_param`, `limit_param` | Offset and limit: the two parameters | `offset`, `limit` |
+| `cursor_path`, `cursor_param` | Cursor: where an answer gives the next cursor (`meta.next_cursor`) and the parameter it is sent as | `cursor` |
+| `next_path` | Next address: where an answer gives the address of the next page (`links.next`) | |
+| `total_path` | Optional: where an answer gives the total count (`meta.total`) | empty |
+| `page_size` | Records per request | `100` |
+| `max_pages` | Stop after so many pages; `0`: up to `[RestApiSourceSettings] MaxPages` | `0` |
+| `limit` | The most records; `0`: all | `0` |
+| `min_interval` | The least time between two requests, in seconds (the API's rate limit) | `0` |
+| `arrays`, `separator` | Arrays as JSON or as a joined list | `json`, `, ` |
+| `key` | the key field | `id` |
+
+**Paging.** `page` sends `page=1`, `page=2` ... (with `per_page` when `size_param` is set); `offset` sends
+`offset=0&limit=100`, `offset=100&limit=100` ...; `cursor` sends the cursor of the previous answer as a parameter;
+`next_url` requests the address an answer gives at `next_path` (relative addresses are resolved); `link` follows the
+RFC 8288 `Link` header with `rel="next"` (GitHub, GitLab, WordPress and many others). With `POST` the paging
+parameters go into the JSON body instead of the address. The reading stops at an **empty page**, at a page shorter
+than the page size (page number with `size_param`, and offset), when the records reach the total at `total_path`, when
+no next cursor or address comes (or the same one comes again), and after the import's own `max_pages`. More pages than
+`[RestApiSourceSettings] MaxPages` (1000) is an error, so a run never ends quietly in the middle of a list.
+
+**Same site only.** A next address of an answer and a `Link` header are followed only on the scheme, host and port
+of `base_url`; any other address is an error and nothing is sent to it. Redirects are followed the same way (at most
+three, same site only), so no token, API key or cookie ever goes to a host the import did not name.
+
+**Paths.** `record_path`, `cursor_path`, `next_path` and `total_path` take a subset of JSONPath: `data.items`,
+`$.data.items`, `results[0].hits`, `meta['next cursor']`. Wildcards, filters and recursive descent (`*`, `?()`, `..`)
+are refused.
+
+**Authentication and secrets.** Every credential is the **name** of a secret: `Secrets[<name>]` of
+`[SecretSettings]` in the site's own settings (or the kernel's secret store of Exponential 6.0.15), or
+`env:<VARIABLE>` of the PHP process; it is never stored in the import.
+
+- `bearer`: `Authorization: Bearer <secret>`.
+- `basic`: `Authorization: Basic` of `auth_user` and the secret.
+- `api_key_header`: the secret in the header `api_key_name` (not `Cookie`, `Host`, `Content-Type` or a forwarding
+  header).
+- `api_key_query`: the secret in the parameter `api_key_name`, also on next addresses.
+- `oauth2`: client credentials (RFC 6749, 4.4): a `POST` to `token_url` with `grant_type=client_credentials` and the
+  `scope`, the client ID and secret as a basic header or in the body; the access token is kept for the run and fetched
+  again a minute before it expires. `token_url` must be on the host of `base_url` or on
+  `[RestApiSourceSettings] AllowedTokenHosts[]`.
+
+Messages show `[secret <name>]` or `[token]`, never a secret, the basic credentials or the access token, also when
+the server quotes them in an error; the address in a message has no query (so no key in a parameter). A record that
+echoes one of them gets `[secret]` in its place, so the snapshot and the run's log never hold an `Authorization`
+value.
+
+**Headers and parameters.** `headers` takes only `Accept`, `Accept-Language` and `X-...` headers, and of those never
+a method override (`X-HTTP-Method-Override`, `X-HTTP-Method`, `X-Method-Override`), a forwarding or address header
+(`X-Forwarded-*`, `X-Real-IP`, `X-Original-URL`, `X-Rewrite-URL`, `X-Host`) or one whose name says it holds a
+credential (`X-Api-Key`, `X-Auth-Token`, `...-Secret`, `...-Session`); `Authorization`, `Cookie` and `Host` are never
+set through it. `query` refuses parameters named like credentials (`api_key`, `access_token`, `token`, `key`,
+`client_secret`, `password`, `sig`). Credentials belong in the authentication options, where they are secrets.
+
+**Read-only guarantee:** the source sends `GET`, or `POST` only with the JSON body the import gives; it never sends
+`PUT`, `PATCH` or `DELETE`, and no header can override the method. A `POST` endpoint must be one that reads (a
+search, a query, a GraphQL query without mutations): the source cannot know what an endpoint does with a body, so
+choose it with care and give the credentials **read scopes only** (a read-only API key, a token or OAuth client with a
+`read` scope).
+
+**Rate limits.** `min_interval` keeps the least time between two requests. An answer `429 Too Many Requests` or
+`503 Service Unavailable` is tried again (up to four times) after the time the server asks for: `Retry-After` in
+seconds or as an HTTP date, else `X-RateLimit-Reset` or `RateLimit-Reset` (seconds to wait, or the time in seconds
+since 1970 when the number is that large), else the `reset` of a `RateLimit` header; without a hint five seconds. A
+wait longer than `[RestApiSourceSettings] MaxWaitSeconds` (120) fails the run with a clear message instead of keeping
+the worker waiting. `502` and `504` are tried again after 2, 4, 6 ... seconds.
+
+**Hosts.** `base_url` and `token_url` must be `https`. A host in a private or reserved network (an intranet
+service, `localhost`) is refused unless it is listed in `[RestApiSourceSettings] AllowedHosts[]`, and only a listed
+host may also be read over `http`. `[PlatformSettings] MaxResponseMegabytes` limits one answer (20) and
+`[ImportSettings] StreamTimeout` the time of a request.
+
+**Values (type mapping):** as JSON gives them: strings stay text, numbers stay numbers (as PHP decodes JSON: `8.90`
+becomes `8.9`, so exact decimals are best sent as text by the API), `true`/`false` booleans, `null` stays empty; nested objects become dotted fields (`price.amount`);
+arrays become JSON (`["tea","green"]`) or, with `arrays=join`, a joined list (arrays of objects stay JSON); a list
+item that is not an object becomes a record with the field `value`. Dates stay the text the API gives (usually ISO
+8601); map them with the date transforms.
+
+**Test connection** reads the **first page** only and shows how many records it has, their fields (every field of
+every record of the page) and, with `total_path`, the total; or the error, masked. Nothing is saved.
+
+**What the host needs:** the PHP extension `openssl` with `allow_url_fopen=On` (both part of the usual PHP packages);
+without `allow_url_fopen` the source uses the PHP extension `curl` (RHEL and Debian: `php-curl`) with the same checks.
+*What this server can connect with* shows both (`streams`, `curl`). The server must be able to reach the API's
+address over HTTPS.
+
+**Example:** `share/examples/rest-api-products.ndjson` (three invented products of an API with nested prices and
+categories).
 
 ## Exports of other systems (`joomla`, `ezpkg`)
 

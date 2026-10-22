@@ -7,6 +7,13 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 
 ### Added
 
+- Added: The format REST API (rest_api): the records of any JSON API, paged by page number, offset and limit, a cursor
+  of the answer, the next address of the answer or the Link header rel="next" (both on the same site only), stopping
+  at an empty page, a total or the most pages; authentication by bearer token, basic, an API key in a header or a
+  parameter, or OAuth 2.0 client credentials (the token kept for the run), every secret by its name and masked; GET,
+  or POST with a JSON body for an endpoint that reads; extra headers only Accept, Accept-Language and X-...; waits on
+  429 and 503 after Retry-After, X-RateLimit-Reset or RateLimit-Reset up to [RestApiSourceSettings] MaxWaitSeconds;
+  curl when allow_url_fopen is off.
 - Added: Files of the run as run:<path> for the transforms image, file and media_object (a document a remote source
   downloaded, a picture taken out of a document), never outside the run's directory.
 - Added: The richtext transform keeps the pictures of the run: each becomes an image object, embedded where it was
