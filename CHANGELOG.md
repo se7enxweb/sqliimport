@@ -44,6 +44,12 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   WooCommerce product CSV (variations nested in their variable product), with prices as decimals, the currency as
   an option and the tax fields. Preset: the class product of the webshop.
 
+- Added: Markdown files with front matter (markdown), one file or a folder as ZIP (Jekyll, Hugo, Obsidian): title,
+  date, tags, summary, the body as HTML and every front matter key; YAML and TOML read without a library.
+- Added: Media files with EXIF and IPTC (media), one file or a folder as ZIP: caption, keywords, photographer,
+  copyright, date taken, camera, GPS and a content hash; the transforms image and file import the file itself out
+  of the run's ZIP, and a remote ID from the hash imports the same file once.
+
 ### Updated
 
 - Updated: The tick also runs within the cron part expqueue, so schedules need no cron line of their own; a lock

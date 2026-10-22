@@ -340,6 +340,69 @@ The preset maps a post to an `article` (title, intro from the excerpt, body from
 has them, publish date, image and tags). `featured_image` and `images` are addresses, which the transform `image`
 downloads.
 
+## Markdown files (`markdown`)
+
+Group: content. File name extensions: `zip`, `md`, `markdown`. One Markdown file, or a folder as ZIP: a Jekyll or
+Hugo site, an Obsidian vault, a documentation folder. Every `.md` / `.markdown` file is a record. Front matter in
+YAML (between `---` lines) or TOML (between `+++` lines) is read without a library.
+
+| Field | What it holds |
+|---|---|
+| `id` | the front matter's `id`, else the path without extension (`_posts/2026-03-20-spring-opening-hours`) |
+| `path`, `folder`, `file` | where the file is (a folder all files share, the ZIP's own folder, is no part of it) |
+| `slug` | the front matter's `slug`, else the file name without a Jekyll date |
+| `title` | the front matter's `title`, else the first `#` heading, else the file name |
+| `date` | the front matter's `date` (or `created`, `publishDate`), else the date of a Jekyll file name |
+| `draft` | `true` for `draft: true`, `published: false` or a file in `_drafts` |
+| `tags`, `categories` | lists (a text `a, b` is split) |
+| `summary` | the front matter's `description`, `summary` or `excerpt`, else the first paragraph as text |
+| `markdown`, `html`, `text` | the body as written, as HTML, as plain text |
+| `links`, `images` | the Obsidian `[[links]]` and the image paths of the body |
+| `front` | the whole front matter; each of its keys is also a field of its own |
+
+The HTML knows headings, paragraphs, emphasis, code, links, images, lists (also nested and task lists), block quotes,
+tables and Obsidian `[[Page]]` / `[[Page|text]]` links and `![[image.png]]` embeds. Addresses other than `http`,
+`https` and `mailto` are dropped.
+
+| Option | Values | Default |
+|---|---|---|
+| `drafts` | read drafts too | no |
+| `skip_index` | leave out `README` and `index` files | no |
+| `folder` | only this folder of the ZIP | all |
+| `wiki_base` | the address `[[links]]` point to (plus the page's slug); empty: their text only | empty |
+
+Folders starting with `_` or `.` (layouts, includes, `.obsidian`) are left out, except `_posts` (and `_drafts` with
+the option `drafts`). The preset maps a file to an `article` (title, intro from the summary, body from the HTML,
+and, where the class has them, publish date and tags).
+
+## Media files (`media`)
+
+Group: media. File name extensions: `zip`, `jpg`, `jpeg`, `png`, `gif`, `webp`, `tif`, `tiff`, `pdf`, `mp3`, `mp4`.
+Photos, documents, audio and video, one file or a folder as ZIP. Every file is a record:
+
+| Field | What it holds |
+|---|---|
+| `id`, `path`, `folder`, `file`, `extension`, `mime`, `size` | where the file is and what it is |
+| `sha1` | the hash of the content: with the remote ID pattern `media-{sha1}` the same file is imported once, wherever it is |
+| `name` | the IPTC object name or headline, else the EXIF description, else the file name in words |
+| `caption` | the IPTC caption, else the EXIF description |
+| `keywords` | the IPTC keywords (a list) |
+| `author`, `copyright`, `credit`, `source`, `city`, `country` | from IPTC (author and copyright else from EXIF) |
+| `date_taken` | when the photo was taken (EXIF `DateTimeOriginal`, else the IPTC date), ISO 8601 |
+| `width`, `height`, `orientation`, `camera`, `gps_lat`, `gps_lon` | from the image and its EXIF (GPS in decimal degrees) |
+| `exif`, `iptc` | the EXIF fields read, the IPTC fields by name |
+| `media` | the file itself, as `source:<path>`: the transforms `image` and `file` take it like an address and import the file out of the run's ZIP |
+
+| Option | Values | Default |
+|---|---|---|
+| `types` | `images` (JPEG, PNG, GIF, WebP, TIFF) or `all` | `images` |
+| `folder` | only this folder of the ZIP | all |
+| `key` | `path`, or `sha1` | `path` |
+
+The preset maps a photo to an `image` object (name, caption, the image and, where the class has them, the keywords
+as tags) with the remote ID `media-{sha1}`. The metadata is read in memory: no file is written for it. A file in the
+ZIP larger than 256 MB is refused.
+
 ## The catalogue of formats
 
 **Imports, Catalogue** lists the formats by group (data, content, platforms, commerce, media, other). Each card says

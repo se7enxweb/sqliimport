@@ -346,6 +346,69 @@ Die Vorlage bildet einen Beitrag auf einen `article` ab (Titel, Einleitung aus d
 und, wo die Klasse sie hat, Veröffentlichungsdatum, Bild und Schlagwörter). `featured_image` und `images` sind
 Adressen, die die Umwandlung `image` herunterlädt.
 
+## Markdown-Dateien (`markdown`)
+
+Gruppe: Inhalte. Dateiendungen: `zip`, `md`, `markdown`. Eine Markdown-Datei oder ein Ordner als ZIP: eine
+Jekyll- oder Hugo-Site, ein Obsidian-Vault, ein Dokumentationsordner. Jede `.md`- / `.markdown`-Datei ist ein
+Datensatz. Front Matter in YAML (zwischen `---`-Zeilen) oder TOML (zwischen `+++`-Zeilen) wird ohne Bibliothek gelesen.
+
+| Feld | Inhalt |
+|---|---|
+| `id` | die `id` des Front Matter, sonst der Pfad ohne Endung (`_posts/2026-03-20-spring-opening-hours`) |
+| `path`, `folder`, `file` | wo die Datei liegt (ein Ordner, den alle Dateien teilen, der eigene Ordner des ZIP, gehört nicht dazu) |
+| `slug` | der `slug` des Front Matter, sonst der Dateiname ohne Jekyll-Datum |
+| `title` | der `title` des Front Matter, sonst die erste `#`-Überschrift, sonst der Dateiname |
+| `date` | das `date` des Front Matter (oder `created`, `publishDate`), sonst das Datum eines Jekyll-Dateinamens |
+| `draft` | `true` bei `draft: true`, `published: false` oder einer Datei in `_drafts` |
+| `tags`, `categories` | Listen (ein Text `a, b` wird geteilt) |
+| `summary` | `description`, `summary` oder `excerpt` des Front Matter, sonst der erste Absatz als Text |
+| `markdown`, `html`, `text` | der Text wie geschrieben, als HTML, als reiner Text |
+| `links`, `images` | die Obsidian-`[[Links]]` und die Bildpfade des Textes |
+| `front` | das ganze Front Matter; jeder Schlüssel ist auch ein eigenes Feld |
+
+Das HTML kennt Überschriften, Absätze, Hervorhebungen, Code, Links, Bilder, Listen (auch verschachtelte und
+Aufgabenlisten), Zitate, Tabellen sowie Obsidian-Links `[[Seite]]` / `[[Seite|Text]]` und Einbettungen
+`![[bild.png]]`. Adressen außer `http`, `https` und `mailto` werden verworfen.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `drafts` | auch Entwürfe lesen | nein |
+| `skip_index` | `README`- und `index`-Dateien auslassen | nein |
+| `folder` | nur dieser Ordner des ZIP | alle |
+| `wiki_base` | die Adresse, auf die `[[Links]]` zeigen (plus Slug der Seite); leer: nur ihr Text | leer |
+
+Ordner, die mit `_` oder `.` beginnen (Layouts, Includes, `.obsidian`), bleiben außen vor, außer `_posts` (und
+`_drafts` mit der Option `drafts`). Die Vorlage bildet eine Datei auf einen `article` ab (Titel, Einleitung aus der
+Zusammenfassung, Text aus dem HTML und, wo die Klasse sie hat, Veröffentlichungsdatum und Schlagwörter).
+
+## Mediendateien (`media`)
+
+Gruppe: Medien. Dateiendungen: `zip`, `jpg`, `jpeg`, `png`, `gif`, `webp`, `tif`, `tiff`, `pdf`, `mp3`, `mp4`.
+Fotos, Dokumente, Audio und Video, eine Datei oder ein Ordner als ZIP. Jede Datei ist ein Datensatz:
+
+| Feld | Inhalt |
+|---|---|
+| `id`, `path`, `folder`, `file`, `extension`, `mime`, `size` | wo die Datei liegt und was sie ist |
+| `sha1` | der Hash des Inhalts: mit dem Muster der Remote-ID `media-{sha1}` wird dieselbe Datei einmal importiert, wo sie auch liegt |
+| `name` | Objektname oder Überschrift aus IPTC, sonst die EXIF-Beschreibung, sonst der Dateiname in Worten |
+| `caption` | die IPTC-Bildunterschrift, sonst die EXIF-Beschreibung |
+| `keywords` | die IPTC-Stichwörter (eine Liste) |
+| `author`, `copyright`, `credit`, `source`, `city`, `country` | aus IPTC (Autor und Copyright sonst aus EXIF) |
+| `date_taken` | wann das Foto aufgenommen wurde (EXIF `DateTimeOriginal`, sonst das IPTC-Datum), ISO 8601 |
+| `width`, `height`, `orientation`, `camera`, `gps_lat`, `gps_lon` | aus dem Bild und seinem EXIF (GPS in Dezimalgrad) |
+| `exif`, `iptc` | die gelesenen EXIF-Felder, die IPTC-Felder nach Namen |
+| `media` | die Datei selbst als `source:<Pfad>`: die Umwandlungen `image` und `file` nehmen sie wie eine Adresse und importieren die Datei aus dem ZIP des Laufs |
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `types` | `images` (JPEG, PNG, GIF, WebP, TIFF) oder `all` | `images` |
+| `folder` | nur dieser Ordner des ZIP | alle |
+| `key` | `path` oder `sha1` | `path` |
+
+Die Vorlage bildet ein Foto auf ein `image`-Objekt ab (Name, Bildunterschrift, das Bild und, wo die Klasse sie hat,
+die Stichwörter als Schlagwörter) mit der Remote-ID `media-{sha1}`. Die Metadaten werden im Speicher gelesen; dafür
+wird keine Datei geschrieben. Eine Datei im ZIP über 256 MB wird abgelehnt.
+
 ## Der Katalog der Formate
 
 **Importe, Katalog** zeigt die Formate nach Gruppen (Daten, Inhalte, Plattformen, Handel, Medien, Sonstiges). Jede
