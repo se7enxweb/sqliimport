@@ -11,7 +11,7 @@ Laufs dieselben Daten liest.
 | `upload` | `file`: der gespeicherte Name einer hochgeladenen Datei | Der Upload (im Speicherverzeichnis der Website unter `sqliimport/uploads/`) wird in das Verzeichnis des Laufs kopiert |
 | `url` | `url`: eine Adresse mit `http` oder `https` | Die Adresse wird in das Verzeichnis des Laufs heruntergeladen, mit dem Zeitlimit `[ImportSettings] StreamTimeout` und dem Größenlimit `[SourceSettings] MaxSourceMegabytes` |
 | `path` | `path`: eine Datei auf dem Server | Die Datei wird an Ort und Stelle gelesen, aber nur, wenn sie in einem der Verzeichnisse von `[SourceSettings] AllowedPaths[]` liegt |
-| `remote` | die eigenen Optionen der Quelle (eine Datenbank, ein Postfach) | Die Quelle liest ihre Daten einmal pro Lauf selbst und schreibt sie als JSON Lines in das Verzeichnis des Laufs (`sql`, `imap`) |
+| `remote` | die eigenen Optionen der Quelle (eine Datenbank, ein Postfach, ein Verzeichnisdienst, ein Dienst) | Die Quelle liest ihre Daten einmal pro Lauf selbst und schreibt sie als JSON Lines in das Verzeichnis des Laufs (`sql`, `imap`, `ldap`, `airtable`, `notion` und die Websites der Gruppe Plattformen) |
 
 Regeln:
 
@@ -647,6 +647,76 @@ spricht die Quelle IMAP selbst über einen TLS-Socket (`LOGIN`, `EXAMINE`/`SELEC
 Die Vorlage bildet eine Nachricht auf einen Artikel ab, der über die Remote-ID `mail-{message_id}` wiedergefunden
 wird (bei langen IDs mit einem Hash gekürzt): Titel aus `subject`, Einleitung aus `summary`, Text aus `body` (beide
 als Rich Text), Veröffentlichungsdatum aus `date`.
+
+## LDAP-Verzeichnis (`ldap`)
+
+Gruppe: Daten. Herkunft: `remote`. Die Einträge eines LDAP-Verzeichnisses (OpenLDAP, Active Directory, 389 Directory
+Server und ähnliche): Ein Datensatz ist ein Eintrag einer Suche, seine Felder sind der DN (`dn`) und die Attribute des
+Eintrags nach Namen. Einmal pro Lauf meldet sich die Quelle an, sucht und schreibt die Einträge in das Verzeichnis des
+Laufs, einen pro Zeile; die Stichprobe des Editors liest die ersten. Ein Verzeichnis von Personen enthält
+**personenbezogene Daten**: Importieren Sie nur die Attribute, die die Website braucht.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `uri` | `ldaps://host[:port]` (TLS von Anfang an, Port 636) oder `ldap://host[:port]` (Port 389, mit StartTLS); ein Host ohne Schema ist `ldaps://` | |
+| `starttls` | StartTLS auf einer `ldap://`-Verbindung | ja |
+| `allow_plain` | eine unverschlüsselte Verbindung erlauben, nur zu `localhost` (`127.0.0.1`, `::1`) | nein |
+| `bind_dn` | der Benutzer der Anmeldung (`cn=reader,ou=Services,dc=example,dc=org`; Active Directory auch `reader@example.org`); leer: anonym | |
+| `password` | der **Name** eines Geheimnisses, nie das Passwort; nötig mit einem Bind-DN | |
+| `base_dn` | wo die Suche beginnt, z. B. `ou=Staff,dc=example,dc=org` | |
+| `filter` | ein LDAP-Filter (RFC 4515) | `(objectClass=*)` |
+| `attributes` | die zu lesenden Attribute, eines pro Zeile; leer: alle Benutzerattribute. Ein aufgeführtes Attribut steht in jedem Datensatz (`null`, wenn ein Eintrag es nicht hat) | |
+| `scope` | `sub` (die Basis und alles darunter), `one` (die Einträge direkt unter der Basis), `base` (nur der Basiseintrag) | `sub` |
+| `page_size` | Einträge pro Seite des Paged-Results-Controls (RFC 2696); `0`: ohne Seiten, es gilt das Größenlimit des Servers (im Active Directory oft 1000) | `500` |
+| `size_limit` | die meisten Einträge; `0`: alle | `0` |
+| `binary` | binäre Attribute als `base64:<Daten>`, oder `skip`, um sie wegzulassen | `base64` |
+| `multi_valued` | ein Attribut mit mehreren Werten als Liste (`array`; ein Wert bleibt ein Wert) oder verbunden (`join`) | `array` |
+| `separator` | das Trennzeichen verbundener Werte | `; ` |
+| `key` | das Schlüsselfeld: `dn` oder ein Attribut wie `uid`, `entryUUID`, `objectGUID_text` | `dn` |
+
+**Nur lesend.** Die Quelle verbindet sich, meldet sich an und sucht; sie hat keinen Weg, einen Eintrag anzulegen, zu
+ändern oder zu löschen. Geben Sie ihr einen Verzeichnisbenutzer, der nur den Teil des Baums lesen darf, den der
+Import braucht.
+
+**Verschlüsselt.** Die Verbindung ist `ldaps://` oder `ldap://` mit StartTLS, und das Zertifikat des Servers wird
+geprüft (gegen die CA-Zertifikate des OpenLDAP-Clients des Systems, `TLS_CACERT` in `ldap.conf`). Eine unverschlüsselte
+Verbindung wird abgelehnt, außer zu `localhost`, wenn der Import `allow_plain` ankreuzt. Ein Verzeichnisserver in einem
+privaten oder reservierten Netz (das übliche Intranet-Verzeichnis, und `localhost`) wird abgelehnt, außer mit
+`[SourceSettings] AllowPrivateHosts=enabled` oder wenn die Administration ihn in `[LdapSourceSettings] AllowedHosts[]`
+einträgt. `[LdapSourceSettings] Timeout` (30 Sekunden) begrenzt den Verbindungsaufbau und jede Suche. Verweisen
+(Referrals) wird nicht gefolgt.
+
+**Der Filter wird geprüft**, nach der Grammatik von RFC 4515, bevor etwas gesendet wird: Gleichheit, Vorhandensein
+(`(mail=*)`), Teilzeichenketten (`(cn=Sam*)`), `~=`, `>=`, `<=`, erweiterte Vergleiche
+(`(memberOf:1.2.840.113556.1.4.1941:=cn=Press,...)`), `&`, `|` und `!`, höchstens 32 Ebenen tief. Sonderzeichen in
+Werten werden maskiert: `\28` für `(`, `\29` für `)`, `\2a` für `*`, `\5c` für `\`. Ein Filter ohne äußere Klammern
+bekommt sie. Auch die Attributnamen werden geprüft.
+
+**Werte.** Ein Attribut mit einem Wert ist dieser Wert, eines mit mehreren eine Liste (`telephoneNumber.0`) oder, mit
+`multi_valued=join`, die verbundenen Werte. Binäre Attribute (`jpegPhoto`, `thumbnailPhoto`, `objectGUID`,
+`objectSid`, Zertifikate, ein Attribut mit der Option `;binary` und jeder Wert, der kein UTF-8-Text ist) werden als
+`base64:<Daten>` geschrieben (die Zuordnung kann aus einem Foto ein Bild machen) oder mit `binary=skip` weggelassen.
+`objectGUID` des Active Directory steht zusätzlich als Text in `objectGUID_text` (`12345678-9abc-...`), ein Schlüssel,
+der bleibt, wenn ein Benutzer umbenannt wird. Passwortattribute (`userPassword`, `unicodePwd`, `sambaNTPassword`, die
+LAPS-Passwörter ...) werden nie in einen Datensatz gelesen, auch wenn der Server sie liefert.
+
+**Seiten.** Mit einer Seitengröße trägt jede Anfrage das Paged-Results-Control und das Cookie der vorigen Seite, bis
+der Server keine weitere hat; dafür braucht die Quelle PHP 7.3 oder neuer. Ohne Seiten hört ein Server bei seinem
+eigenen Größenlimit auf.
+
+**Verbindung testen.** Im Schritt „Quelle“ verbindet *Verbindung testen*, meldet sich an, sucht den ersten Eintrag und
+zeigt seine Felder oder den Fehler (ein Passwort erscheint nie: Es wird maskiert). Nichts wird gespeichert; es braucht
+dieselbe Berechtigung wie das Speichern des Imports. Neben der Schaltfläche sagt *Womit dieser Server verbinden kann*,
+ob dieses PHP die Erweiterung `ldap` hat und, nach dem ersten Lauf, ob die Worker der Job-Warteschlange sie haben.
+
+**Was der Host braucht:** die PHP-Erweiterung `ldap` im PHP der Worker der Job-Warteschlange, die die Läufe lesen
+(RHEL: `php-ldap`; Debian: `php-ldap`; Plesk: die Erweiterung `ldap` der PHP-Version), und im PHP des Webservers für
+Test und Stichprobe des Editors.
+
+**Beispiel:** `share/examples/ldap-staff.ndjson` ist der Schnappschuss von drei erfundenen Einträgen (was ein Lauf
+schreibt). Der Katalog zeigt außerdem eine Konfiguration für ein OpenLDAP-Mitarbeiterverzeichnis und eine für die
+Benutzer einer Active-Directory-Gruppe über StartTLS, mit `objectGUID_text` als Schlüssel.
+
 ## Seiten einer Website über ihre Sitemap (`sitemap`) und der Webseiten-Scraper (`webpage`)
 
 Gruppe: Plattformen. Diese beiden Formate lesen öffentliche Webseiten selbst (der Ursprung `remote`): einmal pro
@@ -820,6 +890,114 @@ als Objekt-IDs der Website.
 Die Zuordnung entsteht beim Speichern des Imports aus dem ersten Datensatz: seine Klasse, jedes Attribut nach
 Bezeichner (Rich Text über `richtext`, Bilder über `image`; Beziehungen bleiben Ihnen überlassen), abgeglichen über
 die Remote-ID, sodass die Kopie dem Original bei jedem Lauf folgt.
+
+## Gehostete Dienste, die die Quelle selbst liest (`airtable`, `notion`)
+
+Diese Formate lesen die API eines gehosteten Dienstes mit einem Token: Einmal pro Lauf fragt die Quelle die
+Datensätze Seite für Seite ab und schreibt sie als Schnappschuss (`source.ndjson`) in das Verzeichnis des Laufs, den
+dann jeder Abschnitt des Laufs liest; der Probelauf des Editors liest nur so viele Datensätze, wie er zeigt. Für beide
+gilt:
+
+- **Nur lesend.** Die Quellen lesen nur: Airtable über `GET`-Anfragen, Notion über seine Datenbankabfrage und
+  `GET`-Anfragen. Geben Sie dem Token so wenig Rechte wie nötig (siehe jedes Format).
+- **Das Token wird nie im Import gespeichert.** Die Option nimmt den *Namen* eines Geheimnisses: `Secrets[<Name>]` von
+  `[SecretSettings]` in den eigenen Einstellungen der Website, oder `env:<VARIABLE>` des PHP-Prozesses. Meldungen zeigen
+  `[secret <Name>]`, nie das Token, auch wenn der Dienst es in einem Fehler zitiert.
+- **Ratenlimits.** Die Quelle hält den kleinsten Abstand zwischen zwei Anfragen ein, den der Dienst erlaubt, und wenn
+  der Dienst mit `429 Too Many Requests` antwortet, wartet sie (das `Retry-After` der Antwort, sonst die eigene
+  Sperrzeit des Dienstes) und versucht es erneut, bis zu viermal; ein Gateway-Fehler (502, 503, 504) wird ebenso
+  wiederholt.
+- `[PlatformSettings] MaxPages` begrenzt die Anfragen eines Laufs (200), `MaxResponseMegabytes` eine Antwort (20) und
+  `[ImportSettings] StreamTimeout` die Zeit einer Anfrage.
+- **Verbindung testen** im Schritt „Quelle“ liest den ersten Datensatz und zeigt seine Felder oder den Fehler
+  (maskiert). Nichts wird gespeichert; es braucht dieselbe Berechtigung wie das Speichern des Imports. *Womit dieser
+  Server verbinden kann* nennt, was der Host braucht.
+- **Was der Host braucht:** die PHP-Erweiterung `openssl` und `allow_url_fopen=On` (beides Teil der üblichen
+  PHP-Pakete), und dass der Server die Adresse des Dienstes über HTTPS erreichen darf.
+- Die Daten können **personenbezogene Daten** enthalten (Namen und E-Mail-Adressen von Mitarbeitenden und Personen).
+  Ordnen Sie nur zu, was die Website braucht.
+
+### Airtable (`airtable`)
+
+Gruppe: Plattformen. Die Datensätze einer Airtable-Tabelle über die Airtable Web API (v0): Die Quelle fragt
+`https://api.airtable.com/v0/<Base>/<Tabelle>` ab und folgt dem `offset` jeder Antwort.
+
+| Option | Bedeutung | Vorgabe |
+|---|---|---|
+| `base_id` | Pflicht. Die ID der Base, `app...` (in der Adresse der Base) | |
+| `table` | Pflicht. Der Name der Tabelle oder ihre ID (`tbl...`; sie bleibt richtig, wenn die Tabelle umbenannt wird) | |
+| `view` | Der Name oder die ID einer Ansicht: Ihre Filter und ihre Reihenfolge gelten | leer |
+| `formula` | `filterByFormula`: eine Airtable-Formel, die ein Datensatz erfüllen muss, z. B. `{Status} = "Published"` | leer |
+| `fields` | Die zu lesenden Felder, eines pro Zeile; leer: alle. Ein aufgeführtes Feld steht in jedem Datensatz (`null`, wenn es leer ist) | leer |
+| `page_size` | Datensätze pro Anfrage (höchstens 100) | `100` |
+| `token` | Pflicht. Der **Name** des Geheimnisses mit einem Personal Access Token | |
+| `key` | das Schlüsselfeld | `id` (die Datensatz-ID, `rec...`) |
+
+Legen Sie das Personal Access Token auf airtable.com (Developer hub) nur mit dem Scope `data.records:read` und Zugriff
+auf die Bases an, die der Import liest. Airtable erlaubt fünf Anfragen pro Sekunde und Base: Die Quelle hält eine
+Fünftelsekunde zwischen zwei Anfragen ein und wartet nach einem `429` 30 Sekunden (die Sperrzeit von Airtable) oder
+das `Retry-After`.
+
+Ein Datensatz hat `id`, `created_time` und jedes Feld nach seinem Namen (Airtable lässt leere Felder in einer Antwort
+weg; führen Sie sie in `fields` auf, damit sie in jedem Datensatz stehen). Werte: Text, Zahlen, Kontrollkästchen,
+Datumsangaben (ISO 8601), Einfach- und Mehrfachauswahl (eine Liste) so, wie Airtable sie liefert; **Anhänge** als Liste
+ihrer Adressen (`<Feld>`, die die Zuordnung herunterladen kann, z. B. mit der Umwandlung `image`) und ihrer
+Dateinamen (`<Feld>_names`); **verknüpfte Datensätze** als Liste ihrer Datensatz-IDs; ein **Mitarbeiter**
+(Collaborator) als Name (`<Feld>`) und E-Mail-Adresse (`<Feld>_email`), mehrere als zwei Listen; eine Schaltfläche als
+ihre Adresse, ein Barcode als sein Text, ein KI-Text als sein Wert. Ein Feld, das wie eines der eigenen Felder des
+Datensatzes heißt (`id`), wird als `field_<Name>` geschrieben. Die Adressen der Anhänge laufen bei Airtable nach
+einigen Stunden ab; die Dateien lädt darum der Lauf herunter, der sie liest.
+
+**Beispiel:** `share/examples/airtable-events.ndjson` ist der Schnappschuss von drei erfundenen Datensätzen einer
+Tabelle `Events`; der Katalog zeigt außerdem eine Konfiguration für die veröffentlichten Veranstaltungen einer
+Ansicht.
+
+### Notion (`notion`)
+
+Gruppe: Plattformen. Die Seiten einer Notion-Datenbank über die Notion-API (Version `2022-06-28`): Die Quelle fragt
+`POST https://api.notion.com/v1/databases/<ID>/query` mit Filter und Sortierung des Imports ab und folgt
+`next_cursor`, solange `has_more` gilt.
+
+| Option | Bedeutung | Vorgabe |
+|---|---|---|
+| `database_id` | Pflicht. Die ID der Datenbank (32 Zeichen, mit oder ohne Bindestriche) oder ihr Link (Teilen, Link kopieren) | |
+| `filter` | Ein Filterobjekt der Notion-API, z. B. `{"property": "Status", "status": {"equals": "Published"}}` | keiner |
+| `sorts` | Eine Liste von Sortierungen, z. B. `[{"property": "Date", "direction": "descending"}]` | keine |
+| `content` | `none`, oder der Inhalt der Seite als `markdown` oder `html` im Feld `content` | `none` |
+| `page_size` | Seiten pro Anfrage (höchstens 100) | `100` |
+| `token` | Pflicht. Der **Name** des Geheimnisses mit dem Token einer internen Integration | |
+| `key` | das Schlüsselfeld | `id` (die ID der Seite) |
+
+Legen Sie eine interne Integration an (notion.so, My integrations), nur mit der Fähigkeit *Read content*, und geben
+Sie die Datenbank für sie frei (Menü der Datenbank, Connections). Notion erlaubt etwa drei Anfragen pro Sekunde: Die
+Quelle hält eine Drittelsekunde zwischen zwei Anfragen ein und folgt dem `Retry-After` eines `429`.
+
+Ein Datensatz hat `id`, `url`, `created_time`, `last_edited_time`, `archived`, `title` (der Text der Titeleigenschaft)
+und jede Eigenschaft nach ihrem Namen, als einfacher Wert:
+
+| Eigenschaftstyp | Wert |
+|---|---|
+| `title`, `rich_text` | der reine Text |
+| `number`, `checkbox`, `url`, `email`, `phone_number` | wie er ist |
+| `select`, `status` | der Name der Option |
+| `multi_select` | die Namen, verbunden mit `, ` |
+| `date` | der Beginn in ISO 8601 (`<Name>`) und das Ende (`<Name>_end`, `null` ohne Ende) |
+| `people`, `created_by`, `last_edited_by` | die Namen (eine Liste bei `people`) |
+| `files` | die Liste der Adressen (`<Name>`) und der Dateinamen (`<Name>_names`); die eigenen Dateiadressen von Notion laufen nach einer Stunde ab |
+| `relation` | die Liste der IDs der verknüpften Seiten |
+| `formula`, `rollup` | der Wert (ein Rollup einer Liste: die Liste der Werte) |
+| `created_time`, `last_edited_time`, `unique_id`, `verification` | als Text (`unique_id` als `PREFIX-42`) |
+
+Mit `content` fragt die Quelle die Blöcke jeder Seite ab (eine Anfrage mehr pro Seite, mit eigenem Cursor in Seiten)
+und schreibt die **erste Ebene** als Markdown oder HTML: Absätze, Überschriften, Aufzählungen, nummerierte Listen und
+To-do-Listen, Zitate und Callouts, Code, Trennlinien, Bilder und die Links von Lesezeichen, Einbettungen, Videos und
+Dateien; Fett, Kursiv, Durchgestrichen, Code und Links im Text bleiben erhalten. Ein Toggle gibt seinen eigenen Text;
+verschachtelte Blöcke (die Kinder eines Listenpunkts oder eines Toggles), Tabellen und untergeordnete Datenbanken
+werden nicht gelesen.
+
+**Beispiel:** `share/examples/notion-articles.ndjson` ist der Schnappschuss von zwei erfundenen Seiten mit ihrem
+Inhalt als Markdown; der Katalog zeigt außerdem eine Konfiguration für die veröffentlichten Artikel, die neuesten
+zuerst, mit dem Inhalt als HTML.
 
 ## Exporte anderer Systeme (`joomla`, `ezpkg`)
 
