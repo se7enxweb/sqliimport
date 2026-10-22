@@ -48,8 +48,8 @@ if ( $isPost && $http->hasPostVariable( 'Step' ) )
         case 'source':
             if ( $http->hasPostVariable( 'TestConnectionButton' ) )
             {
-                // the SQL source's "Test connection": connects and reads one row with the options of the form; nothing is saved
-                $sqlTest = $editor->testSqlConnection();
+                // Test connection of a format that can try its connection: with the options of the form; nothing is saved
+                $sqlTest = $editor->testConnection();
                 break;
             }
             $ok = $editor->saveSource();
@@ -216,7 +216,7 @@ if ( !$editor->import )
     if ( $handover && $param( 'Preset' ) === '' && $param( 'Source' ) === '' && isset( $toolFormats[$handover['tool']], $sources[$toolFormats[$handover['tool']]] ) )
         $preselect = $toolFormats[$handover['tool']];
 }
-$tpl->setVariable( 'source_type', $sqlTest ? 'sql' : ( $editor->import ? (string)$editor->import->attribute( 'source_type' ) : $preselect ) );
+$tpl->setVariable( 'source_type', $sqlTest ? $sqlTest['format'] : ( $editor->import ? (string)$editor->import->attribute( 'source_type' ) : $preselect ) );
 $tpl->setVariable( 'entry_parent', $entryParent );
 $tpl->setVariable( 'entry_parent_name', $entryParentName );
 $tpl->setVariable( 'entry_class', $entryClass );
@@ -225,10 +225,18 @@ $tpl->setVariable( 'handlers', $registry->handlers() );
 $tpl->setVariable( 'transforms', expImportTransforms::catalogue() );
 $sourceForForm = $editor->import ? $editor->import->sourceConfig() : array( 'origin' => 'upload' );
 if ( $sqlTest )
-    $sourceForForm = array_merge( $sourceForForm, $sqlTest['options'], array( 'origin' => 'remote' ) );
+    $sourceForForm = array_merge( $sourceForForm, array( 'origin' => 'remote' ) );
 $tpl->setVariable( 'source', $sourceForForm );
-$tpl->setVariable( 'sql_test', $sqlTest ? $sqlTest : false );
-$tpl->setVariable( 'sql_drivers', $step === 'source' ? expImportSqlSource::drivers() : array() );
+$tpl->setVariable( 'connection_test', $sqlTest ? $sqlTest : false );
+$tpl->setVariable( 'sql_test', $sqlTest && $sqlTest['format'] === 'sql' ? $sqlTest : false );
+// the drivers each format that names them can use here (green: there, grey: what the host needs)
+$sourceDrivers = array();
+if ( $step === 'source' )
+    foreach ( $sources as $sid => $s )
+        if ( !empty( $s['has_drivers'] ) && $s['status'] === 'enabled' )
+            $sourceDrivers[$sid] = (array)call_user_func( array( $s['class'], 'drivers' ) );
+$tpl->setVariable( 'source_drivers', $sourceDrivers );
+$tpl->setVariable( 'sql_drivers', isset( $sourceDrivers['sql'] ) ? $sourceDrivers['sql'] : array() );
 // the option fields of every format (the chosen one shown): what was posted, else the stored options of the import's own format
 $postedOptions = $isPost && $http->hasPostVariable( 'SourceOptions' ) && is_array( $http->postVariable( 'SourceOptions' ) ) ? $http->postVariable( 'SourceOptions' ) : array();
 $savedType = $editor->import ? (string)$editor->import->attribute( 'source_type' ) : '';

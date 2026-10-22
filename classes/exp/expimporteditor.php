@@ -271,6 +271,51 @@ class expImportEditor
     }
 
     /**
+     * The source step's "Test connection" of any format that can try its connection (a static test( array $options )
+     * of its class, e.g. a database, a mailbox, a search engine): the options of the form for that format, checked as
+     * Save checks them, then the format's own test. Nothing is saved; the view checks the same permission as saving.
+     * The format is the value of the button (TestConnectionButton=<format>), else the chosen source type.
+     *
+     * @return array the result of the format's test() (ok, message, and what it found: columns, rows ...), with
+     *               'format' and 'options' (the options of the form, for the form again)
+     */
+    public function testConnection()
+    {
+        $sources = expImportRegistry::instance()->sources();
+        $format = (string)$this->post( 'TestConnectionButton' );
+        if ( !isset( $sources[$format] ) )
+            $format = (string)$this->post( 'SourceType' );
+        $result = array( 'ok' => false, 'columns' => array(), 'rows' => 0, 'message' => '' );
+        $posted = self::postedSourceOptions( $this->postArray( 'SourceOptions' ), $format, array_keys( $sources ) );
+        $posted = $posted === null ? array() : $posted;
+        if ( !isset( $sources[$format] ) || $sources[$format]['status'] !== 'enabled' || empty( $sources[$format]['can_test'] ) )
+            $result['message'] = ezpI18n::tr( 'extension/sqliimport/edit', 'This source type has no connection to test.' );
+        else
+        {
+            list( $options, $errors ) = expImportOptionSchema::validate( $sources[$format]['schema'], $posted );
+            foreach ( $errors as $key => $message )
+                $this->errors['SourceOptions[' . $format . ']_' . $key] = $message;
+            if ( $errors )
+                $result['message'] = ezpI18n::tr( 'extension/sqliimport/edit', 'Correct the options first.' );
+            else
+            {
+                try
+                {
+                    $result = (array)call_user_func( array( $sources[$format]['class'], 'test' ), $options ) + $result;
+                }
+                catch ( Exception $e )
+                {
+                    $result['ok'] = false;
+                    $result['message'] = $e->getMessage();
+                }
+            }
+        }
+        $result['format'] = $format;
+        $result['options'] = $posted;
+        return $result;
+    }
+
+    /**
      * The source step's "Test connection" of the SQL source: the options of the form, checked as Save checks them,
      * then a connection that reads the first row of the query (expImportSqlSource::test()). Nothing is saved; the
      * view that calls it checks the same permission as saving.

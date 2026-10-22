@@ -18,11 +18,11 @@
 <span class="a4-badge{if eq( $s.status, 'enabled' )} is-ok{elseif eq( $s.status, 'example' )} is-info{/if}">{$s.status|wash}</span>
 </div>
 {if ne( $s.description, '' )}<p class="a4-sqliimport-format-desc">{$s.description|wash}</p>{/if}
-{if and( eq( $id, 'sql' ), $sql_drivers|count|gt( 0 ) )}
-<details class="a4-fold"><summary>{'Databases this server can read'|i18n( 'extension/sqliimport' )}</summary>
-{include uri='design:sqliimport/parts/sql_drivers.tpl' drivers=$sql_drivers}
+{if is_set( $source_drivers[$id] )}{if $source_drivers[$id]|count|gt( 0 )}
+<details class="a4-fold"><summary>{'What this server can connect with'|i18n( 'extension/sqliimport' )}</summary>
+{include uri='design:sqliimport/parts/source_drivers.tpl' drivers=$source_drivers[$id]}
 </details>
-{/if}
+{/if}{/if}
 <p class="a4-meta">{'Files'|i18n( 'extension/sqliimport' )}: {$s.extensions|implode( ', ' )|wash} · <code>{$id|wash}</code>{if $s.schema|count|gt( 0 )} · {'Options'|i18n( 'extension/sqliimport' )}: {foreach $s.schema as $o => $d}<code>{$o|wash}</code>{delimiter}, {/delimiter}{/foreach}{/if}</p>
 {if $s.preset|count|gt( 0 )}
 <details class="a4-fold"><summary>{'Comes with a mapping to the class %class'|i18n( 'extension/sqliimport',, hash( '%class', $s.preset.class ) )|wash}</summary>

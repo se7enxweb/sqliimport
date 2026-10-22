@@ -161,4 +161,30 @@ class CatalogueTest extends TestCase
         foreach ( ( new expImportOpmlSource( array( 'file' => dirname( __DIR__, 2 ) . '/share/examples/books.xml' ) ) )->records() as $r )
             continue;
     }
+
+    /**
+     * A format with a static test() gets the "Test connection" button of the source step, and one with a static
+     * drivers() lists them in the catalogue and next to that button; every driver row has what the template reads.
+     */
+    public function testConnectionTestsAndDrivers(): void
+    {
+        $tested = array();
+        foreach ( self::entries() as $id => $entry )
+        {
+            $data = $entry->toArray();
+            $this->assertSame( method_exists( $data['class'], 'test' ), $data['can_test'], $id );
+            $this->assertSame( method_exists( $data['class'], 'drivers' ), $data['has_drivers'], $id );
+            if ( $data['can_test'] )
+                $tested[] = $id;
+            if ( !$data['has_drivers'] )
+                continue;
+            foreach ( (array)call_user_func( array( $data['class'], 'drivers' ) ) as $driver )
+                foreach ( array( 'label', 'available', 'via', 'worker', 'worker_php', 'needs' ) as $key )
+                    $this->assertArrayHasKey( $key, $driver, "$id: a driver has $key" );
+        }
+        $this->assertContains( 'sql', $tested );
+        $root = dirname( __DIR__, 2 ) . '/design/admin/templates/sqliimport/';
+        $this->assertFileExists( $root . 'edit/source_test.tpl' );
+        $this->assertStringContainsString( 'source_test.tpl', (string)file_get_contents( $root . 'edit/source.tpl' ) );
+    }
 }
