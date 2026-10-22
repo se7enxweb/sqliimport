@@ -12,3 +12,4 @@ class expQueueContext { }
 class eZPersistentObject { public function __construct( $row = null ) {} }
 class ezcBaseException extends Exception { }
 abstract class ezcBaseOptions implements ArrayAccess { protected $properties; }
+class ezjscServerFunctions { }
