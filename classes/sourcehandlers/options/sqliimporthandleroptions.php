@@ -21,7 +21,18 @@ class SQLIImportHandlerOptions extends SQLIImportOptions
 
     public function __construct( array $options = array() )
     {
+        // free options: without any, the list is still an (empty) array, so hasAttribute() and attributes() work
+        $this->properties = array();
         parent::__construct( $options );
+    }
+
+    /**
+     * The options as an array name => value (the iterator of SQLIImportOptions stops at the first empty value).
+     * @return array
+     */
+    public function toArray()
+    {
+        return is_array( $this->properties ) ? $this->properties : array();
     }
 
     /**
@@ -63,8 +74,11 @@ class SQLIImportHandlerOptions extends SQLIImportOptions
         foreach( $aOptionsLines as $optionLine )
         {
             $optionLine = trim( $optionLine );
+            // an empty line or one without "=" is no option (PHP 8 warned on the missing value)
+            if( $optionLine === '' || strpos( $optionLine, '=' ) === false )
+                continue;
             list( $optionName, $optionValue ) = explode( '=', $optionLine, 2 );
-            $aOptions[$optionName] = $optionValue;
+            $aOptions[trim( $optionName )] = $optionValue;
         }
         
         return new self( $aOptions );
@@ -103,12 +117,17 @@ class SQLIImportHandlerOptions extends SQLIImportOptions
             
             foreach( $aHandlersOption as $handlerOption )
             {
-                list( $handlerName, $options ) = explode( self::OPTION_HANDLERNAME_DELIMITER, $handlerOption );
+                if( strpos( $handlerOption, self::OPTION_HANDLERNAME_DELIMITER ) === false )
+                    continue;
+                list( $handlerName, $options ) = explode( self::OPTION_HANDLERNAME_DELIMITER, $handlerOption, 2 );
                 $aParams = array();
                 $aOptions = explode( self::OPTION_VALUE_DELIMITER, $options );
                 foreach( $aOptions as $option )
                 {
-                    list( $paramName, $paramValue ) = explode( '=', $option );
+                    // only the first "=" separates, so a value may contain "=" (upstream PR #7)
+                    if( strpos( $option, '=' ) === false )
+                        continue;
+                    list( $paramName, $paramValue ) = explode( '=', $option, 2 );
                     $aParams[$paramName] = $paramValue;
                 }
                 

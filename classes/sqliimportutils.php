@@ -291,22 +291,27 @@ class SQLIImportUtils
         }
     }
 
+    /**
+     * Serializes the options of an import for a text column. The NUL bytes PHP writes around protected property names
+     * are replaced by a marker on every database: PostgreSQL refuses them and SQLite cut the text at the first one, so
+     * the options came back empty.
+     * @param mixed $data
+     * @return string
+     */
     public static function safeSerialize( $data )
     {
-        $dataSerialized = serialize( $data );
-        if ( eZINI::instance()->variable( 'DatabaseSettings', 'DatabaseImplementation' ) == 'ezpostgresql' )
-        {
-            $dataSerialized = str_replace( "\0", "~~NULL_BYTE~~", $dataSerialized );
-        }
-        return $dataSerialized;
+        return str_replace( "\0", "~~NULL_BYTE~~", serialize( $data ) );
     }
 
+    /**
+     * Reads what safeSerialize() wrote (and what 1.x wrote on MySQL, with the NUL bytes as they are). Only the classes
+     * of the options are allowed, so a changed row cannot make PHP build any other object.
+     * @param string $dataSerialized
+     * @return mixed
+     */
     public static function safeUnserialize( $dataSerialized )
     {
-        if ( eZINI::instance()->variable( 'DatabaseSettings', 'DatabaseImplementation' ) == 'ezpostgresql' )
-        {
-            $dataSerialized = str_replace( "~~NULL_BYTE~~", "\0", $dataSerialized );
-        }
-        return unserialize( $dataSerialized );
+        $dataSerialized = str_replace( "~~NULL_BYTE~~", "\0", (string)$dataSerialized );
+        return @unserialize( $dataSerialized, array( 'allowed_classes' => array( 'SQLIImportHandlerOptions' ) ) );
     }
 }

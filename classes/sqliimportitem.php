@@ -149,6 +149,12 @@ class SQLIImportItem extends eZPersistentObject
      */
     public function __get( $name ): mixed
     {
+        // A kernel that keeps the persistent fields itself (Exponential 6: eZPersistentObject::__get) is asked first;
+        // without that, attribute() would come back here for its own field and every field read as null.
+        $def = self::definition();
+        if( isset( $def['fields'][$name] ) && method_exists( 'eZPersistentObject', '__get' ) )
+            return parent::__get( $name );
+
         $ret = null;
         if( $this->hasAttribute( $name ) )
             $ret = $this->attribute( $name );

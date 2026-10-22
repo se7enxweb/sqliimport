@@ -119,6 +119,12 @@ class SQLIScheduledImport extends eZPersistentObject
      */
     public function __get( $name ): mixed
     {
+        // A kernel that keeps the persistent fields itself (Exponential 6: eZPersistentObject::__get) is asked first;
+        // without that, attribute() would come back here for its own field and every field read as null.
+        $def = self::definition();
+        if( isset( $def['fields'][$name] ) && method_exists( 'eZPersistentObject', '__get' ) )
+            return parent::__get( $name );
+
         return $this->attribute( $name );
     }
     
@@ -140,7 +146,8 @@ class SQLIScheduledImport extends eZPersistentObject
         {
             $this->options = SQLIImportUtils::safeUnserialize( $this->attribute( 'options_serialized' ) );
         }
-        else
+        // the options read before are kept (a second call used to replace them by empty ones)
+        if ( !$this->options instanceof SQLIImportHandlerOptions )
             $this->options = new SQLIImportHandlerOptions();
             
         return $this->options;
