@@ -9,7 +9,8 @@
 
 /**
  * The connection the MongoDB source reads through: the PHP extension mongodb (expImportMongoDbExtension), or a test
- * double. It offers reading only: a find on one collection, nothing that writes, runs code or aggregates.
+ * double. It offers reading only: a find on one collection and an aggregation whose pipeline the source has checked
+ * (reading stages only, expImportMongoDbSource::checkPipeline()), sent as a read command; nothing that writes.
  */
 interface expImportMongoDbTransport
 {
@@ -35,6 +36,18 @@ interface expImportMongoDbTransport
      * @throws expImportSourceException
      */
     public function find( $database, $collection, $filter, $after, array $options );
+
+    /**
+     * The documents of an aggregation, read through its cursor (the driver fetches the batches).
+     *
+     * @param string $database
+     * @param string $collection
+     * @param string $pipeline the checked pipeline as JSON (MongoDB Extended JSON is read)
+     * @param array $options batchSize, maxTimeMS, readPreference (a mode)
+     * @return iterable<array>
+     * @throws expImportSourceException
+     */
+    public function aggregate( $database, $collection, $pipeline, array $options );
 
     /** Closes the connection (a no-op where the driver keeps it). */
     public function close();

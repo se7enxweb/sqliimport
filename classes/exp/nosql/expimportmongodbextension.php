@@ -9,7 +9,8 @@
 
 /**
  * The MongoDB source's connection through the PHP extension mongodb (MongoDB\Driver\Manager, without the composer
- * library). Only MongoDB\Driver\Query is ever executed: no command, no bulk write, no aggregation.
+ * library). Only MongoDB\Driver\Query and the aggregate command (through executeReadCommand(), with a pipeline the
+ * source has checked to have reading stages only) are ever executed: no other command, no bulk write.
  */
 class expImportMongoDbExtension implements expImportMongoDbTransport
 {
@@ -73,6 +74,36 @@ class expImportMongoDbExtension implements expImportMongoDbTransport
         }
     }
 
+    public function aggregate( $database, $collection, $pipeline, array $options )
+    {
+        if ( !$this->manager )
+            throw new expImportSourceException( 'MongoDB: not connected' );
+        $mode = isset( $options['readPreference'] ) ? (string)$options['readPreference'] : 'primary';
+        try
+        {
+            $json = '{"aggregate": ' . json_encode( (string)$collection ) . ', "pipeline": ' . (string)$pipeline
+                  . ', "cursor": {"batchSize": ' . max( 1, (int)( isset( $options['batchSize'] ) ? $options['batchSize'] : 500 ) ) . '}'
+                  . ', "maxTimeMS": ' . max( 1, (int)( isset( $options['maxTimeMS'] ) ? $options['maxTimeMS'] : 30000 ) ) . '}';
+            // documents as objects, so an empty stage body stays a document ({"$match": {}})
+            $command = self::decode( $json, array( 'root' => 'object', 'document' => 'object', 'array' => 'array' ) );
+            $commandClass = 'MongoDB\Driver\Command';
+            $preferenceClass = 'MongoDB\Driver\ReadPreference';
+            $cursor = $this->manager->executeReadCommand( (string)$database, new $commandClass( $command ),
+                                                          array( 'readPreference' => new $preferenceClass( $mode ) ) );
+            $cursor->setTypeMap( self::TYPE_MAP );
+            foreach ( $cursor as $document )
+                yield (array)$document;
+        }
+        catch ( expImportSourceException $e )
+        {
+            throw $e;
+        }
+        catch ( Exception $e )
+        {
+            throw new expImportSourceException( 'MongoDB: ' . $e->getMessage() );
+        }
+    }
+
     /**
      * A JSON document (MongoDB Extended JSON) as a PHP array with BSON values ({"$oid": ...} an ObjectId).
      *
@@ -81,11 +112,23 @@ class expImportMongoDbExtension implements expImportMongoDbTransport
      */
     public static function document( $json )
     {
+        return (array)self::decode( $json, self::TYPE_MAP );
+    }
+
+    /**
+     * A JSON document (MongoDB Extended JSON) as PHP values of a type map.
+     *
+     * @param string $json
+     * @param array $typeMap
+     * @return array|object
+     */
+    protected static function decode( $json, array $typeMap )
+    {
         $documentClass = 'MongoDB\BSON\Document';
         if ( class_exists( $documentClass ) )
-            return (array)$documentClass::fromJSON( (string)$json )->toPHP( self::TYPE_MAP );
+            return $documentClass::fromJSON( (string)$json )->toPHP( $typeMap );
         // drivers before 1.16
-        return (array)call_user_func( 'MongoDB\BSON\toPHP', call_user_func( 'MongoDB\BSON\fromJSON', (string)$json ), self::TYPE_MAP );
+        return call_user_func( 'MongoDB\BSON\toPHP', call_user_func( 'MongoDB\BSON\fromJSON', (string)$json ), $typeMap );
     }
 
     public function close()

@@ -47,6 +47,9 @@ Formats[]=Parquet
 Formats[]=DuckDB
 Formats[]=MongoDB
 Formats[]=Redis
+Formats[]=CouchDB
+Formats[]=Couchbase
+Formats[]=Cosmos DB
 Formats[]=LDAP
 Formats[]=Airtable
 Formats[]=Notion
@@ -259,6 +262,30 @@ Arguments[]=expImportRedisSource
 Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: Redis keys (SCAN by pattern, read-only commands)
+
+[Service_sqliimport.source.couchdb]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportCouchDbSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: CouchDB database (all documents, a view or a Mango query; read-only)
+
+[Service_sqliimport.source.couchbase]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportCouchbaseSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: Couchbase SQL++ query through the Query service (readonly=true, SELECT only)
+
+[Service_sqliimport.source.cosmosdb]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportCosmosDbSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: Azure Cosmos DB container, API for NoSQL (SELECT query, read-only)
 
 [Service_sqliimport.source.ldap]
 Class=expImportSourceEntry

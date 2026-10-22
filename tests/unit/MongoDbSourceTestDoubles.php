@@ -191,6 +191,30 @@ namespace
             return $out;
         }
 
+        /** @var array[] each aggregate: database, collection, pipeline (decoded), options */
+        public $aggregates = array();
+
+        /**
+         * An aggregation in memory: the documents in _id order, with the $skip and $limit stages at the end of the
+         * pipeline applied (the other stages are only recorded).
+         */
+        public function aggregate( $database, $collection, $pipeline, array $options )
+        {
+            $stages = json_decode( (string)$pipeline, true );
+            $this->aggregates[] = array( $database, $collection, $stages, $options );
+            if ( $this->fail !== null )
+                throw new expImportSourceException( $this->fail );
+            $out = $this->documents;
+            foreach ( (array)$stages as $stage )
+            {
+                if ( isset( $stage['$skip'] ) )
+                    $out = array_slice( $out, (int)$stage['$skip'] );
+                if ( isset( $stage['$limit'] ) )
+                    $out = array_slice( $out, 0, (int)$stage['$limit'] );
+            }
+            return $out;
+        }
+
         public function close()
         {
             $this->closed = true;
