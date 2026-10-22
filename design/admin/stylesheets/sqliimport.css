@@ -69,7 +69,7 @@
 .a4-sqliimport-format-group { margin: var(--a4-space-2) 0 0; }
 .a4-sqliimport-format-group > .a4-h3 { margin: 0 0 var(--a4-space-1); }
 .a4-sqliimport-formats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--a4-space-3); }
-.a4-sqliimport-formats > .a4-card { display: flex; flex-direction: column; gap: var(--a4-space-2); min-width: 0; }
+.a4-sqliimport-formats > .a4-card { margin: 0; display: flex; flex-direction: column; gap: var(--a4-space-2); min-width: 0; }
 .a4-sqliimport-formats .a4-card-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--a4-space-1); }
 .a4-sqliimport-format-desc { margin: 0; }
 .a4-sqliimport-format-foot { display: flex; flex-wrap: wrap; gap: var(--a4-space-1); margin-top: auto; }

@@ -21,7 +21,7 @@ class expImportJsonSource extends expImportAbstractSource
 
     public static function label()
     {
-        return 'JSON / NDJSON file';
+        return 'JSON file or REST answer';
     }
 
     public static function extensions()

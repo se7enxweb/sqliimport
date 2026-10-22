@@ -25,7 +25,7 @@ class expImportCsvSource extends expImportAbstractSource
 
     public static function label()
     {
-        return 'CSV / TSV file';
+        return 'CSV and delimited text';
     }
 
     public static function extensions()

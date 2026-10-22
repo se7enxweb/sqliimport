@@ -82,4 +82,12 @@ Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: OPML outlines and feed lists
 
+[Service_sqliimport.source.wxr]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportWxrSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: WordPress export (WXR)
+
 */ ?>

@@ -59,6 +59,10 @@ class expImportCommand
             'migrate-1x' => array( 'Migrates the handlers, scheduled imports and history of sqliimport 1.x (reports only without --apply).', '[apply][roles]',
                                    array( 'apply' => 'write the migration (without it, nothing is changed)',
                                           'roles' => 'with --apply: add the 2.x policies to the roles holding the 1.x ones' ) ),
+            'opml-feeds' => array( 'Creates one RSS import per feed of an OPML import\'s list: opml-feeds <identifier|id of an OPML import>.',
+                                   '[parent:][prefix:]',
+                                   array( 'parent' => 'the node the feed imports create their objects below (default: the OPML import\'s parent)',
+                                          'prefix' => 'the start of the new identifiers (default: the OPML import\'s identifier)' ) ),
             'tick' => array( 'One round of the cron part: due schedules, 1.x pending imports, ended jobs, purge.', '', array() ),
             'purge' => array( 'Removes ended runs older than [RunSettings] KeepDays with their rows, log and files.', '[days:][dry-run]',
                               array( 'days' => 'older than this many days', 'dry-run' => 'only count' ) ),
@@ -222,6 +226,26 @@ class expImportCommand
         if ( $file !== '' )
             $this->cli->output( "PASS $count records written to $file" );
         return 0;
+    }
+
+    protected function cmdOpmlFeeds()
+    {
+        $import = $this->importArgument();
+        if ( $import->attribute( 'source_type' ) !== 'opml' )
+            throw new expImportException( 'the import ' . $import->attribute( 'identifier' ) . ' does not read OPML' );
+        $target = $import->target();
+        $parent = !empty( $this->options['parent'] ) ? (int)$this->options['parent'] : (int)( isset( $target['parent_node_id'] ) ? $target['parent_node_id'] : 0 );
+        if ( $parent < 1 || !eZContentObjectTreeNode::fetch( $parent ) )
+            throw new expImportException( 'no parent node ' . $parent . ' (--parent=<node id>)' );
+        $prefix = !empty( $this->options['prefix'] ) ? (string)$this->options['prefix'] : (string)$import->attribute( 'identifier' );
+        $code = 0;
+        foreach ( expImportOpmlSource::feedImports( expImportSourceFiles::snapshot( $import ), $parent, $prefix ) as $line )
+        {
+            $this->cli->output( ( $line['created'] ? 'PASS created ' : 'SKIP ' ) . $line['identifier'] . ' ' . $line['url']
+                                . ( $line['reason'] !== '' ? ' (' . $line['reason'] . ')' : '' ) );
+        }
+        $this->cli->output( 'The feed imports are disabled: check their mapping in the administration, then enable them.' );
+        return $code;
     }
 
     protected function cmdUndo()
