@@ -12,6 +12,7 @@
     <file>modules/sqliimport/schedules.php</file>
     <file>modules/sqliimport/catalogue.php</file>
     <file>modules/sqliimport/settings.php</file>
+    <file>modules/sqliimport/trigger.php</file>
     <file>cronjobs/sqliimport_schedule.php</file>
     <file>bin/php</file>
     <exclude-pattern>bin/php/sqlidoimport.php</exclude-pattern>

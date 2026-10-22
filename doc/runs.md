@@ -23,6 +23,8 @@ Rules that follow from this:
   the last checkpoint, and a record that already has its row is not processed twice.
 - **Memory stays flat:** the kernel's in-memory caches are emptied between chunks. The peak is recorded on the run.
 - The run is processed as the user who started it, or as the robot user of the import (`owner_id` of the target).
+- **Started from another system:** the webhook / API trigger of an import starts a run with a signed call or an API
+  key, as the trigger's run user, and may bring the run's data in the call (trigger `rest`, [triggers.md](triggers.md)).
 
 The job types and their time limits are set in `expqueue.ini [JobType_sqliimport.*]` (timeout 900 seconds for the
 start, 1800 for a chunk and the finish, three attempts each).

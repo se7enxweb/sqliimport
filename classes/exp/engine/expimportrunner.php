@@ -32,7 +32,8 @@ class expImportRunner
      * @param expImportDefinition $import
      * @param array $options trigger (manual, schedule, cli, rest, legacy), user_id, schedule_id, run_kind (import,
      *                       dry_run, retry), parent_run_id, legacy_item_id, options (handler options of this run only,
-     *                       a 1.x item's), max_rows
+     *                       a 1.x item's), max_rows, pushed (a file of expImportSourceFiles::storePushed(): the data a
+     *                       trigger call brought, read instead of the import's source)
      * @return expImportRun
      * @throws expImportException the job queue is missing, the import is disabled or already running
      */
@@ -63,6 +64,9 @@ class expImportRunner
                 $summary['options'] = $options['options'];
             if ( isset( $options['max_rows'] ) )
                 $summary['max_rows'] = (int)$options['max_rows'];
+            // data a trigger call brought in its body (expImportSourceFiles::storePushed()): the run's snapshot
+            if ( isset( $options['pushed'] ) && (string)$options['pushed'] !== '' )
+                $summary['pushed'] = basename( (string)$options['pushed'] );
             $run = new expImportRun( array(
                 'import_id' => (int)$import->attribute( 'id' ),
                 'def_version' => (int)$import->attribute( 'def_version' ),

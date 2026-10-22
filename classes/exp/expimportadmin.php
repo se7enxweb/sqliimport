@@ -28,11 +28,12 @@ class expImportAdmin
      *
      * @param string $function view, run, manage (edit and settings are manage)
      * @param string $handler the handler (for the SQLIImport_Type limitation), '' when none is concerned
+     * @param eZUser|null $user another user than the current one (the run user of a trigger)
      * @return bool
      */
-    public static function can( $function, $handler = '' )
+    public static function can( $function, $handler = '', $user = null )
     {
-        $user = eZUser::currentUser();
+        $user = $user ?: eZUser::currentUser();
         // two policies: manage (Manage imports) and run (Run imports); the 1.x ones count as before
         $map = array(
             'view' => array( 'manage', 'run', 'listimports', 'manageimports' ),

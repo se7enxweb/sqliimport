@@ -49,6 +49,20 @@ The 1.x handlers of `[ImportSettings] AvailableSourceHandlers[]` are listed in t
 | `LogLevel` | `info` | The lowest severity kept in a run's log: `debug`, `info`, `notice`, `warning`, `error` |
 | `KeepDays` | `90` | Ended runs older than this many days are removed with their rows, log and files (`0` = never) |
 
+## [TriggerSettings]
+
+The webhook / API trigger of imports ([triggers.md](triggers.md)).
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `Trigger` | `enabled` | `disabled` answers 404 for every import; each import switches its own trigger on in the editor |
+| `SignatureWindowSeconds` | `300` | How far a signed call's timestamp may be from the server's time |
+| `RequestsPerMinute` | `6` | Calls per import and minute that start a run (`0` = no limit) |
+| `StatusRequestsPerMinute` | `60` | Status requests per import and minute |
+| `FailedRequestsPerMinute` | `20` | Refused calls per import and minute before every call of the import is refused for the rest of the minute |
+| `MaxBodyMegabytes` | `20` | The largest body a call may bring as the data of its run |
+| `ServerKeySecret` | empty | The name of a secret (at least 32 characters) used as the server key; empty: a random key in `var/<site>/storage/sqliimport/trigger.key` |
+
 ## [AdminSettings]
 
 | Setting | Default | Meaning |

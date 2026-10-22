@@ -51,6 +51,20 @@ gekennzeichnet.
 | `LogLevel` | `info` | Der niedrigste Schweregrad, den das Protokoll eines Laufs behält: `debug`, `info`, `notice`, `warning`, `error` |
 | `KeepDays` | `90` | Beendete Läufe, die älter als so viele Tage sind, werden mit Zeilen, Protokoll und Dateien entfernt (`0` = nie) |
 
+## [TriggerSettings]
+
+Der Webhook-/API-Auslöser der Importe ([triggers.md](triggers.md)).
+
+| Einstellung | Vorgabe | Bedeutung |
+|---|---|---|
+| `Trigger` | `enabled` | `disabled` beantwortet jeden Import mit 404; jeder Import schaltet seinen eigenen Auslöser im Editor ein |
+| `SignatureWindowSeconds` | `300` | Wie weit der Zeitstempel eines signierten Aufrufs von der Serverzeit abweichen darf |
+| `RequestsPerMinute` | `6` | Aufrufe pro Import und Minute, die einen Lauf starten (`0` = keine Grenze) |
+| `StatusRequestsPerMinute` | `60` | Statusabfragen pro Import und Minute |
+| `FailedRequestsPerMinute` | `20` | Abgewiesene Aufrufe pro Import und Minute, bevor jeder Aufruf des Imports für den Rest der Minute abgewiesen wird |
+| `MaxBodyMegabytes` | `20` | Der größte Body, den ein Aufruf als Daten seines Laufs mitbringen darf |
+| `ServerKeySecret` | leer | Der Name eines Geheimnisses (mindestens 32 Zeichen) als Serverschlüssel; leer: ein zufälliger Schlüssel in `var/<site>/storage/sqliimport/trigger.key` |
+
 ## [AdminSettings]
 
 | Einstellung | Vorgabe | Bedeutung |

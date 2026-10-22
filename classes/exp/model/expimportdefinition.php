@@ -179,7 +179,7 @@ class expImportDefinition extends eZPersistentObject
     }
 
     /**
-     * Removes the import with its mapping and schedules; its runs stay (their history) until they are purged.
+     * Removes the import with its mapping, schedules and trigger; its runs stay (their history) until they are purged.
      */
     public function removeAll()
     {
@@ -193,6 +193,8 @@ class expImportDefinition extends eZPersistentObject
                 $mapping->removeAll();
         }
         $db->query( 'DELETE FROM sqliimport_schedule WHERE import_id = ' . $id );
+        // its trigger with the API keys: a key of a removed import must not start a new import of the same identifier
+        expImportTrigger::removeByImport( $id );
         $this->remove();
         $db->commit();
     }

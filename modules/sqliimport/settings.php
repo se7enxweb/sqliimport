@@ -51,6 +51,9 @@ $ini = expImport::ini();
 $settings = array();
 foreach ( array( 'RunSettings' => array( 'ChunkSize', 'DryRunRows', 'LogLevel', 'KeepDays' ),
                  'SourceSettings' => array( 'MaxSourceMegabytes', 'AllowPrivateHosts', 'AllowedPaths' ),
+                 // ServerKeySecret is the name of a secret, never its value
+                 'TriggerSettings' => array( 'Trigger', 'SignatureWindowSeconds', 'RequestsPerMinute', 'StatusRequestsPerMinute', 'FailedRequestsPerMinute',
+                                             'MaxBodyMegabytes', 'ServerKeySecret' ),
                  'SqlSourceSettings' => array( 'AllowedHosts', 'SiteDatabase', 'QueryTimeout', 'OracleDriver', 'AllowedTnsNames', 'SqlServerDriver', 'OdbcDriver', 'OdbcCharset', 'SqlServerEncrypt', 'SqlServerTrustServerCertificate' ),
                  'ImapSourceSettings' => array( 'AllowedHosts', 'Timeout', 'MaxMessageMegabytes' ),
                  'MongoDbSourceSettings' => array( 'AllowedHosts', 'Timeout', 'MaxBatchSize' ),

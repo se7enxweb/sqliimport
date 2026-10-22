@@ -1,4 +1,4 @@
--- 7x SQLI Import: the tables sqliimport_definition, sqliimport_item, sqliimport_mapping, sqliimport_mapping_field, sqliimport_notice, sqliimport_run, sqliimport_run_log, sqliimport_run_row, sqliimport_schedule, sqliimport_scheduled (mysql).
+-- 7x SQLI Import: the tables sqliimport_definition, sqliimport_item, sqliimport_mapping, sqliimport_mapping_field, sqliimport_notice, sqliimport_run, sqliimport_run_log, sqliimport_run_row, sqliimport_schedule, sqliimport_scheduled, sqliimport_trigger, sqliimport_trigger_call, sqliimport_trigger_key (mysql).
 -- Generated from expImportSchema::definition() by ./console ext:sqliimport:install-schema --write-files with the
 -- kernel's schema handler; ./console ext:sqliimport:install-schema creates the same tables in a running installation.
 
@@ -187,5 +187,47 @@ CREATE TABLE sqliimport_scheduled (
   PRIMARY KEY ( id ),
   KEY import_handler ( handler ),
   KEY next_import ( next )
+) ENGINE=InnoDB;
+
+CREATE TABLE sqliimport_trigger (
+  allow_push int(11) NOT NULL DEFAULT '0',
+  created int(11) NOT NULL DEFAULT '0',
+  id int(11) NOT NULL AUTO_INCREMENT,
+  import_id int(11) NOT NULL DEFAULT '0',
+  is_enabled int(11) NOT NULL DEFAULT '0',
+  modified int(11) NOT NULL DEFAULT '0',
+  modifier_id int(11) NOT NULL DEFAULT '0',
+  run_user_id int(11) NOT NULL DEFAULT '0',
+  secret_ref varchar(100) NOT NULL DEFAULT '',
+  sign_created int(11) NOT NULL DEFAULT '0',
+  sign_salt varchar(64) NOT NULL DEFAULT '',
+  PRIMARY KEY ( id ),
+  UNIQUE KEY sqliimport_trig_import ( import_id )
+) ENGINE=InnoDB;
+
+CREATE TABLE sqliimport_trigger_call (
+  call_hash varchar(64) NOT NULL DEFAULT '',
+  created int(11) NOT NULL DEFAULT '0',
+  id int(11) NOT NULL AUTO_INCREMENT,
+  import_id int(11) NOT NULL DEFAULT '0',
+  kind varchar(20) NOT NULL DEFAULT '',
+  PRIMARY KEY ( id ),
+  UNIQUE KEY sqliimport_tcall_hash ( import_id, call_hash ),
+  KEY sqliimport_tcall_time ( import_id, kind, created )
+) ENGINE=InnoDB;
+
+CREATE TABLE sqliimport_trigger_key (
+  created int(11) NOT NULL DEFAULT '0',
+  creator_id int(11) NOT NULL DEFAULT '0',
+  id int(11) NOT NULL AUTO_INCREMENT,
+  import_id int(11) NOT NULL DEFAULT '0',
+  key_hash varchar(64) NOT NULL DEFAULT '',
+  key_id varchar(32) NOT NULL DEFAULT '',
+  label varchar(100) NOT NULL DEFAULT '',
+  last_used int(11) NOT NULL DEFAULT '0',
+  revoked int(11) NOT NULL DEFAULT '0',
+  PRIMARY KEY ( id ),
+  UNIQUE KEY sqliimport_tkey_id ( key_id ),
+  KEY sqliimport_tkey_import ( import_id )
 ) ENGINE=InnoDB;
 

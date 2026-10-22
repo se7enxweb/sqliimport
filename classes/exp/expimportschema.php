@@ -21,6 +21,10 @@
  *   sqliimport_run            one run of an import: trigger, user, status, counters, timings, memory peak
  *   sqliimport_run_row        one record of a run: what was done to which object, version before and after
  *   sqliimport_run_log        the log of a run: severity, record, message, context
+ *   sqliimport_notice         a run that ended, for the user who is told about it
+ *   sqliimport_trigger        the webhook / API trigger of an import: on or off, run user, data push, signing salt
+ *   sqliimport_trigger_key    an API key of a trigger: label, key id, hash (never the key), last use, revoked
+ *   sqliimport_trigger_call   the calls of the last minutes: used signatures (replay protection) and the rate limit
  *
  * The tables of 1.x (sqliimport_item, sqliimport_scheduled) stay as they were: 1.x handlers and their history keep
  * working, and ./console ext:sqliimport:migrate-1x reads them.
@@ -228,6 +232,60 @@ class expImportSchema
                     'PRIMARY' => $primary,
                     'sqliimport_notice_user' => $index( 'user_id', 'seen', 'id' ),
                     'sqliimport_notice_run' => $index( 'run_id' ),
+                ),
+            ),
+            // the webhook / API trigger of an import (expImportTrigger): off until it is switched on in the editor
+            'sqliimport_trigger' => array(
+                'fields' => array(
+                    'allow_push' => $int,
+                    'created' => $int,
+                    'id' => $auto,
+                    'import_id' => $int,
+                    'is_enabled' => $int,
+                    'modified' => $int,
+                    'modifier_id' => $int,
+                    'run_user_id' => $int,
+                    'secret_ref' => $varchar( 100 ),
+                    'sign_created' => $int,
+                    'sign_salt' => $varchar( 64 ),
+                ),
+                'indexes' => array(
+                    'PRIMARY' => $primary,
+                    'sqliimport_trig_import' => $unique( 'import_id' ),
+                ),
+            ),
+            // the API keys of a trigger: only their hash is stored (expImportTriggerAuth::hashKey())
+            'sqliimport_trigger_key' => array(
+                'fields' => array(
+                    'created' => $int,
+                    'creator_id' => $int,
+                    'id' => $auto,
+                    'import_id' => $int,
+                    'key_hash' => $varchar( 64 ),
+                    'key_id' => $varchar( 32 ),
+                    'label' => $varchar( 100 ),
+                    'last_used' => $int,
+                    'revoked' => $int,
+                ),
+                'indexes' => array(
+                    'PRIMARY' => $primary,
+                    'sqliimport_tkey_id' => $unique( 'key_id' ),
+                    'sqliimport_tkey_import' => $index( 'import_id' ),
+                ),
+            ),
+            // the calls of a trigger in the last minutes: signatures already used (replay) and the rate limit
+            'sqliimport_trigger_call' => array(
+                'fields' => array(
+                    'call_hash' => $varchar( 64 ),
+                    'created' => $int,
+                    'id' => $auto,
+                    'import_id' => $int,
+                    'kind' => $varchar( 20 ),
+                ),
+                'indexes' => array(
+                    'PRIMARY' => $primary,
+                    'sqliimport_tcall_hash' => $unique( 'import_id', 'call_hash' ),
+                    'sqliimport_tcall_time' => $index( 'import_id', 'kind', 'created' ),
                 ),
             ),
         );

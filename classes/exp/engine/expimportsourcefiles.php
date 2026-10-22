@@ -46,6 +46,13 @@ class expImportSourceFiles
         $config = $import->sourceConfig();
         $origin = isset( $config['origin'] ) ? (string)$config['origin'] : 'upload';
         $dir = $run ? self::runDirectory( $run->attribute( 'id' ) ) : expImport::storageDirectory( 'preview/' . (int)$import->attribute( 'id' ) );
+        // the data a trigger call brought in its body is this run's source (storePushed())
+        if ( $run )
+        {
+            $pushed = self::pushedSnapshot( $run, $dir );
+            if ( $pushed !== null )
+                return $pushed;
+        }
         switch ( $origin )
         {
             case 'upload':
@@ -361,6 +368,46 @@ class expImportSourceFiles
         if ( !@copy( $tmpFile, $target ) )
             throw new expImportSourceException( 'the file could not be stored' );
         return $name;
+    }
+
+    /**
+     * Keeps the body of a trigger call until its run takes it (var/<site>/storage/sqliimport/pushed/).
+     *
+     * @param string $tmpFile the body as it was read
+     * @param string $ext the extension it is read with (expImportTriggerAuth::checkBody())
+     * @return string the stored name, for expImportRunner::start( ..., array( 'pushed' => <name> ) )
+     * @throws expImportSourceException
+     */
+    public static function storePushed( $tmpFile, $ext )
+    {
+        if ( !preg_match( '/^[a-z0-9]{1,8}$/', (string)$ext ) || !is_file( $tmpFile ) )
+            throw new expImportSourceException( 'the data of the call could not be kept' );
+        $name = date( 'Ymd-His' ) . '-' . bin2hex( random_bytes( 8 ) ) . '.' . $ext;
+        if ( !@rename( $tmpFile, expImport::storageDirectory( 'pushed' ) . '/' . $name ) )
+            throw new expImportSourceException( 'the data of the call could not be kept' );
+        return $name;
+    }
+
+    /**
+     * The snapshot of a run whose data came with its trigger call: the pushed file moved into the run's directory as
+     * source.<ext> (once; a later look finds it there).
+     *
+     * @return string|null null when the run has no pushed data
+     * @throws expImportSourceException the pushed data is gone
+     */
+    public static function pushedSnapshot( expImportRun $run, $dir )
+    {
+        $summary = $run->summaryArray();
+        $name = isset( $summary['pushed'] ) ? basename( (string)$summary['pushed'] ) : '';
+        if ( $name === '' || !preg_match( '/^[A-Za-z0-9-]+\.([a-z0-9]{1,8})$/', $name, $m ) )
+            return null;
+        $target = $dir . '/source.' . $m[1];
+        if ( is_file( $target ) )
+            return $target;
+        $file = expImport::storageDirectory( 'pushed' ) . '/' . $name;
+        if ( !is_file( $file ) || !@rename( $file, $target ) )
+            throw new expImportSourceException( 'the data the trigger call brought is missing' );
+        return $target;
     }
 
     /** Removes a run's directory (snapshots and assets). */

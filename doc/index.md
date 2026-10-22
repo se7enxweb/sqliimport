@@ -53,6 +53,7 @@ German: [ger-de/index.md](ger-de/index.md).
 | [statistics.md](statistics.md) | The charts of the dashboard and the Statistics page: trends, per import, comparison, suggestions, CSV |
 | [transfer.md](transfer.md) | Imports among the import and export tools: Import into this folder, files of Export and CIE, results and mapping files |
 | [schedules.md](schedules.md) | Schedule kinds, time zones, daylight saving time, the Schedules page, the cron part |
+| [triggers.md](triggers.md) | Starting an import from another system: signed calls, API keys, data in the call, status, limits |
 | [cli.md](cli.md) | Every `./console ext:sqliimport:*` command |
 | [permissions.md](permissions.md) | The two policies of 2.x and the policies of 1.x |
 | [settings.md](settings.md) | Every setting of `sqliimport.ini` for 2.x, the Settings page, export and import |

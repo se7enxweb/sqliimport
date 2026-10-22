@@ -137,6 +137,10 @@ source cannot be read, the step shows the message. Change the source or the mapp
 After saving, the step lists the next five run times. The editor keeps one schedule per import; choosing "Never"
 removes it. Schedules are listed, paused and resumed on the Schedules page ([schedules.md](schedules.md)).
 
+Below the schedule, the section **Started by another system (webhook or API)** switches the import's trigger on or
+off, chooses its run user, allows data in the call, shows a new signing secret or API key once, and rotates the secret
+or revokes keys. Each of these is a form of its own ([triggers.md](triggers.md)).
+
 ## Step 6: Review
 
 The review shows the import as a summary: name and identifier, source, processing, target and schedule. It also

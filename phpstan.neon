@@ -11,6 +11,7 @@ parameters:
         - modules/sqliimport/schedules.php
         - modules/sqliimport/catalogue.php
         - modules/sqliimport/settings.php
+        - modules/sqliimport/trigger.php
         - cronjobs/sqliimport_schedule.php
     scanFiles:
         - tests/phpstan-kernel-stubs.php

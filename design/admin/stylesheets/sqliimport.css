@@ -191,3 +191,8 @@
 .a4-sqliimport-notices { display: grid; gap: var(--a4-space-2); }
 .a4-sqliimport-notices > .a4-h3 { margin: 0; }
 .a4-sqliimport-notice-list { margin: 0; padding-inline-start: var(--a4-space-4); display: grid; gap: var(--a4-space-1); }
+
+/* the trigger of an import (schedule step): a secret or key shown once, the address, the keys */
+.a4-sqliimport-secret { display: block; margin: var(--a4-space-1) 0; padding: var(--a4-space-2); border: 1px solid var(--a4-line-strong);
+                        border-radius: var(--a4-radius-s); font-family: var(--a4-mono); overflow-wrap: anywhere; user-select: all; }
+.a4-sqliimport-trigger-url { font-family: var(--a4-mono); overflow-wrap: anywhere; }
