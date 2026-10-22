@@ -135,6 +135,9 @@ if ( $isPost && $http->hasPostVariable( 'Step' ) )
     if ( $ok )
     {
         $target = $http->hasPostVariable( 'StayButton' ) ? $step : $editor->next( $step );
+        // what the step said (a stored secret, a filled mapping) is shown on the page the editor goes to
+        if ( $editor->notice !== '' )
+            $http->setSessionVariable( 'SQLIImportEditNotice', $editor->notice );
         $Module->redirectTo( '/sqliimport/edit/' . (int)$editor->import->attribute( 'id' ) . '/(step)/' . $target );
         return;
     }
@@ -183,6 +186,12 @@ $tpl->setVariable( 'import', $editor->import );
 $tpl->setVariable( 'step', $step );
 $tpl->setVariable( 'steps', $editor->steps() );
 $tpl->setVariable( 'errors', $editor->errors );
+// the notice of the step before the redirect, once
+if ( $http->hasSessionVariable( 'SQLIImportEditNotice' ) )
+{
+    $editor->notice = trim( (string)$http->sessionVariable( 'SQLIImportEditNotice' ) . ' ' . $editor->notice );
+    $http->removeSessionVariable( 'SQLIImportEditNotice' );
+}
 $tpl->setVariable( 'notice', $editor->notice );
 $sources = $registry->sources();
 $tpl->setVariable( 'sources', $sources );
