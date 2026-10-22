@@ -10,8 +10,10 @@ Tabs[]=sqliimport
 # Icon - the icon admin4 draws before the tab's name: a name of design.ini [AdminDesignSettings] IconList[]
 Icon=upload
 NavigationPartIdentifier=sqliimportnavigationpart
-Name=Import management
+Name=Imports
 Tooltip=Manage your imports
+# The name and tooltip are translated in this context (translations/<locale>/translation.ts)
+TranslationContext=extension/sqliimport/menu
 URL[]
 URL[default]=sqliimport/list
 Enabled[]

@@ -286,4 +286,15 @@
         <translation>Gestión de importaciones</translation>
     </message>
 </context>
+<context>
+    <name>extension/sqliimport/menu</name>
+    <message>
+        <source>Imports</source>
+        <translation>Importaciones</translation>
+    </message>
+    <message>
+        <source>Manage your imports</source>
+        <translation>Gestionar sus importaciones</translation>
+    </message>
+</context>
 </TS>

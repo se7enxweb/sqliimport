@@ -286,4 +286,15 @@
         <translation type="unfinished"></translation>
     </message>
 </context>
+<context>
+    <name>extension/sqliimport/menu</name>
+    <message>
+        <source>Imports</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Manage your imports</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
 </TS>
