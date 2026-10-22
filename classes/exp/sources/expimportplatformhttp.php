@@ -44,10 +44,11 @@ class expImportPlatformHttp
      * @param string $url
      * @param array $headers name => value
      * @param string|null $body
+     * @param string[] $trusted hosts in a private network an administrator allowed for this source
      * @return array status, headers, body
      * @throws expImportSourceException
      */
-    public static function request( $method, $url, array $headers = array(), $body = null )
+    public static function request( $method, $url, array $headers = array(), $body = null, array $trusted = array() )
     {
         $lines = array();
         foreach ( $headers as $name => $value )
@@ -57,7 +58,7 @@ class expImportPlatformHttp
         $host = (string)parse_url( $url, PHP_URL_HOST );
         for ( $hop = 0; $hop <= 3; $hop++ )
         {
-            $refusal = expImportSourceFiles::refuseUrl( $url );
+            $refusal = expImportSourceFiles::refuseUrl( $url, $trusted );
             if ( $refusal !== null )
                 throw new expImportSourceException( $refusal );
             $answer = self::send( $method, $url, $lines, $body );

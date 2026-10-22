@@ -125,14 +125,15 @@ class expImportSourceFiles
      * address.
      *
      * @param string $url
+     * @param string[] $trusted hosts an administrator allowed explicitly (see refuseHost())
      * @return string|null the reason it is refused, null when it is fine
      */
-    public static function refuseUrl( $url )
+    public static function refuseUrl( $url, array $trusted = array() )
     {
         $parts = parse_url( (string)$url );
         if ( !$parts || !isset( $parts['scheme'], $parts['host'] ) || !in_array( strtolower( $parts['scheme'] ), array( 'http', 'https' ), true ) )
             return 'only http and https addresses can be read';
-        return self::refuseHost( $parts['host'] );
+        return self::refuseHost( $parts['host'], $trusted );
     }
 
     /**
