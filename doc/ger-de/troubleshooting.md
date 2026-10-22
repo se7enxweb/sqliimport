@@ -7,7 +7,40 @@
 - Der Siteaccess setzt `[TopAdminMenu] Tabs[]` in seiner eigenen `menu.ini.append.php` zurück. Tragen Sie dort
   `Tabs[]=sqliimport` ein.
 - Der INI-Cache ist veraltet: `php bin/php/ezcache.php --clear-tag=ini`.
-- Dem Benutzer fehlt `sqliimport/view` (oder eine Richtlinie von 1.x): [permissions.md](permissions.md).
+- Der Benutzer hat weder `sqliimport/run` noch `sqliimport/manage` (noch eine Richtlinie von 1.x):
+  [permissions.md](permissions.md). Eine für 2.0.0-alpha.1 angelegte Rolle mit `sqliimport/view` oder
+  `sqliimport/edit` erlaubt nichts mehr; geben Sie ihr `run` oder `manage`.
+
+## New import, Edit oder Settings fehlt
+
+Diese brauchen `sqliimport/manage` (oder `sqliimport/manageimports` von 1.x). Nur mit `sqliimport/run` sieht ein
+Benutzer die Importe und führt sie aus, kann sie aber nicht ändern. Mit einer Handler-Einschränkung erscheinen Edit
+und die Aktionen unter More nur bei Importen der erlaubten Handler.
+
+## Der Editor
+
+- **Der Schritt Zuordnung zeigt keine Attribute:** Speichern Sie den Schritt, nachdem Sie die Inhaltsklasse gewählt
+  haben.
+- **„The sample of the source could not be read“:** Die Quelle ist nicht erreichbar oder noch nicht gültig. Prüfen
+  Sie den Schritt Quelle (die Datei, die Adresse, die Optionen wie das Blatt einer Tabelle) und öffnen Sie den
+  Schritt dann erneut.
+- **Auto-match hat keine Zeile gefüllt:** Kein Feld der Stichprobe heißt ähnlich wie ein Attribut. Füllen Sie die
+  Zeilen von Hand.
+- **Eine Zeile mit Umwandlungen wird gemeldet:** Der einzeilige Text der Kette ließ sich nicht lesen, etwa ein Wert
+  mit Komma ohne Anführungszeichen ([mappings.md](mappings.md#der-einzeilige-text-einer-kette)).
+- **Der Import lässt sich im Schritt Prüfung nicht aktivieren:** Die Prüfung nennt, was noch fehlt; beheben Sie es
+  in dem dort genannten Schritt.
+- **Eine importierte Definition schlägt sofort fehl:** Ihre hochgeladene Datei gehört nicht zum Export. Laden Sie
+  sie im Schritt Quelle erneut hoch ([settings.md](settings.md#import-import-definitions-importdefinitionen-importieren)).
+
+## Eine Tabelle lässt sich nicht lesen
+
+- „reading spreadsheets needs the PHP extension zip“: Installieren Sie `ext-zip` für das PHP der Worker der
+  Job-Warteschlange und des Webservers.
+- „the spreadsheet has no sheet ...“: Die Option `sheet` nennt ein Blatt, das nicht in der Datei steht. Geben Sie
+  seinen genauen Namen oder seine Nummer an.
+- Datumsangaben kommen als Zahlen wie `45231`: Ergänzen Sie die Zeile um `date(format=excel)`
+  ([mappings.md](mappings.md#datumsangaben-aus-tabellen)).
 
 ## „The tables of 7x SQLI Import are missing“
 

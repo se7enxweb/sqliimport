@@ -7,7 +7,7 @@ Ein Import ist eine Zeile von `sqliimport_definition` (Klasse `expImportDefiniti
 | Feld | Bedeutung |
 |---|---|
 | `identifier`, `name` | Wie Kommandozeile und Administration ihn nennen. Der Bezeichner ist eindeutig. |
-| `source_type` | `csv`, `xml`, `rss`, `json` oder eine andere registrierte Quelle; `legacy` für einen Handler von 1.x, der seine Daten selbst liest |
+| `source_type` | `csv`, `xml`, `rss`, `json`, `spreadsheet` oder eine andere registrierte Quelle; `legacy` für einen Handler von 1.x, der seine Daten selbst liest |
 | `source_config` | JSON: `origin` (`upload`, `url`, `path`), die Datei, Adresse oder der Pfad, und die Optionen des Quelltyps |
 | `handler` | `mapping` (ohne Programmierung), ein Handler für 2.x oder ein Handler von 1.x |
 | `mapping_id` | Die Zuordnung des Handlers `mapping` |

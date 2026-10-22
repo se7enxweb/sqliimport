@@ -5,6 +5,10 @@ Quellfeld welches Attribut einer Inhaltsklasse füllt. Der Handler veröffentlic
 (`SQLIContent`, `SQLIContentPublisher`), die nur dann eine neue Version veröffentlicht, wenn sich ein Feld wirklich
 geändert hat.
 
+In der Administration legt der Schritt Zuordnung des Import-Editors jeden Teil einer Zuordnung in einem Formular
+fest, mit einem Raster aus einer Zeile pro Attribut ([editor.md](editor.md#schritt-3-zuordnung-mapping)). Diese
+Seite beschreibt, was das Formular speichert.
+
 ## Eine Zuordnung
 
 Als Array (`expImportMapper`, gespeichert mit `expImportMapping::saveArray()`):
@@ -88,7 +92,7 @@ Datensatz mit ihrer Meldung fehl. Die eingebauten Umwandlungen (`expImportTransf
 | `number` | Eine Zahl; liest `1.234,56` und `1,234.56` | `decimals` (Vorgabe -1: wie angegeben) |
 | `int` | Eine ganze Zahl (gerundet) | |
 | `bool` | `1` für 1, true, yes, y, on, ja, oui, x; sonst `0` | |
-| `date` | Ein Datum oder eine Uhrzeit als Zeitstempel (ezdate, ezdatetime) | `format` (PHP-Datumsformat; leer: jede Form, die `strtotime()` liest), `timezone` (Vorgabe `UTC`) |
+| `date` | Ein Datum oder eine Uhrzeit als Zeitstempel (ezdate, ezdatetime) | `format` (PHP-Datumsformat; `excel`: ein Tabellendatum; leer: jede Form, die `strtotime()` liest), `timezone` (Vorgabe `UTC`) |
 | `date_format` | Ein Datum als Text in einem Format | `format` (Pflicht), `timezone` (Vorgabe `UTC`) |
 | `slug` | Ein URL-freundlicher Bezeichner | |
 | `richtext` | HTML in den Rich Text (ezxmltext) des Attributs | |
@@ -96,7 +100,50 @@ Datensatz mit ihrer Meldung fehl. Die eingebauten Umwandlungen (`expImportTransf
 | `image` | Lädt ein Bild von einer URL herunter (ezimage) | |
 | `file` | Lädt eine Datei von einer URL herunter (ezbinaryfile, ezmedia) | |
 
-Für `image` und `file` gelten dieselben Adressregeln wie für eine Quelle mit `url` ([sources.md](sources.md)).
+Für `image` und `file` gelten dieselben Adressregeln wie für eine Quelle mit `url` ([sources.md](sources.md)). In
+einem Probelauf, also auch in der Vorschau des Editors, laden sie nichts herunter: Die Adresse steht für die Datei.
+
+### Datumsangaben aus Tabellen
+
+Eine Excel-Datei speichert ein Datum als Anzahl der Tage seit dem 30. Dezember 1899, mit der Uhrzeit als Bruchteil
+(`45231.5` ist der 1. November 2023, 12:00 Uhr). `date(format=excel)` macht aus einer solchen Zahl einen
+Zeitstempel; das Argument `timezone` gibt an, in welcher Zeitzone Datum und Uhrzeit gemeint sind:
+
+```text
+date(format=excel, timezone=Europe/Berlin)
+```
+
+Ein Wert, der keine Zahl ist, lässt den Datensatz mit „date: '...' is not a spreadsheet date“ fehlschlagen. Eine
+ODS-Datei liefert Datumsangaben als ISO-Text (`2023-11-01`), den `date` ohne Format liest.
+
+### Der einzeilige Text einer Kette
+
+Das Zuordnungsraster des Editors zeigt und liest eine Kette als eine Zeile Text. Denselben Text schreibt
+`expImportTransforms::formatChain()` und liest `expImportTransforms::parseChain()`:
+
+- die Schritte werden durch einen senkrechten Strich `|` getrennt;
+- ein Schritt ohne Argumente ist sein Name: `trim`;
+- die Argumente folgen in Klammern als `name=wert`, durch Kommas getrennt: `truncate(length=80)`;
+- ein Wert, der ein Komma, eine Klammer, einen senkrechten Strich, ein Anführungszeichen, geschweifte oder eckige
+  Klammern enthält oder leer ist, wird als JSON geschrieben: ein Text in doppelten Anführungszeichen (`""` für einen
+  leeren Text), eine Tabelle in geschweiften Klammern, eine Liste in eckigen Klammern.
+
+Beispiele:
+
+| Text | Kette |
+|---|---|
+| `trim` | Entfernt Leerzeichen |
+| `trim \| upper` | Entfernt Leerzeichen, dann Großbuchstaben |
+| `date(format=d.m.Y, timezone=Europe/Berlin)` | Liest `31.12.2025` als Mitternacht dieses Tages in Berlin |
+| `date(format=excel)` | Liest ein Tabellendatum |
+| `map(table={"D":"Germany","A":"Austria"}, otherwise=Other)` | Ersetzt Ländercodes durch Namen |
+| `split(separator=;) \| first` | Der erste Eintrag einer durch Semikolons getrennten Liste |
+| `concat(paths=["first_name","last_name"])` | Verbindet den Wert mit zwei weiteren Feldern |
+| `replace(search=",", replace=.)` | Liest `12,50` als `12.50`; das Komma steht in Anführungszeichen, weil es sonst das Argument beenden würde |
+
+Ein Text, der sich nicht lesen lässt, etwa eine unbekannte Form eines Arguments oder ungültiges JSON, wird beim
+Speichern des Schritts Zuordnung an der Zeile seines Attributs gemeldet, und die Zeile behält keine Umwandlungen,
+bis er korrigiert ist. Die Argumente werden dann wie bei jeder Kette geprüft.
 
 Eine Website fügt eigene Umwandlungen als Kernel-Dienst mit dem Tag `sqliimport.transform` hinzu, der
 `expImportTransformInterface` implementiert (`name()`, `label()`, `schema()`, `apply( $value, $args, $record )`).
@@ -104,8 +151,9 @@ Eine Zuordnung kann nur registrierte Umwandlungen nennen; sie enthält nie Code.
 
 ## Einen Import in PHP anlegen
 
-Der Import-Editor der Administration kommt mit 2.0.0-beta.1. Bis dahin legen Sie einen Import mit Zuordnung in PHP
-an, zum Beispiel in einem Skript, das Sie mit `php bin/php/ezexec.php <skript> --allow-root-user` ausführen:
+Der übliche Weg, einen Import anzulegen, ist der Import-Editor ([editor.md](editor.md)). Ein Skript, das Importe
+einrichtet, etwa bei der Installation einer Website, kann einen Import in PHP anlegen und mit
+`php bin/php/ezexec.php <skript> --allow-root-user` ausgeführt werden:
 
 ```php
 <?php

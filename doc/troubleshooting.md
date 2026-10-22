@@ -5,7 +5,36 @@
 - The extension is not active in this siteaccess: check `ActiveExtensions[]` or `ActiveAccessExtensions[]`.
 - The siteaccess resets `[TopAdminMenu] Tabs[]` in its own `menu.ini.append.php`. Add `Tabs[]=sqliimport` there.
 - The INI cache is stale: `php bin/php/ezcache.php --clear-tag=ini`.
-- The user lacks `sqliimport/view` (or a 1.x policy): [permissions.md](permissions.md).
+- The user has neither `sqliimport/run` nor `sqliimport/manage` (nor a 1.x policy): [permissions.md](permissions.md).
+  A role made for 2.0.0-alpha.1 with `sqliimport/view` or `sqliimport/edit` grants nothing any more; give it `run`
+  or `manage`.
+
+## New import, Edit or Settings is missing
+
+These need `sqliimport/manage` (or `sqliimport/manageimports` of 1.x). With `sqliimport/run` alone, a user sees the
+imports and runs them, but cannot change them. With a handler limitation, Edit and the actions under More are shown
+only for imports of the allowed handlers.
+
+## The editor
+
+- **The mapping step shows no attributes:** save the step after choosing the content class.
+- **"The sample of the source could not be read":** the source is not reachable or not valid yet. Check the source
+  step (the file, the address, the options such as the sheet of a spreadsheet), then open the step again.
+- **Auto-match filled no lines:** no field of the sample has a name like an attribute. Fill the lines by hand.
+- **A transforms line is reported:** the one-line text of the chain could not be read, for example a value with a
+  comma that is not in quotes ([mappings.md](mappings.md#the-one-line-text-of-a-chain)).
+- **The import cannot be enabled in the review step:** the review lists what is still missing; fix it in the step
+  named there.
+- **An imported definition fails at once:** its uploaded file is not part of the export. Upload it again in the
+  source step ([settings.md](settings.md#import-import-definitions)).
+
+## A spreadsheet cannot be read
+
+- "reading spreadsheets needs the PHP extension zip": install `ext-zip` for the PHP of the job queue's workers and
+  of the web server.
+- "the spreadsheet has no sheet ...": the option `sheet` names a sheet that is not in the file. Give its exact name
+  or its number.
+- Dates arrive as numbers such as `45231`: add `date(format=excel)` to the line ([mappings.md](mappings.md#dates-from-spreadsheets)).
 
 ## "The tables of 7x SQLI Import are missing"
 

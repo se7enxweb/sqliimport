@@ -8,7 +8,7 @@ Ihrer eigenen Erweiterung.
 
 | Einstellung | Vorgabe | Bedeutung |
 |---|---|---|
-| `Sources[]` | `csv`, `xml`, `rss`, `json` | Die Quelltypen des Katalogs; jeder hat einen Block `[Source_<id>]` |
+| `Sources[]` | `csv`, `xml`, `rss`, `json`, `spreadsheet` | Die Quelltypen des Katalogs; jeder hat einen Block `[Source_<id>]` |
 | `AllowedPaths[]` | leer | Die Verzeichnisse auf dem Server, aus denen eine Quelle eine Datei lesen darf (origin `path`). Leer: keine, nur Uploads und URLs. Relativ zur Installation. |
 | `MaxSourceMegabytes` | `200` | Der größte Upload oder Download einer Quelle, in Megabyte |
 | `AllowPrivateHosts` | `disabled` | `enabled` erlaubt einer URL-Quelle (und den Umwandlungen `image` und `file`), Adressen privater oder reservierter Netze zu lesen |
@@ -63,7 +63,7 @@ gekennzeichnet.
 |---|---|
 | `[ImportSettings] AvailableSourceHandlers[]` und `[<id>-HandlerSettings]` | Die Handler von 1.x und ihre Einstellungen, unverändert |
 | `[ImportSettings] StreamTimeout` | Das Zeitlimit eines Downloads (URL-Quellen, Umwandlungen `image` und `file`), in Sekunden |
-| `[ImportSettings] RobotUserID`, `DefaultParentNodeID`, `ViewCaching`, `ObjectIndexing` | Wie in 1.x, für Handler von 1.x |
+| `[ImportSettings] RobotUserID`, `DefaultParentNodeID`, `ViewCaching`, `ObjectIndexing` | Wie in 1.x, für Handler von 1.x. `DefaultParentNodeID` ist außerdem der Elternknoten, den der Editor für einen neuen Import vorschlägt. |
 | `[ContentSettings]` | Die Diff-Handler der Inhalts-API, verwendet vom Handler `mapping` und von Handlern von 1.x |
 
 ## Andere Einstellungsdateien
@@ -75,6 +75,9 @@ gekennzeichnet.
 | `kernelservices.ini` | Den Dienst `sqliimport.registry` |
 | `audit.ini` | Den Audit-Zweig `sqliimport` (`system.import.*`) |
 | `menu.ini` | Den Reiter `sqliimport` (Importe) und das linke Menü des Reiters |
+| `dashboard.ini` | Den Block „Imports“ des Dashboards der Administration, `[DashboardBlock_sqliimport]` (`Priority=40`, `NumberOfItems=5`) |
+| `ezjscore.ini` | Die Serverfunktion `sqliimport::runstatus` der Live-Seite eines Laufs, `[ezjscServer_sqliimport]` |
+| `design.ini` | Das Stylesheet und die Skripte des Reiters Importe in der Administration |
 
 Ein Siteaccess, der `[TopAdminMenu] Tabs[]` in seiner eigenen `menu.ini.append.php` zurücksetzt, muss dort selbst
 `Tabs[]=sqliimport` eintragen ([install.md](install.md)).
@@ -82,3 +85,63 @@ Ein Siteaccess, der `[TopAdminMenu] Tabs[]` in seiner eigenen `menu.ini.append.p
 Leeren Sie nach einer Änderung den INI-Cache: `php bin/php/ezcache.php --clear-tag=ini`. Die Worker der
 Job-Warteschlange lesen den Katalog neu, wenn sie auf einen Handler stoßen, den sie noch nicht kennen; starten Sie
 lang laufende Worker nach anderen Änderungen neu.
+
+## Die Seite Settings
+
+**Settings** im linken Menü des Reiters Importe (`sqliimport/settings`) braucht die Richtlinie `manage`
+([permissions.md](permissions.md)). Sie hat drei Teile.
+
+### sqliimport.ini
+
+Die Einstellungen, wie sie für die Administration nach allen Überschreibungen gelten: `[RunSettings] ChunkSize`,
+`DryRunRows`, `LogLevel`, `KeepDays`; `[SourceSettings] MaxSourceMegabytes`, `AllowPrivateHosts`, `AllowedPaths`;
+`[ImportSettings] DefaultParentNodeID`, `ViewCaching`, `ObjectIndexing`, `StreamTimeout`; `[AdminSettings]
+ListLimit`. Die Seite zeigt sie nur an. Geändert werden sie in `settings/override/sqliimport.ini.append.php` oder in
+einem Siteaccess, wie oben beschrieben.
+
+### Export import definitions (Importdefinitionen exportieren)
+
+Kreuzen Sie die zu exportierenden Importe an (keiner angekreuzt: alle) und wählen Sie **Export**. Der Browser
+speichert eine JSON-Datei mit dem Namen `sqliimport-definitions-<datum>-<uhrzeit>.json`:
+
+```json
+{
+    "format": "sqliimport-definitions",
+    "version": 1,
+    "exported": "2026-10-22T09:30:00+02:00",
+    "imports": [
+        {
+            "identifier": "news_feed",
+            "name": "News from the partner feed",
+            "description": "",
+            "source_type": "rss",
+            "source": { "origin": "url", "url": "https://www.example.com/news.rss" },
+            "handler": "mapping",
+            "mapping": { "class": "article", "match": { "type": "remote_id", "pattern": "partner-news-{id}" }, "fields": [] },
+            "target": { "parent_node_id": 2, "section_id": 0, "language": "", "owner_id": 0 },
+            "behaviour": { "chunk_size": 200, "update_policy": "update" },
+            "options": {}
+        }
+    ]
+}
+```
+
+(Zuordnung und Verhalten sind hier gekürzt.) Ein Export enthält Quelle, Verarbeitung, Zuordnung, Ziel, Verhalten
+und Optionen jedes Imports. Er enthält keine Läufe, keine Zeitpläne und keinen Dateiinhalt: **Hochgeladene
+Quelldateien gehören nicht zu einem Export.**
+
+### Import import definitions (Importdefinitionen importieren)
+
+Wählen Sie eine exportierte Datei (höchstens 10 MB) und **Import**:
+
+- ein Import mit demselben Bezeichner wird aktualisiert und bleibt so aktiviert oder deaktiviert, wie er war;
+- die anderen Importe werden deaktiviert angelegt;
+- ein Eintrag ohne Bezeichner oder Namen wird übersprungen und gemeldet.
+
+Die Seite meldet, wie viele Importe angelegt und aktualisiert wurden. Öffnen Sie danach jeden importierten Import im
+Editor: Ein Import, der eine hochgeladene Datei las, braucht die Datei im Schritt Quelle erneut, sonst schlagen
+seine Läufe mit „the uploaded source file is missing; upload it again“ fehl. Fügen Sie Zeitpläne im Schritt Zeitplan
+hinzu und aktivieren Sie den Import im Schritt Prüfung.
+
+So kommen Importe von einer Staging-Installation auf die Live-Installation. Der Export enthält die Adressen und
+Optionen der Quellen; bewahren Sie die Datei daher so sicher auf wie die Einstellungen der Website.

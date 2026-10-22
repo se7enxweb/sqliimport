@@ -89,7 +89,7 @@ Migriert die Handler, geplanten Importe und den Verlauf von SQLI Import 1.x. Ohn
 ```bash
 ./console ext:sqliimport:migrate-1x                   # Probelauf: was getan würde
 ./console ext:sqliimport:migrate-1x --apply           # migrieren
-./console ext:sqliimport:migrate-1x --apply --roles   # auch den Rollen von 1.x die Richtlinien von 2.x geben
+./console ext:sqliimport:migrate-1x --apply --roles   # auch Rollen mit manageimports die Richtlinie manage geben
 ```
 
 Siehe [migration-1x.md](migration-1x.md).

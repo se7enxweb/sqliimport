@@ -95,6 +95,35 @@ Dateiendungen: `json`, `ndjson`, `jsonl`.
 Eine JSON-Datei wird ganz gelesen. NDJSON wird als Datenstrom gelesen; liefern Sie sehr große Exporte daher als
 NDJSON.
 
+## Tabellen (`spreadsheet`)
+
+Dateiendungen: `xlsx` (Excel) und `ods` (OpenDocument, wie LibreOffice speichert). Das Format wird aus der Datei
+erkannt. Beide sind ZIP-Dateien aus XML, die die Quelle als Datenstrom liest, ohne Bibliothek für Tabellen. Sie
+braucht die PHP-Erweiterung `zip` (`ext-zip`); ohne sie schlägt das Lesen der Datei mit der Meldung „reading
+spreadsheets needs the PHP extension zip“ fehl.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `sheet` | Der Name des Blatts oder seine Nummer (`1` ist das erste) | `1` |
+| `header` | Die erste Zeile benennt die Spalten | `true` |
+| `key` | Die Schlüsselspalte | leer |
+
+Ein Datensatz pro Zeile des gewählten Blatts, mit den Namen aus der Kopfzeile als Schlüsseln. Zeilen ganz ohne Wert
+entfallen, auch vor der Kopfzeile. Leere oder doppelte Spaltennamen werden eindeutig gemacht (`col_3`, `price_2`).
+Ohne Kopfzeile heißen die Spalten `0`, `1`, `2` und so weiter. Ein Blatt, das es nicht gibt, lässt den Lauf
+fehlschlagen; bei einer XLSX-Datei nennt die Meldung die Blätter der Datei, und die Vorschau des Editors listet sie
+ebenfalls auf.
+
+Die Werte kommen so, wie sie in der Datei gespeichert sind:
+
+- Text als Text, und von einer Formel der zuletzt berechnete Wert;
+- Zahlen wie gespeichert, ohne das Anzeigeformat der Zelle (`0.5`, nicht `50 %`);
+- ein **Excel-Datum** ist eine Anzahl von Tagen (`45231` ist der 1. November 2023; ein Bruchteil ist die Uhrzeit).
+  Die Umwandlung `date(format=excel)` macht daraus einen Zeitstempel ([mappings.md](mappings.md#umwandlungen));
+- ein **ODS-Datum** ist sein ISO-Wert (`2023-11-01`), den `date` ohne Format liest.
+
+Eine sehr große Tabelle wird schneller gelesen, wenn sie als CSV gespeichert ist.
+
 ## Einen Quelltyp hinzufügen
 
 Ein Quelltyp implementiert `expImportSourceInterface` (`identifier()`, `label()`, `schema()`, `extensions()`,

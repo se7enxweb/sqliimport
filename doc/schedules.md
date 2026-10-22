@@ -1,7 +1,35 @@
 # Schedules
 
-A schedule starts an import by itself (table `sqliimport_schedule`, class `expImportSchedule`). An import can have
-several schedules.
+A schedule starts an import by itself (table `sqliimport_schedule`, class `expImportSchedule`). In the
+administration, a schedule is set in the schedule step of the import editor ([editor.md](editor.md#step-5-schedule)),
+which keeps one schedule per import; an import created in PHP can have several.
+
+## The Schedules page
+
+**Schedules** in the left menu of the Imports tab (`sqliimport/schedules`) lists every schedule of the 2.x imports:
+
+| Column | Shows |
+|---|---|
+| Import | The import, linked to its runs on the dashboard; "disabled" when the import is switched off |
+| When | The schedule in words, and whether it is active or paused |
+| Next runs | The next three run times of an active schedule |
+| Last run | The last run, or "never" |
+
+Users with the policy `manage` ([permissions.md](permissions.md)) also get these actions:
+
+| Action | Effect |
+|---|---|
+| Pause | Switches the schedule off; it is kept with its settings |
+| Resume | Switches it on again and computes its next run from now |
+| Edit | Opens the schedule step of the import in the editor |
+| Delete | Removes the schedule after a confirmation; the import stays |
+
+Every action is a POST request with the form token and is recorded in the audit log. A disabled import keeps its
+schedule, but its scheduled runs are skipped until it is enabled again.
+
+When scheduled imports of 1.x have not been migrated yet, the page says how many there are and links their 1.x
+list; they keep running until `./console ext:sqliimport:migrate-1x --apply` moves them here
+([migration-1x.md](migration-1x.md)).
 
 ## Kinds
 
@@ -78,7 +106,7 @@ it, it runs them as 1.x did. Replace them with `sqliimport`.
 
 ## Creating a schedule in PHP
 
-The schedule editor comes with the import editor in 2.0.0-beta.1. Until then:
+A script that sets up imports can add a schedule without the editor:
 
 ```php
 <?php

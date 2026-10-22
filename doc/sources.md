@@ -93,6 +93,34 @@ File name extensions: `json`, `ndjson`, `jsonl`.
 
 A JSON file is read whole. NDJSON is read as a stream, so deliver very large exports as NDJSON.
 
+## Spreadsheets (`spreadsheet`)
+
+File name extensions: `xlsx` (Excel) and `ods` (OpenDocument, as LibreOffice saves it). The format is detected from
+the file. Both are ZIP files of XML, which the source reads as streams, without a spreadsheet library. It needs the
+PHP extension `zip` (`ext-zip`); without it, reading the file fails with the message "reading spreadsheets needs
+the PHP extension zip".
+
+| Option | Values | Default |
+|---|---|---|
+| `sheet` | The name of the sheet, or its number (`1` is the first) | `1` |
+| `header` | The first row names the columns | `true` |
+| `key` | The key column | empty |
+
+One record per row of the chosen sheet, keyed by the header row. Rows with no value at all are left out, also before
+the header row. Empty or repeated column names are made unique (`col_3`, `price_2`). Without a header row, the
+columns are named `0`, `1`, `2` and so on. A sheet that does not exist makes the run fail; for an XLSX file the
+message names the sheets the file has, and the preview of the editor lists them as well.
+
+Values come as they are stored in the file:
+
+- text as text, and the last computed value of a formula;
+- numbers as stored, without the display format of the cell (`0.5`, not `50 %`);
+- an **Excel date** is a number of days (`45231` is 1 November 2023; a fraction is the time of day). The transform
+  `date(format=excel)` turns it into a timestamp ([mappings.md](mappings.md#transforms));
+- an **ODS date** is its ISO value (`2023-11-01`), which `date` reads without a format.
+
+A very large spreadsheet is read faster when it is saved as CSV.
+
 ## Adding a source type
 
 A source type implements `expImportSourceInterface` (`identifier()`, `label()`, `schema()`, `extensions()`, a

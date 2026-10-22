@@ -46,7 +46,7 @@ cancelled on the job queue's page).
 | Kind | What it does |
 |---|---|
 | `import` | Processes all records (or `max_rows`) |
-| `dry_run` | Publishes nothing. Reads the first `[RunSettings] DryRunRows` records and records what would happen, with the changed fields. A disabled import can still have a dry run. |
+| `dry_run` | Publishes nothing. Reads the first `[RunSettings] DryRunRows` records and records what would happen, with the changed fields. A disabled import can still have a dry run. Images and files are not downloaded. The preview step of the editor does the same in the request, without storing a run. |
 | `retry` | Processes only the failed rows of an earlier run, from the records stored on those rows |
 
 ## Rows and log
@@ -58,23 +58,54 @@ can be retried. The log keeps lines from `[RunSettings] LogLevel` upward (`debug
 
 ## In the administration
 
+The left menu of the Imports tab links the pages of the extension:
+
+| Page | Address | What it shows |
+|---|---|---|
+| Overview | `sqliimport/list` | The dashboard (below) |
+| New import | `sqliimport/edit/new` | The import editor ([editor.md](editor.md)) |
+| Running runs, Failed runs | `sqliimport/list/(status)/active`, `sqliimport/list/(status)/failed` | The dashboard filtered by status |
+| Schedules | `sqliimport/schedules` | Every schedule with its next runs ([schedules.md](schedules.md#the-schedules-page)) |
+| Job queue | `expqueue/dashboard` | The job queue of expqueue |
+| Catalogue | `sqliimport/catalogue` | The source types, handlers and transforms the site offers, with their options and status |
+| Settings | `sqliimport/settings` | The settings as they stand, export and import of definitions ([settings.md](settings.md#the-settings-page)) |
+
+Under "sqliimport 1.x" follow the pages of 1.x ([migration-1x.md](migration-1x.md#after-the-upgrade)).
+
+### The dashboard
+
 **Imports** (`sqliimport/list`) is the dashboard:
 
 - Key figures: imports, runs today, runs running or queued, runs failed in the last 24 hours, the next scheduled run.
-- A **Run now** toolbar: choose an import and start it.
-- The imports with their source, handler, last run and next run, with **Run now** and **Dry run** for users who may
-  run them.
+- A **Run now** toolbar: choose an import and start it, and the **New import** button.
+- The imports with their source, handler, last run and next run. **Run now** (for an enabled import) and **Dry run**
+  are shown to users who may run the import; **Edit** and, under **More**, **Duplicate**, **Enable** or
+  **Disable** and **Delete** to users who may manage it ([editor.md](editor.md#changing-copying-and-deleting)).
 - The runs, newest first, filtered by status: `sqliimport/list/(status)/active`, `failed`, `completed` or
   `cancelled`, and by import: `sqliimport/list/(import)/<id>`.
 
+The admin dashboard (`content/dashboard`) has a block **Imports** with the latest runs and their status, and a
+warning with a link when runs failed or ended with errors in the last 24 hours (`dashboard.ini
+[DashboardBlock_sqliimport]`, `NumberOfItems=5`).
+
+### The run page
+
 **The run page** (`sqliimport/run/<id>`) shows:
 
-- The progress, the duration and the memory peak, and a link to the run's jobs in the job queue.
+- The status, the progress, the duration and the memory peak, and a link to the run's jobs in the job queue.
 - The outcomes as figures. Each one filters the records: `sqliimport/run/<id>/(outcome)/failed`.
 - The records with their object, version and message. In a dry run, each record lists its changed fields with the
   current and the new value.
 - The log.
 - **Cancel** while the run has not ended, and **Retry failed rows** when it ended with failed rows.
+- **Refresh**, which loads the page again.
+
+While a run is queued or running, the page follows it live: every two seconds it fetches the status, the progress,
+the counters and the new log lines, and shows them without loading the page again. When the run ends, the page loads
+once more with the final records. If an update gets no answer (a network error, a restart of the server), the page
+tries again a few times and then stays as it is; **Refresh** brings it up to date. The updates come from the ezjscore
+server function `sqliimport::runstatus`, which only answers POST requests with the form token from users who may
+see the imports.
 
 Every change (run, dry run, cancel, retry) is a POST request to `sqliimport/action` with the form token.
 

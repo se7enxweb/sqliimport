@@ -30,8 +30,12 @@ moves the 1.x schedules to the 2.x engine. Nothing of 1.x is deleted.
    ./console ext:sqliimport:migrate-1x --apply
    ```
 
-   Add `--roles` to give the roles that hold 1.x policies the matching 2.x policies
-   ([permissions.md](permissions.md)).
+   Add `--roles` to give every role that holds `sqliimport/manageimports` the 2.x policy `sqliimport/manage`
+   ("Manage imports") with the same handler limitation ([permissions.md](permissions.md)):
+
+   ```bash
+   ./console ext:sqliimport:migrate-1x --apply --roles
+   ```
 
 6. Replace the 1.x cron parts with the new ones, both every minute:
 
@@ -49,7 +53,7 @@ moves the 1.x schedules to the 2.x engine. Nothing of 1.x is deleted.
 | handlers | Each 1.x handler of `[ImportSettings] AvailableSourceHandlers[]` becomes an import with the identifier `legacy-<handler>` |
 | schedules | Each row of `sqliimport_scheduled` becomes an import with its options (the `key=value` text as JSON options) and a schedule of the same frequency. The 1.x row is switched off, not removed. |
 | history | Each row of `sqliimport_item` that is not pending becomes a read-only run (status, time, user; no rows or log). A request that was still marked running becomes a failed run. |
-| roles | With `--roles`: the 2.x functions are added next to the 1.x ones |
+| roles | With `--roles`: a role with `manageimports` gets `manage` next to it, with the same handler limitation. A role with `listimports` only needs nothing new: `listimports` still lets it look at the Imports tab. A role with `sqliimport/*` is left alone. |
 
 The 1.x frequencies map as follows: `none` to `once`, `hourly`, `daily`, `weekly` and `monthly` to the same kind,
 and `manual` (every N minutes) to `interval` with at least 5 minutes. The schedule's time zone is the server's PHP
@@ -62,6 +66,9 @@ Pending 1.x import requests are not turned into history. The cron part `sqliimpo
 the import `legacy-<handler>`.
 
 ## After the upgrade
+
+- **Imports are edited in the import editor** (`sqliimport/edit`, [editor.md](editor.md)). A migrated import of a
+  1.x handler has the steps source, processing, schedule and review; its options are the `key=value` text of 1.x.
 
 - **1.x handlers run untouched** in the 2.x engine. Their rows have the outcome `processed`, and their progression
   notes go to the run's log ([handlers.md](handlers.md)).

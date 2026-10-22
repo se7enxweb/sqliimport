@@ -51,7 +51,7 @@ gescheiterten Jobs, eine auf der Seite der Job-Warteschlange abgebrochene Job-Gr
 | Art | Was sie tut |
 |---|---|
 | `import` | Verarbeitet alle Datensätze (oder `max_rows`) |
-| `dry_run` | Veröffentlicht nichts. Liest die ersten `[RunSettings] DryRunRows` Datensätze und vermerkt, was geschehen würde, mit den geänderten Feldern. Auch ein deaktivierter Import kann einen Probelauf haben. |
+| `dry_run` | Veröffentlicht nichts. Liest die ersten `[RunSettings] DryRunRows` Datensätze und vermerkt, was geschehen würde, mit den geänderten Feldern. Auch ein deaktivierter Import kann einen Probelauf haben. Bilder und Dateien werden nicht heruntergeladen. Der Schritt Vorschau des Editors tut dasselbe in der Anfrage, ohne einen Lauf zu speichern. |
 | `retry` | Verarbeitet nur die fehlgeschlagenen Zeilen eines früheren Laufs, aus den an diesen Zeilen gespeicherten Datensätzen |
 
 ## Zeilen und Protokoll
@@ -64,20 +64,44 @@ Datensatz, um den es geht.
 
 ## In der Administration
 
-**Importe** (`sqliimport/list`) ist die Übersicht. Die Beschriftungen der Schaltflächen sind in 2.0.0-alpha.1
-noch nicht übersetzt; sie stehen hier so, wie die Seite sie zeigt.
+Die Beschriftungen der Seiten sind noch nicht vollständig übersetzt; sie stehen hier so, wie die Seite sie zeigt.
+Das linke Menü des Reiters Importe verlinkt die Seiten der Erweiterung:
+
+| Seite | Adresse | Was sie zeigt |
+|---|---|---|
+| Overview | `sqliimport/list` | Die Übersicht (unten) |
+| New import | `sqliimport/edit/new` | Den Import-Editor ([editor.md](editor.md)) |
+| Running runs, Failed runs | `sqliimport/list/(status)/active`, `sqliimport/list/(status)/failed` | Die Übersicht, nach Status gefiltert |
+| Schedules | `sqliimport/schedules` | Jeden Zeitplan mit seinen nächsten Läufen ([schedules.md](schedules.md#die-seite-schedules)) |
+| Job queue | `expqueue/dashboard` | Die Job-Warteschlange von expqueue |
+| Catalogue | `sqliimport/catalogue` | Die Quelltypen, Handler und Umwandlungen der Website mit ihren Optionen und ihrem Status |
+| Settings | `sqliimport/settings` | Die Einstellungen, wie sie gelten, Export und Import der Definitionen ([settings.md](settings.md#die-seite-settings)) |
+
+Unter „sqliimport 1.x“ folgen die Seiten von 1.x ([migration-1x.md](migration-1x.md#nach-der-aktualisierung)).
+
+### Die Übersicht
+
+**Importe** (`sqliimport/list`) ist die Übersicht:
 
 - Kennzahlen: Importe, Läufe heute, laufende oder wartende Läufe, in den letzten 24 Stunden fehlgeschlagene Läufe,
   der nächste geplante Lauf.
-- Eine Leiste **Run now** (jetzt ausführen): einen Import wählen und starten.
-- Die Importe mit Quelle, Handler, letztem und nächstem Lauf, mit **Run now** und **Dry run** (Probelauf) für
-  Benutzer, die sie ausführen dürfen.
+- Eine Leiste **Run now** (jetzt ausführen): einen Import wählen und starten, und die Schaltfläche **New import**.
+- Die Importe mit Quelle, Handler, letztem und nächstem Lauf. **Run now** (bei einem aktivierten Import) und **Dry
+  run** (Probelauf) sehen Benutzer, die den Import ausführen dürfen; **Edit** und unter **More** die Aktionen
+  **Duplicate**, **Enable** oder **Disable** und **Delete** sehen Benutzer, die ihn verwalten dürfen
+  ([editor.md](editor.md#ändern-kopieren-und-löschen)).
 - Die Läufe, die neuesten zuerst, gefiltert nach Status: `sqliimport/list/(status)/active`, `failed`, `completed`
   oder `cancelled`, und nach Import: `sqliimport/list/(import)/<id>`.
 
+Das Dashboard der Administration (`content/dashboard`) hat einen Block **Imports** mit den letzten Läufen und ihrem
+Status sowie einem Hinweis mit Link, wenn in den letzten 24 Stunden Läufe fehlgeschlagen oder mit Fehlern beendet
+sind (`dashboard.ini [DashboardBlock_sqliimport]`, `NumberOfItems=5`).
+
+### Die Seite eines Laufs
+
 **Die Seite eines Laufs** (`sqliimport/run/<id>`) zeigt:
 
-- Den Fortschritt, die Dauer und die Speicherspitze sowie einen Link zu den Jobs des Laufs in der
+- Den Status, den Fortschritt, die Dauer und die Speicherspitze sowie einen Link zu den Jobs des Laufs in der
   Job-Warteschlange.
 - Die Ergebnisse als Kennzahlen. Jede filtert die Datensätze: `sqliimport/run/<id>/(outcome)/failed`.
 - Die Datensätze mit Objekt, Version und Meldung. In einem Probelauf führt jeder Datensatz seine geänderten Felder
@@ -85,6 +109,14 @@ noch nicht übersetzt; sie stehen hier so, wie die Seite sie zeigt.
 - Das Protokoll.
 - **Cancel** (abbrechen), solange der Lauf nicht beendet ist, und **Retry failed rows** (fehlgeschlagene Zeilen
   wiederholen), wenn er mit fehlgeschlagenen Zeilen endete.
+- **Refresh**, das die Seite neu lädt.
+
+Solange ein Lauf wartet oder läuft, verfolgt die Seite ihn live: Alle zwei Sekunden holt sie Status, Fortschritt,
+Zähler und neue Protokollzeilen und zeigt sie an, ohne die Seite neu zu laden. Endet der Lauf, lädt die Seite noch
+einmal mit den endgültigen Datensätzen. Bleibt eine Aktualisierung ohne Antwort (ein Netzwerkfehler, ein Neustart
+des Servers), versucht die Seite es einige Male erneut und bleibt dann, wie sie ist; **Refresh** bringt sie auf den
+neuesten Stand. Die Aktualisierungen kommen von der ezjscore-Serverfunktion `sqliimport::runstatus`, die nur
+POST-Anfragen mit dem Formular-Token von Benutzern beantwortet, die die Importe sehen dürfen.
 
 Jede Änderung (Ausführen, Probelauf, Abbrechen, Wiederholen) ist eine POST-Anfrage an `sqliimport/action` mit dem
 Formular-Token.

@@ -8,7 +8,11 @@
 - The extension **expui** (the shared components of the administration).
 - MySQL/MariaDB, PostgreSQL, SQLite or Oracle.
 
-Optional: `pcntl` lets a 1.x run started by the old cron part be stopped safely with SIGTERM or SIGINT.
+Optional (suggested in `composer.json`):
+
+- `zip` (`ext-zip`) reads spreadsheet sources (XLSX and ODS). Without it, every other source type works, and a
+  spreadsheet import fails with a message that names the missing extension.
+- `pcntl` lets a 1.x run started by the old cron part be stopped safely with SIGTERM or SIGINT.
 
 ## Install
 
@@ -77,6 +81,25 @@ Tabs[]=setup
 Tabs[]=sqliimport
 ```
 
+The left menu of the tab has these pages:
+
+| Page | Address | See |
+|---|---|---|
+| Overview (the dashboard) | `sqliimport/list` | [runs.md](runs.md#the-dashboard) |
+| New import (the import editor) | `sqliimport/edit/new` | [editor.md](editor.md) |
+| Running runs, Failed runs | `sqliimport/list/(status)/active`, `.../failed` | [runs.md](runs.md#the-dashboard) |
+| Schedules | `sqliimport/schedules` | [schedules.md](schedules.md#the-schedules-page) |
+| Job queue | `expqueue/dashboard` | the manual of expqueue |
+| Catalogue | `sqliimport/catalogue` | the source types, handlers and transforms of the site |
+| Settings | `sqliimport/settings` | [settings.md](settings.md#the-settings-page) |
+| 1.x import requests, 1.x scheduled imports, New 1.x import request | `sqliimport/items`, `sqliimport/scheduledlist`, `sqliimport/addimport` | [migration-1x.md](migration-1x.md#after-the-upgrade) |
+
+A link is shown only to users who may open its page ([permissions.md](permissions.md)). The extension also adds the
+block "Imports" to the admin dashboard (`dashboard.ini [DashboardBlock_sqliimport]`).
+
+Give the editors who work with imports a role with `sqliimport/run` or `sqliimport/manage`
+([permissions.md](permissions.md)).
+
 ## Check the installation
 
 ```bash
@@ -86,7 +109,8 @@ Tabs[]=sqliimport
 ```
 
 Open **Imports** in the administration. If the dashboard warns that the tables or the job queue are missing, run
-the matching `install-schema` command.
+the matching `install-schema` command. Then create a first import with **New import** and look at its preview
+([editor.md](editor.md)).
 
 ## Print or write the schema
 

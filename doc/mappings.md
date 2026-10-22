@@ -4,6 +4,9 @@ The handler `mapping` (class `expImportMappingHandler`) imports without PHP. A m
 fills which attribute of a content class. The handler publishes through the content API of 1.x (`SQLIContent`,
 `SQLIContentPublisher`), which publishes a new version only when a field really changed.
 
+In the administration, the mapping step of the import editor sets every part of a mapping in a form, with a grid of
+one line per attribute ([editor.md](editor.md#step-3-mapping)). This page describes what the form stores.
+
 ## A mapping
 
 As an array (`expImportMapper`, stored by `expImportMapping::saveArray()`):
@@ -86,7 +89,7 @@ built-in transforms (`expImportTransforms::builtins()`):
 | `number` | A number; reads `1.234,56` and `1,234.56` | `decimals` (default -1: as given) |
 | `int` | A whole number (rounded) | |
 | `bool` | `1` for 1, true, yes, y, on, ja, oui, x; else `0` | |
-| `date` | A date or time as a timestamp (ezdate, ezdatetime) | `format` (PHP date format; empty: any form `strtotime()` reads), `timezone` (default `UTC`) |
+| `date` | A date or time as a timestamp (ezdate, ezdatetime) | `format` (PHP date format; `excel`: a spreadsheet date; empty: any form `strtotime()` reads), `timezone` (default `UTC`) |
 | `date_format` | A date as a text in a format | `format` (required), `timezone` (default `UTC`) |
 | `slug` | A URL-friendly identifier | |
 | `richtext` | HTML to the rich text (ezxmltext) of the attribute | |
@@ -94,7 +97,49 @@ built-in transforms (`expImportTransforms::builtins()`):
 | `image` | Downloads an image from a URL (ezimage) | |
 | `file` | Downloads a file from a URL (ezbinaryfile, ezmedia) | |
 
-`image` and `file` follow the same address rules as a `url` source ([sources.md](sources.md)).
+`image` and `file` follow the same address rules as a `url` source ([sources.md](sources.md)). In a dry run, and
+so in the preview of the editor, they download nothing: the address stands for the file.
+
+### Dates from spreadsheets
+
+An Excel file stores a date as a number of days since 30 December 1899, with the time of day as a fraction
+(`45231.5` is 1 November 2023, 12:00). `date(format=excel)` turns such a number into a timestamp; the time zone
+argument says in which zone the date and time are meant:
+
+```text
+date(format=excel, timezone=Europe/Berlin)
+```
+
+A value that is not a number makes the record fail with "date: '...' is not a spreadsheet date". An ODS file gives
+dates as ISO text (`2023-11-01`), which `date` reads without a format.
+
+### The one-line text of a chain
+
+The mapping grid of the editor shows and reads a chain as one line of text. The same text is what
+`expImportTransforms::formatChain()` writes and `expImportTransforms::parseChain()` reads:
+
+- the steps are separated by a vertical bar `|`;
+- a step without arguments is its name: `trim`;
+- the arguments follow in parentheses as `name=value`, separated by commas: `truncate(length=80)`;
+- a value that contains a comma, a parenthesis, a vertical bar, a quote, braces or brackets, or that is empty, is
+  written as JSON: a text in double quotes (`""` for an empty text), a table in braces, a list in brackets.
+
+Examples:
+
+| Text | Chain |
+|---|---|
+| `trim` | Removes spaces |
+| `trim \| upper` | Removes spaces, then upper case |
+| `date(format=d.m.Y, timezone=Europe/Berlin)` | Reads `31.12.2025` as midnight of that day in Berlin |
+| `date(format=excel)` | Reads a spreadsheet date |
+| `map(table={"D":"Germany","A":"Austria"}, otherwise=Other)` | Replaces country codes by names |
+| `split(separator=;) \| first` | The first item of a list separated by semicolons |
+| `concat(paths=["first_name","last_name"])` | Joins the value with two more fields |
+| `replace(search=",", replace=.)` | Reads `12,50` as `12.50`; the comma is quoted because it would end the argument |
+
+A text that cannot be read, such as an unknown argument form or invalid JSON, is reported on the line of its
+attribute when the mapping step is saved, and the line keeps no transforms until it is fixed. The arguments are
+then checked as for every chain.
 
 A site adds its own transform as a kernel service tagged `sqliimport.transform`, implementing
 `expImportTransformInterface` (`name()`, `label()`, `schema()`, `apply( $value, $args, $record )`). A mapping can
@@ -102,8 +147,9 @@ only name registered transforms; it never carries code.
 
 ## Creating an import in PHP
 
-The import editor of the administration comes with 2.0.0-beta.1. Until then, an import with a mapping is created
-in PHP, for example in a script run with `php bin/php/ezexec.php <script> --allow-root-user`:
+The import editor is the usual way to create an import ([editor.md](editor.md)). A script that sets up imports,
+for example during the installation of a site, can create one in PHP and run it with
+`php bin/php/ezexec.php <script> --allow-root-user`:
 
 ```php
 <?php

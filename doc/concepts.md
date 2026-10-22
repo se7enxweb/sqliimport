@@ -7,7 +7,7 @@ An import is one row of `sqliimport_definition` (class `expImportDefinition`). I
 | Field | Meaning |
 |---|---|
 | `identifier`, `name` | How the command line and the administration name it. The identifier is unique. |
-| `source_type` | `csv`, `xml`, `rss`, `json` or another registered source; `legacy` for a 1.x handler that reads its own data |
+| `source_type` | `csv`, `xml`, `rss`, `json`, `spreadsheet` or another registered source; `legacy` for a 1.x handler that reads its own data |
 | `source_config` | JSON: `origin` (`upload`, `url`, `path`), the file, address or path, and the options of the source type |
 | `handler` | `mapping` (no code), a 2.x handler or a 1.x handler |
 | `mapping_id` | The mapping of the `mapping` handler |

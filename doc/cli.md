@@ -86,7 +86,7 @@ Migrates the handlers, scheduled imports and history of SQLI Import 1.x. Without
 ```bash
 ./console ext:sqliimport:migrate-1x                   # dry run: what would be done
 ./console ext:sqliimport:migrate-1x --apply           # migrate
-./console ext:sqliimport:migrate-1x --apply --roles   # also give the 1.x roles the 2.x policies
+./console ext:sqliimport:migrate-1x --apply --roles   # also give roles with manageimports the policy manage
 ```
 
 See [migration-1x.md](migration-1x.md).

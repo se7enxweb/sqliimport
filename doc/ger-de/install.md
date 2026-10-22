@@ -8,8 +8,12 @@
 - Die Erweiterung **expui** (die gemeinsamen Komponenten der Administration).
 - MySQL/MariaDB, PostgreSQL, SQLite oder Oracle.
 
-Optional: Mit `pcntl` lässt sich ein Lauf von 1.x, den der alte Cron-Teil gestartet hat, mit SIGTERM oder SIGINT
-sicher anhalten.
+Optional (in `composer.json` vorgeschlagen):
+
+- `zip` (`ext-zip`) liest Tabellenquellen (XLSX und ODS). Ohne sie funktionieren alle anderen Quelltypen, und ein
+  Tabellenimport schlägt mit einer Meldung fehl, die die fehlende Erweiterung nennt.
+- Mit `pcntl` lässt sich ein Lauf von 1.x, den der alte Cron-Teil gestartet hat, mit SIGTERM oder SIGINT sicher
+  anhalten.
 
 ## Installieren
 
@@ -80,6 +84,26 @@ Tabs[]=setup
 Tabs[]=sqliimport
 ```
 
+Das linke Menü des Reiters hat diese Seiten:
+
+| Seite | Adresse | Siehe |
+|---|---|---|
+| Overview (die Übersicht) | `sqliimport/list` | [runs.md](runs.md#die-übersicht) |
+| New import (der Import-Editor) | `sqliimport/edit/new` | [editor.md](editor.md) |
+| Running runs, Failed runs | `sqliimport/list/(status)/active`, `.../failed` | [runs.md](runs.md#die-übersicht) |
+| Schedules | `sqliimport/schedules` | [schedules.md](schedules.md#die-seite-schedules) |
+| Job queue | `expqueue/dashboard` | das Handbuch von expqueue |
+| Catalogue | `sqliimport/catalogue` | die Quelltypen, Handler und Umwandlungen der Website |
+| Settings | `sqliimport/settings` | [settings.md](settings.md#die-seite-settings) |
+| 1.x import requests, 1.x scheduled imports, New 1.x import request | `sqliimport/items`, `sqliimport/scheduledlist`, `sqliimport/addimport` | [migration-1x.md](migration-1x.md#nach-der-aktualisierung) |
+
+Ein Link erscheint nur für Benutzer, die seine Seite öffnen dürfen ([permissions.md](permissions.md)). Die
+Erweiterung fügt außerdem dem Dashboard der Administration den Block „Imports“ hinzu
+(`dashboard.ini [DashboardBlock_sqliimport]`).
+
+Geben Sie den Redakteuren, die mit Importen arbeiten, eine Rolle mit `sqliimport/run` oder `sqliimport/manage`
+([permissions.md](permissions.md)).
+
 ## Die Installation prüfen
 
 ```bash
@@ -89,7 +113,8 @@ Tabs[]=sqliimport
 ```
 
 Öffnen Sie **Importe** in der Administration. Warnt die Übersicht, dass die Tabellen oder die Job-Warteschlange
-fehlen, führen Sie den passenden Befehl `install-schema` aus.
+fehlen, führen Sie den passenden Befehl `install-schema` aus. Legen Sie dann mit **New import** einen ersten Import
+an und sehen Sie sich seine Vorschau an ([editor.md](editor.md)).
 
 ## Das Schema ausgeben oder schreiben
 

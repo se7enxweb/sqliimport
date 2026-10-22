@@ -1,7 +1,37 @@
 # Zeitpläne
 
-Ein Zeitplan startet einen Import von selbst (Tabelle `sqliimport_schedule`, Klasse `expImportSchedule`). Ein
-Import kann mehrere Zeitpläne haben.
+Ein Zeitplan startet einen Import von selbst (Tabelle `sqliimport_schedule`, Klasse `expImportSchedule`). In der
+Administration legen Sie einen Zeitplan im Schritt Zeitplan des Import-Editors fest
+([editor.md](editor.md#schritt-5-zeitplan-schedule)), der einen Zeitplan pro Import führt; ein in PHP angelegter
+Import kann mehrere haben.
+
+## Die Seite Schedules
+
+**Schedules** im linken Menü des Reiters Importe (`sqliimport/schedules`) listet jeden Zeitplan der Importe von 2.x:
+
+| Spalte | Zeigt |
+|---|---|
+| Import | Den Import, verlinkt mit seinen Läufen auf der Übersicht; „disabled“, wenn der Import ausgeschaltet ist |
+| When | Den Zeitplan in Worten und ob er aktiv (active) oder angehalten (paused) ist |
+| Next runs | Die nächsten drei Laufzeiten eines aktiven Zeitplans |
+| Last run | Den letzten Lauf oder „never“ |
+
+Benutzer mit der Richtlinie `manage` ([permissions.md](permissions.md)) bekommen außerdem diese Aktionen:
+
+| Aktion | Wirkung |
+|---|---|
+| Pause | Hält den Zeitplan an; er bleibt mit seinen Einstellungen erhalten |
+| Resume | Setzt ihn fort und berechnet seinen nächsten Lauf ab jetzt |
+| Edit | Öffnet den Schritt Zeitplan des Imports im Editor |
+| Delete | Entfernt den Zeitplan nach einer Rückfrage; der Import bleibt |
+
+Jede Aktion ist eine POST-Anfrage mit dem Formular-Token und wird im Audit-Protokoll festgehalten. Ein
+deaktivierter Import behält seinen Zeitplan, seine geplanten Läufe werden aber übersprungen, bis er wieder
+aktiviert ist.
+
+Gibt es noch nicht migrierte geplante Importe von 1.x, nennt die Seite ihre Anzahl und verlinkt ihre Liste von 1.x;
+sie laufen weiter, bis `./console ext:sqliimport:migrate-1x --apply` sie hierher übernimmt
+([migration-1x.md](migration-1x.md)).
 
 ## Arten
 
@@ -79,7 +109,7 @@ erhalten. Ist die Job-Warteschlange installiert, übergibt `sqliimport_run` die 
 
 ## Einen Zeitplan in PHP anlegen
 
-Der Zeitplan-Editor kommt mit dem Import-Editor in 2.0.0-beta.1. Bis dahin:
+Ein Skript, das Importe einrichtet, kann einen Zeitplan ohne den Editor hinzufügen:
 
 ```php
 <?php

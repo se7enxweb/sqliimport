@@ -31,8 +31,12 @@ von 1.x wird gelöscht.
    ./console ext:sqliimport:migrate-1x --apply
    ```
 
-   Fügen Sie `--roles` hinzu, damit die Rollen mit Richtlinien von 1.x die passenden Richtlinien von 2.x bekommen
-   ([permissions.md](permissions.md)).
+   Fügen Sie `--roles` hinzu, damit jede Rolle mit `sqliimport/manageimports` die Richtlinie `sqliimport/manage`
+   („Manage imports“) von 2.x mit derselben Handler-Einschränkung bekommt ([permissions.md](permissions.md)):
+
+   ```bash
+   ./console ext:sqliimport:migrate-1x --apply --roles
+   ```
 
 6. Ersetzen Sie die Cron-Teile von 1.x durch die neuen, beide jede Minute:
 
@@ -50,7 +54,7 @@ von 1.x wird gelöscht.
 | handlers | Jeder Handler von 1.x aus `[ImportSettings] AvailableSourceHandlers[]` wird ein Import mit dem Bezeichner `legacy-<handler>` |
 | schedules | Jede Zeile von `sqliimport_scheduled` wird ein Import mit ihren Optionen (der Text `schlüssel=wert` als JSON-Optionen) und einem Zeitplan mit derselben Häufigkeit. Die Zeile von 1.x wird abgeschaltet, nicht entfernt. |
 | history | Jede Zeile von `sqliimport_item`, die nicht offen ist, wird ein schreibgeschützter Lauf (Status, Zeit, Benutzer; keine Zeilen und kein Protokoll). Ein Auftrag, der noch als laufend markiert war, wird ein fehlgeschlagener Lauf. |
-| roles | Mit `--roles`: Die Funktionen von 2.x kommen neben die von 1.x |
+| roles | Mit `--roles`: Eine Rolle mit `manageimports` bekommt daneben `manage`, mit derselben Handler-Einschränkung. Eine Rolle nur mit `listimports` braucht nichts Neues: `listimports` lässt sie weiterhin den Reiter Importe ansehen. Eine Rolle mit `sqliimport/*` bleibt unverändert. |
 
 Die Häufigkeiten von 1.x werden so übertragen: `none` zu `once`; `hourly`, `daily`, `weekly` und `monthly` zur
 gleichen Art; `manual` (alle N Minuten) zu `interval` mit mindestens 5 Minuten. Die Zeitzone des Zeitplans ist die
@@ -64,6 +68,10 @@ Offene Importaufträge von 1.x werden nicht zum Verlauf. Der Cron-Teil `sqliimpo
 Imports `legacy-<handler>`.
 
 ## Nach der Aktualisierung
+
+- **Importe werden im Import-Editor bearbeitet** (`sqliimport/edit`, [editor.md](editor.md)). Ein migrierter
+  Import eines Handlers von 1.x hat die Schritte Quelle, Verarbeitung, Zeitplan und Prüfung; seine Optionen sind
+  der Text `schlüssel=wert` von 1.x.
 
 - **Handler von 1.x laufen unverändert** in der Engine von 2.x. Ihre Zeilen haben das Ergebnis `processed`, ihre
   Fortschrittsnotizen gehen in das Protokoll des Laufs ([handlers.md](handlers.md)).
