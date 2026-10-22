@@ -442,6 +442,96 @@ Group: data. A spreadsheet read at every run from its link: share it so that any
 publish it to the web) and give the link as the address. The link is turned into the sheet's CSV export, keeping the
 tab of the link (`#gid=`); the first row names the columns. The options are those of CSV, with a comma and UTF-8.
 
+## Pages of a site by its sitemap (`sitemap`) and the web page scraper (`webpage`)
+
+Group: platforms. These two formats read public web pages themselves (the origin `remote`): once per run they crawl
+the site and write a snapshot of what they read (one JSON object per line in the run's directory), which every chunk
+of the run then reads. The import editor's sample and preview read only the first pages (`[RunSettings]
+DryRunRows`).
+
+**The site's terms and its robots.txt apply. Read only public pages you may use.** The crawl is polite and safe by
+design:
+
+- **robots.txt is obeyed.** It is read once per host; the group of the user agent (or `*`) decides with its `Allow`
+  and `Disallow` rules (the longest matching rule wins, `Allow` on a tie; `*` and a final `$` in patterns) and its
+  `Crawl-delay`. A robots.txt that answers 4xx allows everything, one that cannot be read (5xx, no answer) nothing.
+  A page that is not allowed is never requested: it becomes a failed row of the run with the reason, and the run
+  ends *completed with errors*.
+- **Requests are spaced.** Between two requests to a host the crawl waits the import's `delay` (1 second by default),
+  at least `[CrawlSettings] MinDelay`, and longer when robots.txt asks for a longer `Crawl-delay`.
+- **Limits.** A run reads at most `max_pages` pages, never more than `[CrawlSettings] MaxPages` (2000). Every page is
+  read with the checks and limits of an address source: no private or reserved networks unless `[SourceSettings]
+  AllowPrivateHosts`, the time limit `[ImportSettings] StreamTimeout` and the size limit `[SourceSettings]
+  MaxSourceMegabytes`. Redirects are followed by the crawl itself (three at most), each target checked again.
+- **Nothing is sent but the request.** No cookies, no credentials (an address with a user name or password is
+  refused), and the user agent of `[CrawlSettings] UserAgent` (by default `7x SQLI Import (Exponential; +<SiteURL>)`,
+  so the owner of a site can see who reads it).
+- **No JavaScript is run.** A page is parsed as HTML text (DOMDocument without network access, in UTF-8 by the
+  charset of the answer or of the page); scripts, styles, frames and event attributes are removed before anything is
+  taken from it. A page whose content is built by JavaScript has little to read.
+
+**Picks** (option `picks`, one per line) name the fields to take from a page: `field=selector`. A selector is CSS, a
+practical subset: a tag or `*`, `#id`, `.class`, `[attr]`, `[attr=value]` (and `~=`, `^=`, `$=`, `*=`, `|=`), the
+combinators descendant (a space), `>`, `+`, `~` and `,`, and `:first-child`, `:last-child`, `:only-child`,
+`:nth-child(n)`, `:first-of-type`, `:last-of-type`. At its end `::attr(name)` or `@name` takes an attribute,
+`::html` the inner HTML and `::text` the text (the default). A selector starting with `xpath:` is XPath. A pick
+that finds several elements gives a list, one that finds nothing an empty text. Relative addresses of `href`, `src`
+and similar attributes are made absolute. A pick named `body` keeps the inner HTML of what it finds (for a rich text
+field) and adds `body_text` with its text.
+
+```
+title=h1
+image=meta[property=og:image]::attr(content)
+body=article .content
+author=xpath://span[@itemprop='author']
+```
+
+### `sitemap`
+
+The pages listed by a sitemap (`sitemap.xml`, gzip-compressed or not, or a text file of addresses), followed
+through a sitemap index; for a site's root (`https://example.org/`) or its `robots.txt`, the `Sitemap:` lines of
+robots.txt (else `/sitemap.xml`). Only pages and sitemaps of the sitemap's own host are read. One record per page:
+`url` (the key), `url_hash` (the SHA-1 of the address, for the remote ID), `lastmod`, `priority` and `changefreq`
+from the sitemap, `status` (HTTP), `title` (of `<title>`), `description` (the meta description), `canonical`,
+`language` (of `<html lang>`), and every pick (a pick `title` replaces the page title).
+
+| Option | Values | Default |
+|---|---|---|
+| `sitemap` | the sitemap, a sitemap index or a site's root (required) | |
+| `include` | patterns of the addresses to read, one per line: a glob (`https://example.org/blog/*`, `/blog/*` for the path and query) or `regex:<expression>` | every page |
+| `exclude` | patterns of the addresses never to read (they win over `include`) | none |
+| `picks` | `field=selector` lines | none |
+| `max_pages` | the most pages one run reads | `200` |
+| `delay` | seconds between two requests | `1` |
+| `key` | the key field | `url` |
+
+Preset: an article (`title` from the title, `intro` from the description and `body` from the pick `body`, both as
+rich text), matched by the remote ID `page-{url_hash}`. Examples: `sitemap.xml` (a sitemap of four pages; a local
+sitemap file lists its pages without reading them) and `sitemap-crawl.ndjson` (the snapshot of a crawl: three pages
+read, one refused by robots.txt).
+
+### `webpage`
+
+One page or a list of addresses (option `urls`). With an `item` selector, every element it finds on a page (a
+product of a list, an event of a calendar) is a record of its own and the picks are relative to it (`@data-sku` alone
+takes an attribute of the item itself); without it, a page is one record. A `next` selector (`a[rel=next]`) names the
+link to the next page, which is followed while `max_pages` allows. One record per item: `id` (the key: the address,
+with `#<position>` for an item), `url`, `url_hash`, `page` (1 for the first page of an address), `position` (from 1
+over all pages of an address), `status` and the picks.
+
+| Option | Values | Default |
+|---|---|---|
+| `urls` | addresses, one per line (required) | |
+| `item` | the selector of the repeating element | the page is one record |
+| `next` | the selector of the link to the next page (its `href`) | no next page |
+| `picks` | `field=selector` lines | none |
+| `max_pages` | the most pages one run reads, over all addresses | `20` |
+| `delay` | seconds between two requests | `1` |
+| `key` | the key field | `id` |
+
+No preset. Example: `page-products.html` (a list of three products, read as if it were
+`https://example.org/products/`, with the item `.product`).
+
 ## The catalogue of formats
 
 **Imports, Catalogue** lists the formats by group (data, content, platforms, commerce, media, other). Each card says
