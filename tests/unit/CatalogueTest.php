@@ -103,6 +103,19 @@ class CatalogueTest extends TestCase
         $this->assertSame( array( 'https://example.org/blog/atom.xml', 'https://example.net/releases.rss' ), $rest );
     }
 
+    public function testPresetLinesFitTheClass(): void
+    {
+        $preset = expImportWxrSource::preset();
+        // an article whose image is an object relation and which has no publish date or tags (as on many sites)
+        $fields = expImportEditor::presetFields( $preset, array( 'title' => 'ezstring', 'intro' => 'ezxmltext', 'body' => 'ezxmltext',
+                                                                  'image' => 'ezobjectrelation' ) );
+        $this->assertSame( array( 'title', 'intro', 'body' ), array_map( function ( $f ) { return $f['attribute']; }, $fields ) );
+        $this->assertArrayNotHasKey( 'datatypes', $fields[0] );
+        $fields = expImportEditor::presetFields( $preset, array( 'title' => 'ezstring', 'image' => 'ezimage', 'tags' => 'ezkeyword',
+                                                                  'publish_date' => 'ezdatetime' ) );
+        $this->assertCount( 4, $fields );
+    }
+
     public function testNotOpml(): void
     {
         $this->expectException( expImportSourceException::class );

@@ -187,6 +187,30 @@ class expImportEditor
     }
 
     /**
+     * The lines of a preset that fit a class: its attribute exists and, when the line names 'datatypes', has one of
+     * them (an image download fits ezimage, not an object relation).
+     *
+     * @param array $preset
+     * @param array $datatypes attribute identifier => datatype string of the class
+     * @return array
+     */
+    public static function presetFields( array $preset, array $datatypes )
+    {
+        $fields = array();
+        foreach ( isset( $preset['fields'] ) ? (array)$preset['fields'] : array() as $field )
+        {
+            $attribute = isset( $field['attribute'] ) ? (string)$field['attribute'] : '';
+            if ( !isset( $datatypes[$attribute] ) )
+                continue;
+            if ( !empty( $field['datatypes'] ) && !in_array( $datatypes[$attribute], (array)$field['datatypes'], true ) )
+                continue;
+            unset( $field['datatypes'] );
+            $fields[] = $field;
+        }
+        return $fields;
+    }
+
+    /**
      * Gives an import without a mapping the preset mapping of its format, when the site has the preset's class.
      *
      * @param array $preset
@@ -204,9 +228,7 @@ class expImportEditor
         }
         $attributes = $class->dataMap();
         $fields = array();
-        foreach ( isset( $preset['fields'] ) ? (array)$preset['fields'] : array() as $field )
-            if ( isset( $field['attribute'] ) && isset( $attributes[$field['attribute']] ) )
-                $fields[] = $field;
+        $fields = self::presetFields( $preset, array_map( function ( $attribute ) { return (string)$attribute->attribute( 'data_type_string' ); }, $attributes ) );
         $target = $this->import->target();
         $mapping = array(
             'class' => $identifier,

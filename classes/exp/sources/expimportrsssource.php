@@ -58,7 +58,7 @@ class expImportRssSource extends expImportXmlSource
                 array( 'source' => 'title', 'attribute' => 'title', 'transforms' => array( array( 'name' => 'strip_tags' ), array( 'name' => 'trim' ) ) ),
                 array( 'source' => 'summary', 'attribute' => 'intro', 'transforms' => array( array( 'name' => 'richtext' ) ) ),
                 array( 'source' => 'content', 'attribute' => 'body', 'transforms' => array( array( 'name' => 'richtext' ) ) ),
-                array( 'source' => 'date', 'attribute' => 'publish_date', 'transforms' => array( array( 'name' => 'date' ) ) ),
+                array( 'source' => 'date', 'attribute' => 'publish_date', 'transforms' => array( array( 'name' => 'date' ) ), 'datatypes' => array( 'ezdate', 'ezdatetime' ) ),
             ),
         );
     }

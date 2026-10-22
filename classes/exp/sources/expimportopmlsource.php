@@ -64,7 +64,7 @@ class expImportOpmlSource extends expImportAbstractSource
             'fields' => array(
                 array( 'source' => 'title', 'attribute' => 'name' ),
                 array( 'source' => 'description', 'attribute' => 'description', 'transforms' => array( array( 'name' => 'richtext' ) ) ),
-                array( 'source' => 'xml_url', 'attribute' => 'location' ),
+                array( 'source' => 'xml_url', 'attribute' => 'location', 'datatypes' => array( 'ezurl' ) ),
             ),
         );
     }
@@ -225,15 +225,9 @@ class expImportOpmlSource extends expImportAbstractSource
                     'source_config' => expImport::json( array( 'origin' => 'url', 'url' => $url, 'key' => 'id' ) ),
                     'target_json' => expImport::json( array( 'parent_node_id' => (int)$parentNodeID ) ) ) );
                 $import->store();
-                $preset = expImportRssSource::preset();
-                if ( $preset )
-                {
-                    $preset['location'] = array( 'parent_node_id' => (int)$parentNodeID );
-                    $preset['language'] = '';
-                    $mapping = expImportMapping::saveArray( $preset, $import->attribute( 'id' ) );
-                    $import->setAttribute( 'mapping_id', $mapping->attribute( 'id' ) );
-                    $import->store();
-                }
+                // the RSS preset, as the editor would apply it (the lines this site's class can take)
+                $editor = new expImportEditor( $import );
+                $editor->applyPreset( expImportRssSource::preset() );
                 $line['created'] = true;
             }
             $out[] = $line;
