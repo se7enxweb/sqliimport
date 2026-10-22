@@ -14,7 +14,10 @@
  *   sqliimport::runstatus::<run id>::<last log id>   the run's status, progress, counters and the log lines after
  *                                                     the last one the page has (the live run page)
  *
- * Read-only; POST with the form token, and the policy sqliimport/view (or a 1.x one).
+ *   sqliimport::notices::<count>                       the current user's unread notices, for the header's bell
+ *
+ * Read-only; runstatus needs a POST with the form token, notices (the user's own) a GET; both the policy
+ * sqliimport/view (or a 1.x one).
  */
 class expImportServerFunctions extends ezjscServerFunctions
 {
@@ -54,5 +57,42 @@ class expImportServerFunctions extends ezjscServerFunctions
         }
         $data['log'] = $log;
         return $data;
+    }
+
+    /**
+     * The feed of the header's bell (design/admin4/templates/sqliimport/header_bell.tpl, the kernel's
+     * parts/a4_header_item.tpl): the current user's unread notices of runs that ended, as the header item reads them.
+     * Read-only and only the caller's own notices, so a GET is answered (the header asks on every page); the policy
+     * sqliimport/view is checked.
+     *
+     * @param array $args the number of entries (1 to 20, 8 by default)
+     * @return array array( 'count' => int, 'label' => string, 'items' => list of array( text, url, meta ) )
+     */
+    public static function notices( $args )
+    {
+        $label = ezpI18n::tr( 'extension/sqliimport', 'Import notifications' );
+        if ( !expImportAdmin::can( 'view' ) )
+            return array( 'count' => 0, 'label' => $label, 'items' => array() );
+        $limit = isset( $args[0] ) ? max( 1, min( 20, (int)$args[0] ) ) : 8;
+        $userID = expImport::currentUserID();
+        $count = expImportNotifier::unseenCount( $userID );
+        $kinds = array( 'failed' => ezpI18n::tr( 'extension/sqliimport', 'failed' ),
+                        'errors' => ezpI18n::tr( 'extension/sqliimport', 'completed with errors' ),
+                        'cancelled' => ezpI18n::tr( 'extension/sqliimport', 'cancelled' ) );
+        $locale = eZLocale::instance();
+        $items = array();
+        foreach ( expImportNotifier::notices( $userID, true, $limit ) as $n )
+        {
+            $url = $n['url'];
+            eZURI::transformURI( $url );
+            $items[] = array( 'text' => ezpI18n::tr( 'extension/sqliimport', 'Run #%run', null, array( '%run' => $n['run_id'] ) )
+                                        . ( $n['import'] !== '' ? ' · ' . $n['import'] : '' ),
+                              'url' => $url,
+                              'meta' => ( isset( $kinds[$n['kind']] ) ? $kinds[$n['kind']] : ezpI18n::tr( 'extension/sqliimport', 'completed' ) )
+                                        . ' · ' . $locale->formatShortDateTime( $n['created'] ) );
+        }
+        if ( $count > 0 )
+            $label = ezpI18n::tr( 'extension/sqliimport', 'Import notifications: %count new', null, array( '%count' => $count ) );
+        return array( 'count' => $count, 'label' => $label, 'items' => $items );
     }
 }

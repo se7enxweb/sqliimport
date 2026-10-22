@@ -7,6 +7,11 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 
 ### Added
 
+- Added: A bell in the administration's header (admin4 and admin4l, with the header slot of Exponential 6.0.15):
+  the user's unread notices of runs that ended, with the count in the button's name, loaded from the new ezjscore
+  call sqliimport::notices because the header is cached per user.
+- Added: Test connection for every format that can try its connection (a static test()), with what this server and
+  the job queue's workers can connect with (a static drivers()) in the editor and the catalogue.
 - Added: The import editor (sqliimport/edit): source (upload, address or server file with the options of its type),
   processing (the no-code mapping or a handler with a form made from its options; target and behaviour), mapping
   (class, remote ID pattern or attribute to match, parents, a grid with a line per attribute; Auto-match by name),

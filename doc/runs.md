@@ -139,7 +139,16 @@ Dry runs and undo runs give their starter a notice, never a mail. The addresses 
 get a mail when a scheduled run fails or ends with errors. The link in a mail uses `[AdminSettings] AdminURL` of
 `sqliimport.ini` when it is set (e.g. `https://edit.example.org/admin`), else a path.
 
-A page can show the notices too, e.g. a bell in the header:
+**The bell in the header.** From Exponential 6.0.15 on, admin4 and admin4l have a slot for header tools of
+extensions (`design.ini [AdminHeaderSettings] HeaderItems[]`), and the extension puts a bell there
+(`design/admin4/templates/sqliimport/header_bell.tpl`) for every user who may see the imports. Its count is the
+number of the user's unread notices and part of its name ("Import notifications: 3 new"); its panel lists the newest
+eight with their run and outcome, and **All imports** opens the dashboard. The header is cached per user, so the
+bell loads its count and entries from the ezjscore call `sqliimport::notices` (a GET with the user's own notices,
+checked against the policy sqliimport/view) when the page is drawn and each time it opens. Without the script it is
+a link to the dashboard. To leave it out, set `HeaderItems[]` empty in a siteaccess's `design.ini.append.php`.
+
+On an older kernel, a page can show the notices with the template fetch function, e.g.:
 
 ```
 {def $sq_bell = fetch( 'sqliimport', 'notices', hash( 'limit', 5 ) )}

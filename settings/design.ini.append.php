@@ -17,4 +17,10 @@ BackendJavaScriptList[]=sqliimport_confirm.js
 # The live run page (sqliimport::runstatus through Exp.io of expui)
 BackendJavaScriptList[]=sqliimport_admin.js
 
+
+# The bell of the administration's header (admin4 and admin4l, from Exponential 6.0.15): the user's unread notices of
+# runs that ended, loaded from sqliimport::notices. Leave it out with HeaderItems[] in a siteaccess's design.ini.
+[AdminHeaderSettings]
+HeaderItems[]=sqliimport/header_bell.tpl
+
 */ ?>

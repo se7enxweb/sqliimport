@@ -155,7 +155,17 @@ Probeläufe und Rückgängig-Läufe geben ihrem Starter einen Hinweis, nie eine 
 in einer E-Mail nutzt `[AdminSettings] AdminURL` der `sqliimport.ini`, wenn er gesetzt ist (z. B.
 `https://edit.example.org/admin`), sonst einen Pfad.
 
-Eine Seite kann die Hinweise ebenfalls zeigen, etwa eine Glocke im Kopf:
+**Die Glocke im Kopf.** Ab Exponential 6.0.15 haben admin4 und admin4l einen Platz für Werkzeuge der Erweiterungen im
+Kopf (`design.ini [AdminHeaderSettings] HeaderItems[]`), und die Erweiterung stellt dort eine Glocke hin
+(`design/admin4/templates/sqliimport/header_bell.tpl`), für jeden Benutzer, der die Importe sehen darf. Ihre Zahl ist
+die der ungelesenen Hinweise des Benutzers und Teil ihres Namens („Import notifications: 3 new“); ihre Liste zeigt die
+acht neuesten mit Lauf und Ergebnis, und **All imports** öffnet die Übersicht. Der Kopf wird je Benutzer zwischengespeichert,
+darum lädt die Glocke Zahl und Einträge über den ezjscore-Aufruf `sqliimport::notices` (ein GET mit den eigenen
+Hinweisen des Benutzers, geprüft gegen die Richtlinie sqliimport/view), wenn die Seite gezeichnet wird und jedes Mal,
+wenn sie aufgeht. Ohne Skript ist sie ein Link auf die Übersicht. Wer sie nicht will, setzt `HeaderItems[]` leer in der
+`design.ini.append.php` einer Siteaccess.
+
+Mit einem älteren Kernel kann eine Seite die Hinweise über die Abruffunktion der Vorlagen zeigen, etwa:
 
 ```
 {def $sq_bell = fetch( 'sqliimport', 'notices', hash( 'limit', 5 ) )}

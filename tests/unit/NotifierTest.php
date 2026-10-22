@@ -20,4 +20,23 @@ class NotifierTest extends TestCase
         $this->assertSame( 'errors', expImportNotifier::kindOf( 'completed_with_errors' ) );
         $this->assertSame( 'failed', expImportNotifier::kindOf( 'failed' ) );
     }
+
+    /**
+     * The bell of the header: one header item of the kernel's slot (design.ini [AdminHeaderSettings] HeaderItems[]),
+     * drawn with the kernel's parts/a4_header_item.tpl, its count and entries from the GET feed sqliimport::notices.
+     */
+    public function testTheHeaderBell(): void
+    {
+        $root = dirname( __DIR__, 2 );
+        $ini = (string)file_get_contents( $root . '/settings/design.ini.append.php' );
+        $this->assertMatchesRegularExpression( '/^\[AdminHeaderSettings\]\nHeaderItems\[\]=sqliimport\/header_bell\.tpl$/m', $ini );
+        $tpl = (string)file_get_contents( $root . '/design/admin4/templates/sqliimport/header_bell.tpl' );
+        $this->assertStringContainsString( "{include uri='design:parts/a4_header_item.tpl'", $tpl );
+        $this->assertStringContainsString( "'ezjscore/call/sqliimport::notices::8'|ezurl( 'no' ), '?ContentType=json'", $tpl );
+        $this->assertStringContainsString( "item_icon='bell'", $tpl );
+        $source = (string)file_get_contents( $root . '/classes/exp/expimportserverfunctions.php' );
+        $body = substr( $source, strpos( $source, 'public static function notices(' ) );
+        $this->assertStringNotContainsString( 'self::guard()', $body, 'a GET from every page: no form token' );
+        $this->assertStringContainsString( "expImportAdmin::can( 'view' )", $body );
+    }
 }
