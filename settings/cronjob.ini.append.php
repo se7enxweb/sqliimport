@@ -7,6 +7,11 @@ ExtensionDirectories[]=sqliimport
 #   * * * * * cd <installation> && php runcronjobs.php -q sqliimport
 # It queues the runs of due schedules and the pending imports of 1.x, ends runs whose jobs ended, and purges old
 # runs ([RunSettings] KeepDays). The runs themselves are done by the workers of the job queue (cron part expqueue).
+# The tick also runs within the cron part of the job queue (every minute where expqueue is set up), so a site
+# needs no cron line of its own; a lock keeps the two from overlapping.
+[CronjobPart-expqueue]
+Scripts[]=sqliimport_schedule.php
+
 [CronjobPart-sqliimport]
 Scripts[]=sqliimport_schedule.php
 

@@ -38,6 +38,31 @@ class expImportScheduler
             $say( 'the job queue (expqueue) is not installed: nothing is started' );
             return $stats;
         }
+        // one tick at a time: it runs from the cron part sqliimport and from the job queue's part
+        $lock = @fopen( expImport::storageDirectory() . '/tick.lock', 'c' );
+        if ( $lock && !flock( $lock, LOCK_EX | LOCK_NB ) )
+        {
+            fclose( $lock );
+            $say( 'another tick is running' );
+            return $stats;
+        }
+        try
+        {
+            return self::tickLocked( $stats, $say );
+        }
+        finally
+        {
+            if ( $lock )
+            {
+                flock( $lock, LOCK_UN );
+                fclose( $lock );
+            }
+        }
+    }
+
+    /** @return array the counters of tick(), with the lock held */
+    protected static function tickLocked( array $stats, callable $say )
+    {
         $stats['ended'] = expImportRunner::reconcile();
         $now = expImport::now();
         foreach ( expImportSchedule::fetchDue( $now ) as $schedule )
