@@ -31,7 +31,7 @@ abstract class expImportCrawlSource extends expImportJsonSource
 
     public static function extensions()
     {
-        return array( 'ndjson' );
+        return array();
     }
 
     /** @return array the options both crawl formats have */
