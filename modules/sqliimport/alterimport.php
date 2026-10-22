@@ -9,6 +9,9 @@
  */
 
 $Module = $Params['Module'];
+// A change is made only by a POST (the form token of ezformtoken checks it), never by a link a page could embed
+if ( strtoupper( (string)eZSys::serverVariable( 'REQUEST_METHOD', true ) ) !== 'POST' )
+    return $Module->redirectToView( 'items' );
 $Result = array();
 $tpl = SQLIImportUtils::templateInit();
 
@@ -60,7 +63,7 @@ try
                                                                             null, array( '%action' => $action) ) );
     }
     
-    $Module->redirectToView( 'list' );
+    $Module->redirectToView( 'items' );
 }
 catch( Exception $e )
 {
@@ -74,7 +77,6 @@ catch( Exception $e )
             'text'      => SQLIImportUtils::translate( 'extension/sqliimport/error', 'Error' )
         )
     );
-    $Result['left_menu'] = 'design:sqliimport/parts/leftmenu.tpl';
     $Result['content'] = $tpl->fetch( 'design:sqliimport/altererror.tpl' );
 }
 

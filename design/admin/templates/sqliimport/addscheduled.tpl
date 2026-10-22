@@ -1,8 +1,7 @@
-{*<script language="javascript" src={'javascript/calendar.js'|ezdesign}></script>*}
 {if is_set( $error_message )}
 <div class="message-error">
     <h2>{'Input did not validate'|i18n( 'design/admin/settings' )}</h2>
-    <p>{$error_message}</p>
+    <p>{$error_message|wash}</p>
 </div>
 {/if}
 
@@ -28,7 +27,7 @@
         <div class="block">
             <h4>{'Import label'|i18n( 'extension/sqliimport' )}</h4>
             <p>
-                <input type="text" name="ScheduledLabel" value="{$import_label}" />
+                <input type="text" name="ScheduledLabel" value="{$import_label|wash}" />
             </p>
             <p>&nbsp;</p>
         
@@ -36,7 +35,7 @@
 			<p>
 				<select name="ImportHandler" id="ImportHandler">
                 {foreach $importHandlers as $handlerName => $handler}
-                    <option value="{$handler}"{if $handler|eq( $current_import_handler )} selected="selected"{/if}>{$handlerName}</option>
+                    <option value="{$handler|wash}"{if $handler|eq( $current_import_handler )} selected="selected"{/if}>{$handlerName|wash}</option>
                     
                 {/foreach}
                 </select>
@@ -45,14 +44,14 @@
             
             <h4>{'Options (facultative)'|i18n( 'extension/sqliimport' )}</h4>
             <div>
-                <textarea name="ImportOptions" id="ImportOptions" rows="7" cols="70">{$import_options}</textarea>
+                <textarea name="ImportOptions" id="ImportOptions" rows="7" cols="70">{$import_options|wash}</textarea>
                 <p><i>{'One option per line : optionName=optionValue'|i18n( 'extension/sqliimport' )}</i></p>
             </div>
             <p>&nbsp;</p>
 			
 			<h4>{'Choose a start date (YYYY-mm-dd)'|i18n( 'extension/sqliimport' )}</h4>
 			<p>
-			    <input type="text" name="ScheduledDate" value="{if is_set( $import_date )}{$import_date}{else}YYYY-mm-dd{/if}" id="ScheduledDate" />
+			    <input type="date" name="ScheduledDate" value="{if is_set( $import_date )}{$import_date|wash}{/if}" id="ScheduledDate" required="required" />
 			
 			    {'Hour'|i18n( 'extension/sqliimport' )}
 			    <select name="ScheduledHour">
@@ -83,8 +82,8 @@
 			    
 			    {* Manual frequency *}
 			    <br />
-			    <input type="radio" name="ScheduledFrequency" value="manual"  {if and( is_set( $import_frequency ), $import_frequency|eq( 'manual' ) )} checked="checked"{/if} onclick="document.getElementById('ManualScheduledFrequency').removeAttribute('disabled')" />{'Every'|i18n( 'extension/sqliimport/schedulefrequency' )} :
-			    <input type="text" id="ManualScheduledFrequency" name="ManualScheduledFrequency" size="5" value="{cond( is_set( $manual_frequency ), $manual_frequency, 0 )}" {if or( is_unset( $import_frequency ), $import_frequency|ne( 'manual' ) )} disabled="disabled"{/if} /> {'minutes (not less than 5min)'|i18n( 'extension/sqliimport/schedulefrequency' )}
+			    <input type="radio" name="ScheduledFrequency" value="manual"  {if and( is_set( $import_frequency ), $import_frequency|eq( 'manual' ) )} checked="checked"{/if} />{'Every'|i18n( 'extension/sqliimport/schedulefrequency' )} :
+			    <input type="text" id="ManualScheduledFrequency" name="ManualScheduledFrequency" size="5" value="{cond( is_set( $manual_frequency ), $manual_frequency, 0 )}" /> {'minutes (not less than 5min)'|i18n( 'extension/sqliimport/schedulefrequency' )}
 			</p>
 			<p>&nbsp;</p>
 			
@@ -118,20 +117,3 @@
     </div>
 </form>
 
-<!-- JSCalendar settings -->
-<style type="text/css">
-    @import url({'stylesheets/jscal2.css'|ezdesign});
-    @import url({'stylesheets/border-radius.css'|ezdesign});
-    @import url({'stylesheets/steel/steel.css'|ezdesign});
-</style>
-<script type="text/javascript" src={'javascript/jscal2.js'|ezdesign}></script>
-<script type="text/javascript" src={concat( 'javascript/lang/en.js'|i18n( 'extension/sqliimport' ) )|ezdesign}></script>
-<script type="text/javascript">
-    Calendar.setup({ldelim}
-    
-        trigger : 'ScheduledDate',
-        inputField : 'ScheduledDate',
-        onSelect : function() {ldelim} this.hide(); {rdelim},
-    
-    {rdelim});
-</script>

@@ -1,7 +1,7 @@
 {if is_set( $error_message )}
 <div class="message-error">
     <h2>{'Input did not validate'|i18n( 'design/admin/settings' )}</h2>
-    <p>{$error_message}</p>
+    <p>{$error_message|wash}</p>
 </div>
 {/if}
 <form action={'/sqliimport/addimport'|ezurl} method="post">
@@ -25,13 +25,13 @@
     <div class="box-ml">
         <div class="box-mr">
             <div class="box-content">
-                <table class="list cache block" cellspacing="0" style="margin:0;">
+                <table class="list cache block" cellspacing="0">
                     <tr class="bglight">
                         <th>{'Import handler'|i18n( 'extension/sqliimport' )}</th>
                         <td>
                             <select name="ImportHandler" id="ImportHandler">
                             {foreach $importHandlers as $handlerName => $handler}
-                               <option value="{$handler}">{$handlerName}</option>
+                               <option value="{$handler|wash}">{$handlerName|wash}</option>
                             {/foreach}
                             </select>
                         </td>

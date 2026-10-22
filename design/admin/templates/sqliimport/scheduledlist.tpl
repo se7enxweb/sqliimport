@@ -69,11 +69,11 @@
                     <tbody>
                         {foreach $imports as $import sequence array( 'bglight', 'bgdark' ) as $trClass}
                         <tr class="{$trClass}">
-                            <td>{$import.label}</td>
-                            <td>{$import.handler_name}</td>
+                            <td>{$import.label|wash}</td>
+                            <td>{$import.handler_name|wash}</td>
                             <td>{$import.options|nl2br}</td>
-                            <td>{$import.user.login}</td>
-                            <td>{$import.full_frequency}</td>
+                            <td>{$import.user.login|wash}</td>
+                            <td>{$import.full_frequency|wash}</td>
                             <td>{$import.next|l10n( 'shortdatetime' )}</td>
                             <td><input type="checkbox" disabled="disabled"{if $import.is_active} checked="checked"{/if}/></td>
                             <td>
@@ -87,8 +87,7 @@
                             </td>
                             <td>
                             {if $import.user_has_access}
-                                <a href={concat( '/sqliimport/removescheduled/', $import.id )|ezurl} title="{'Remove scheduled import'|i18n( 'extension/sqliimport' )}"
-                                   onclick="return confirm('{'Are you sure you want to remove this scheduled import ?'|i18n( 'extension/sqliimport' )}')"><img src={'trash-icon-16x16.gif'|ezimage} alt="{'Edit'|i18n( 'extension/sqliimport')}" /></a>
+                                {include uri='design:sqliimport/parts/postbutton.tpl' url=concat( '/sqliimport/removescheduled/', $import.id ) label='Remove'|i18n( 'extension/sqliimport' ) kind='danger' confirm='Are you sure you want to remove this scheduled import?'|i18n( 'extension/sqliimport' )}
                             {/if}
                             </td>
                         </tr>
