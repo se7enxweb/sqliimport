@@ -11,7 +11,7 @@ Laufs dieselben Daten liest.
 | `upload` | `file`: der gespeicherte Name einer hochgeladenen Datei | Der Upload (im Speicherverzeichnis der Website unter `sqliimport/uploads/`) wird in das Verzeichnis des Laufs kopiert |
 | `url` | `url`: eine Adresse mit `http` oder `https` | Die Adresse wird in das Verzeichnis des Laufs heruntergeladen, mit dem Zeitlimit `[ImportSettings] StreamTimeout` und dem Größenlimit `[SourceSettings] MaxSourceMegabytes` |
 | `path` | `path`: eine Datei auf dem Server | Die Datei wird an Ort und Stelle gelesen, aber nur, wenn sie in einem der Verzeichnisse von `[SourceSettings] AllowedPaths[]` liegt |
-| `remote` | die eigenen Optionen der Quelle (eine Datenbank, ein Suchindex, ein Postfach, ein Verzeichnisdienst, ein Dienst) | Die Quelle liest ihre Daten einmal pro Lauf selbst und schreibt sie als JSON Lines in das Verzeichnis des Laufs (`sql`, `mongodb`, `redis`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion` und die Websites der Gruppe Plattformen) |
+| `remote` | die eigenen Optionen der Quelle (eine Datenbank, ein Suchindex, ein Postfach, ein Verzeichnisdienst, ein Dienst) | Die Quelle liest ihre Daten einmal pro Lauf selbst und schreibt sie als JSON Lines in das Verzeichnis des Laufs (`sql`, `mongodb`, `redis`, `couchdb`, `couchbase`, `cosmosdb`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion` und die Websites der Gruppe Plattformen) |
 
 Regeln:
 
@@ -794,17 +794,19 @@ Editors liest die ersten.
 
 | Option | Werte | Vorgabe |
 |---|---|---|
-| `uri` | ein Host (`mongo.example.org`), `host:port` oder eine `mongodb://`- oder `mongodb+srv://`-URI **ohne Benutzer und Passwort** (`mongodb://db1.example.org,db2.example.org/?replicaSet=rs0`) | Pflicht |
+| `uri` | ein Host (`mongo.example.org`), `host:port` oder eine `mongodb://`- oder `mongodb+srv://`-URI **ohne Benutzer und Passwort** (`mongodb://db1.example.org,db2.example.org/?replicaSet=rs0`; MongoDB Atlas: `mongodb+srv://cluster0.example.mongodb.net/?retryWrites=true&w=majority`) | Pflicht |
 | `port` | nur bei einem Host; `0` ist 27017 | `0` |
 | `tls` | die Verbindung verschlüsseln (Zertifikate werden geprüft); `mongodb+srv://` verwendet immer TLS | nein |
 | `user` | der Datenbankbenutzer | |
 | `password` | der **Name** eines Geheimnisses (siehe [Geheimnisse](#geheimnisse)), nie das Passwort | |
 | `auth_source` | die Datenbank, in der der Benutzer angelegt ist; leer: die Datenbank der URI, sonst `admin` | |
 | `database`, `collection` | was gelesen wird | Pflicht |
+| `mode` | `find` (Filter, Projektion, Sortierung) oder `aggregate` (eine Aggregations-Pipeline aus lesenden Stufen) | `find` |
+| `pipeline` | bei `aggregate`: eine JSON-Liste von Stufen, z. B. `[{"$match": {"status": "published"}}, {"$group": {"_id": "$author", "n": {"$sum": 1}}}]` | |
 | `filter` | ein Abfragedokument in JSON, z. B. `{"status": "published"}`; Extended JSON für Typen: `{"$oid": "..."}`, `{"$date": "2026-01-01T00:00:00Z"}` | jedes Dokument |
 | `projection` | die zu lesenden Felder, z. B. `{"title": 1, "author.name": 1}` | alle |
 | `sort` | z. B. `{"published_at": -1}` (braucht das Blättern `skip`) | `_id` |
-| `paging` | `id`: jede Seite nach der letzten `_id` (schnell, in `_id`-Reihenfolge); `skip`: Überspringen und Begrenzen (jede Sortierung) | `id` |
+| `paging` | `id`: jede Seite nach der letzten `_id` (schnell, in `_id`-Reihenfolge); `skip`: Überspringen und Begrenzen (jede Sortierung; bei `aggregate` eine `$skip`- und eine `$limit`-Stufe pro Seite); `cursor`: eine Abfrage, in Stapeln von `batch_size` gelesen (jede Reihenfolge; die Vorgabe von `aggregate`) | `id` |
 | `batch_size` | Dokumente pro Seite (höchstens `[MongoDbSourceSettings] MaxBatchSize`) | `500` |
 | `limit` | höchstens so viele Dokumente; `0`: alle | `0` |
 | `arrays` | `json` (`["a","b"]`) oder `join` (`a, b`; ein Array aus Dokumenten bleibt JSON) | `json` |
@@ -828,11 +830,30 @@ verschachtelt sind, werden als JSON geschrieben. Die BSON-Typen werden als Text 
 | Array | JSON oder eine verbundene Liste (Option `arrays`); BSON-Werte darin werden genauso geschrieben |
 
 **Nur Lesen ist möglich.** Die Quelle führt nichts aus als ein Find (`MongoDB\Driver\Query`) mit Filter, Projektion
-und Sortierung: keinen Befehl, keine Aggregation, kein Schreiben. Abgelehnt werden, in jeder Tiefe von Filter,
-Projektion oder Sortierung, die Operatoren, die Code auf dem Server ausführen oder schreiben: `$where`, `$function`,
-`$accumulator`, `$out` und `$merge`. Ein Filter muss ein JSON-Objekt sein; eine Pipeline (eine Liste von Stufen) wird
-nicht angenommen. System-Collections (`system.*`) werden nicht gelesen. Geben Sie dem Import einen Datenbankbenutzer,
-der nur die Rolle `read` auf dieser Datenbank hat.
+und Sortierung oder (Modus `aggregate`) den Befehl `aggregate`, als Lesebefehl gesendet (`executeReadCommand`):
+keinen anderen Befehl, kein Schreiben. Abgelehnt werden, in jeder Tiefe von Filter, Projektion, Sortierung oder
+Pipeline, die Operatoren, die Code auf dem Server ausführen oder schreiben: `$where`, `$function`, `$accumulator`,
+`$out`, `$merge` (und `$currentOp`, `$listSessions`). Ein Filter muss ein JSON-Objekt sein. Eine Pipeline darf nur
+diese lesenden Stufen haben: `$match`, `$project`, `$addFields`, `$set`, `$unset`, `$sort`, `$limit`, `$skip`,
+`$unwind`, `$group`, `$bucket`, `$bucketAuto`, `$count`, `$facet`, `$lookup`, `$replaceRoot`, `$replaceWith`,
+`$sample`, `$sortByCount`, `$densify`, `$fill`, `$setWindowFields`, `$geoNear` (nur als erste Stufe) und
+`$unionWith`; die Pipelines in `$facet`, `$lookup` und `$unionWith` werden genauso geprüft, jede andere Stufe (`$out`,
+`$merge`, `$currentOp`, `$collStats`, `$indexStats`, `$changeStream`, `$documents`, `$search` ...) wird abgelehnt. Im
+Modus `aggregate` bleiben Filter, Projektion und Sortierung leer (sie sind Stufen `$match`, `$project` und `$sort`).
+System-Collections (`system.*`) werden nicht gelesen und auch nicht über `$lookup` oder `$unionWith` verbunden, die
+nur eine Collection derselben Datenbank nennen. Geben Sie dem Import einen Datenbankbenutzer, der nur die Rolle `read`
+auf dieser Datenbank hat.
+
+**Blättern einer Aggregation.** `cursor` (die Vorgabe einer Aggregation) sendet die Pipeline einmal und liest ihren
+Cursor in Stapeln von `batch_size` (mit einer `$limit`-Stufe am Ende für die Stichprobe des Editors oder die Option
+`limit`); `skip` hängt für jede Seite `{"$skip": n}` und `{"$limit": batch_size}` an die Pipeline, was eine Pipeline
+mit fester Reihenfolge braucht (beenden Sie sie mit einem `$sort` auf ein eindeutiges Feld).
+
+**MongoDB Atlas** (und andere gehostete Dienste) wird mit seiner `mongodb+srv://`-URI erreicht, wie Atlas sie unter
+Connect zeigt, ohne `<username>:<password>@`: Der Benutzer ist die Option `user` und das Passwort ein Geheimnis.
+`mongodb+srv://` verwendet immer TLS, und die Hosts, die sein SRV-Eintrag nennt, werden wie jeder Host geprüft (die
+öffentlichen Hosts von Atlas bestehen). Ein Azure-Cosmos-DB-Konto der API für MongoDB wird genauso gelesen, mit seiner
+Verbindungszeichenkette ohne das Passwort.
 
 **Geheimnisse und Hosts.** Die URI darf weder Benutzer noch Passwort enthalten (auch keine URI-Optionen, die eines
 tragen); der Benutzer ist eine Option und das Passwort der Name eines Geheimnisses, das dem Treiber als
@@ -868,7 +889,8 @@ Quelle die Schlüssel mit `SCAN` und schreibt sie in das Verzeichnis des Laufs, 
 | `user` | ein ACL-Benutzer (Redis 6 und neuer); leer: nur das Passwort | |
 | `password` | der **Name** eines Geheimnisses, nie das Passwort; leer: kein `AUTH` | |
 | `pattern` | die zu lesenden Schlüssel, wie `SCAN ... MATCH` es liest: `product:*`, `news:[0-9]*` | `*` |
-| `types` | die zu lesenden Typen, durch Kommas getrennt: `hash`, `string`, `list`, `set`, `zset`, `stream` | alle sechs |
+| `types` | die zu lesenden Typen, durch Kommas getrennt: `hash`, `string`, `list`, `set`, `zset`, `stream`, `json` (RedisJSON) | alle sieben |
+| `json_path` | RedisJSON-Schlüssel: der Pfad, den `JSON.GET` liest, `$` (das ganze Dokument) oder `$.product`; ein alter Pfad (`.product`) geht auch | `$` |
 | `scan_count` | das `COUNT` jedes `SCAN` (ein Hinweis, wie viele Schlüssel der Server pro Schritt ansieht) | `100` |
 | `max_items` | höchstens so viele Werte (Einträge) einer Liste, Menge, sortierten Menge oder eines Streams | `1000` |
 | `limit` | höchstens so viele Schlüssel; `0`: alle | `0` |
@@ -887,16 +909,20 @@ Jeder Datensatz hat `_key` (den Schlüssel), `_type` und `_ttl` (Sekunden, `-1` 
 | set | `values`, sortiert, damit zwei Läufe denselben Datensatz ergeben | `SMEMBERS` |
 | sorted set | `values` (die Elemente, nach Score) und `scores` | `ZRANGE ... WITHSCORES` |
 | stream | `entries`: eine Liste aus `id` und den Feldern des Eintrags, die ersten `max_items` | `XRANGE - + COUNT` |
+| json (RedisJSON, Typ `ReJSON-RL`) | die Felder des Dokuments als Felder, verschachtelte Objekte als Punktnamen (`dims.w`), Listen nach der Option `arrays`, Listen aus Objekten nummeriert (`variants.0.g`); ein Wert, der kein Objekt ist, als `value` | `JSON.GET <Schlüssel> <json_path>` |
 
-Werte, die kein UTF-8 sind, werden als `base64:...` geschrieben. Schlüssel anderer Typen (Module wie RedisJSON)
-werden ausgelassen.
+Werte, die kein UTF-8 sind, werden als `base64:...` geschrieben. Schlüssel der Typen anderer Module (RedisBloom,
+RedisTimeSeries ...) werden ausgelassen. Ein JSONPath (`$...`) liefert die Liste seiner Treffer; ein Treffer wird als
+der Wert selbst gelesen.
 
 **Nur Lesen ist möglich.** Nach `AUTH` und `SELECT` sendet die Quelle nur `SCAN`, `TYPE`, `TTL`, `HGETALL`, `GET`,
-`LRANGE`, `SMEMBERS`, `ZRANGE` und `XRANGE`; der Client lehnt jeden anderen Befehl ab, bevor er den Server erreicht.
+`LRANGE`, `SMEMBERS`, `ZRANGE`, `XRANGE` und `JSON.GET`; der Client lehnt jeden anderen Befehl ab (auch `JSON.SET`,
+`JSON.DEL`, `JSON.MERGE` ...), bevor er den Server erreicht.
 `KEYS` wird nie verwendet: `SCAN` durchläuft die Schlüssel schrittweise, ohne den Server zu blockieren, und ein
 Schlüssel, den es doppelt liefert, wird einmal gelesen. Ein Lauf bricht ab, wenn mehr als
 `[RedisSourceSettings] MaxScannedKeys` Schlüssel passen (engen Sie das Muster ein). Geben Sie dem Import einen
-ACL-Benutzer, der nur lesen darf, z. B. `ACL SETUSER reader on >... ~product:* +@read`.
+ACL-Benutzer, der nur lesen darf, z. B. `ACL SETUSER reader on >... ~product:* +@read` (`+@read` enthält
+`JSON.GET`).
 
 **Geheimnisse und Hosts.** Das Passwort ist der Name eines Geheimnisses und wird in jeder Meldung maskiert. Ein Server
 in einem privaten oder reservierten Netz wird abgelehnt, außer bei `AllowPrivateHosts=enabled` oder wenn er in
@@ -915,6 +941,181 @@ einen Wert ab, der größer als `MaxValueMegabytes` ist.
 
 **Beispiel:** `share/examples/redis-products.ndjson` ist, was ein Lauf aus den Schlüsseln `product:*` liest (zwei
 Hashes, eine JSON-Zeichenkette und eine Menge), um eine Zuordnung auszuprobieren.
+
+## CouchDB-Datenbank (`couchdb`)
+
+Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Dokumente einer CouchDB-Datenbank (auch IBM Cloudant und andere
+Server, die die CouchDB-API sprechen), über HTTP gelesen: alle Dokumente (`_all_docs`), die Zeilen einer View eines
+Design-Dokuments oder die Antwort einer Mango-Abfrage (`_find`). Ein Datensatz ist ein Dokument mit `_id` und `_rev`.
+Einmal pro Lauf blättert die Quelle durch die Dokumente und schreibt sie in das Verzeichnis des Laufs, ein JSON-Objekt
+pro Zeile.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `base_url` | die Adresse von CouchDB, `https://couch.example.org:6984` (ohne Query und Zugangsdaten; ein Pfad für einen Reverse Proxy ist erlaubt) | Pflicht |
+| `database` | der Name der Datenbank (Kleinbuchstaben, Ziffern und `_ $ ( ) + -`; nie ein Pfad) | Pflicht |
+| `auth` | `none`, `basic` (Benutzer und Passwort bei jeder Anfrage), `cookie` (eine Sitzung: `POST /_session`, dann das Cookie `AuthSession`) | `none` |
+| `user`, `password_secret` | der Benutzer und der **Name** des Geheimnisses mit dem Passwort | |
+| `mode` | `all_docs`, `view` oder `mango` | `all_docs` |
+| `design`, `view` | bei `view`: das Design-Dokument (`news` oder `_design/news`) und die View | |
+| `include_docs` | `all_docs` und `view`: jedes Dokument lesen (sonst nur `_id` und `_rev` bzw. `_id`, `key` und `value` der Zeile einer View) | ja |
+| `reduce` | `view`: die Ergebnisse der Reduce-Funktion lesen, nach Schlüssel gruppiert (`group=true`, ohne Dokumente) | nein |
+| `keys` | `all_docs` und `view`: nur diese Schlüssel (eine JSON-Liste), mit `POST` in Stücken einer Seite gesendet | |
+| `startkey`, `endkey` | `all_docs` und `view`: der Bereich der Schlüssel als JSON (`"2026-01-01"` mit den Anführungszeichen, `["news", 1]`) | |
+| `selector` | `mango`: ein Selektor, z. B. `{"type": "article", "year": {"$gte": 2025}}` | jedes Dokument |
+| `fields` | `mango`: die zu lesenden Felder, eines pro Zeile | alle |
+| `sort` | `mango`: z. B. `[{"published_at": "desc"}]` (braucht einen Index auf den Feldern) | |
+| `include_design` | `all_docs`: auch die Design-Dokumente (`_design/...`) lesen | nein |
+| `page_size` | Dokumente pro Anfrage, 1 bis 10000 | `500` |
+| `limit` | höchstens so viele Dokumente; `0`: alle | `0` |
+| `arrays`, `separator` | Arrays als JSON (`["a","b"]`) oder verbundene Liste (`a, b`; Arrays aus Objekten bleiben JSON) | `json`, `, ` |
+| `key` | das Schlüsselfeld | `_id` |
+
+**Felder und Typen.** Verschachtelte Objekte werden wie bei der MongoDB-Quelle zu Punktnamen flachgeklopft
+(`author.name`, `author.address.city`); Zeichenketten, Zahlen, `true`/`false` und `null` bleiben, wie sie sind, Arrays
+werden JSON oder eine verbundene Liste. `_id` und `_rev` bleiben erhalten, ebenso die Stubs von `_attachments`
+(`_attachments.photo.jpg.content_type` ...); die Anhänge selbst werden nicht gelesen. Gelöschte Dokumente und nicht
+gefundene Schlüssel werden ausgelassen.
+
+**Nur Lesen ist möglich.** Die Quelle baut nur diese Anfragen und prüft jede, bevor sie gesendet wird: `GET /` (die
+Version), `POST /_session` (Cookie-Anmeldung), `GET` oder `POST <db>/_all_docs`, `POST <db>/_find` und `GET` oder
+`POST <db>/_design/<doc>/_view/<view>`. Alles andere (`_bulk_docs`, `_update`, `_show`, Schreiben von `_design`,
+`PUT`, `DELETE`, `_replicate`, `_users` ...) wird abgelehnt. Datenbank, Design-Dokument und View sind Namen, nie ein
+Pfad. Ein Mango-Selektor darf in jeder Tiefe nur die Abfrageoperatoren von Mango verwenden (`$and`, `$or`, `$not`,
+`$nor`, `$all`, `$elemMatch`, `$allMatch`, `$keyMapMatch`, `$lt`, `$lte`, `$eq`, `$ne`, `$gte`, `$gt`, `$exists`,
+`$type`, `$in`, `$nin`, `$size`, `$mod`, `$regex`, `$beginsWith`). Geben Sie dem Import einen Benutzer, der nur
+Mitglied (Leser) der Datenbank ist, ohne Admin-Rolle.
+
+**Blättern.** `_all_docs` und Views fragen eine Zeile mehr als eine Seite ab und beginnen die nächste Seite bei dieser
+Zeile (`startkey`, bei einer View zusätzlich `startkey_docid`, damit die Zeilen eines mehrfach ausgegebenen Schlüssels
+weder verloren gehen noch doppelt gelesen werden); Mango blättert mit dem `bookmark` jeder Antwort; `keys` werden in
+Stücken einer Seite gesendet. `[CouchDbSourceSettings] MaxPages` begrenzt die Anfragen eines Laufs.
+
+**Geheimnisse und Hosts.** Das Passwort ist der Name eines Geheimnisses und wird in jeder Meldung als `[secret <Name>]`
+maskiert; das Sitzungs-Cookie wird nie gezeigt. Ein Server in einem privaten oder reservierten Netz wird abgelehnt,
+außer bei `[SourceSettings] AllowPrivateHosts=enabled` oder wenn er in `[CouchDbSourceSettings] AllowedHosts[]` steht.
+
+**Verbindung testen** liest die Version (`GET /`, angezeigt als `CouchDB 3.4.2` oder `Cloudant ...`) und das erste
+Dokument und zeigt seine Felder oder den Fehler mit dem Grund des Servers (`not_found`, `unauthorized`), maskiert.
+
+**Was der Host braucht:** die `http`- und `https`-Streams von PHP (`allow_url_fopen=On`, die Erweiterung `openssl`),
+wie bei der Elasticsearch-Quelle; Zertifikate werden geprüft, Antworten sind auf `[PlatformSettings]
+MaxResponseMegabytes` begrenzt, die Zeitgrenze ist `[ImportSettings] StreamTimeout`.
+
+**Beispiel:** `share/examples/couchdb-articles.ndjson` ist, was ein Lauf aus einer Datenbank mit Artikeln liest (drei
+Dokumente, flachgeklopft).
+
+## Couchbase-Abfrage (`couchbase`)
+
+Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Ergebnisse einer SQL++-Abfrage (N1QL) von Couchbase Server oder
+Couchbase Capella, gelesen über die REST-API des Query-Dienstes: `POST /query/service` auf Port 8093, mit TLS 18093.
+Ein Datensatz ist ein Ergebnis: ein Objekt, zu Punktnamen flachgeklopft (`stock.store`), ein einfacher Wert
+(`SELECT RAW`) als `value`.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `base_url` | der Query-Dienst: `https://cb.example.org:18093` (TLS) oder `http://cb.example.org:8093` | Pflicht |
+| `user`, `password_secret` | ein Benutzer mit der Rolle Query Select auf den Keyspaces und der **Name** des Geheimnisses mit dem Passwort | |
+| `statement` | ein `SELECT` (oder `WITH ... SELECT`) ohne Parameter | Pflicht |
+| `query_context` | Bucket und Scope, in denen die Namen der Abfrage gelesen werden (Couchbase 7): `default:shop.inventory` | |
+| `paging` | `offset` (`LIMIT` und `OFFSET`; geben Sie der Abfrage ein `ORDER BY`), `keyset` (nach dem letzten Wert eines eindeutigen Feldes), `none` (eine Anfrage) | `offset` |
+| `keyset_field` | bei `keyset`: ein eindeutiges Feld der Ergebnisse (`id`, `sku`, `meta.id`) | |
+| `scan_consistency` | `not_bounded` (wie der Index steht) oder `request_plus` (wartet, bis der Index jede Änderung vor dem Lauf hat) | `not_bounded` |
+| `page_size` | Ergebnisse pro Anfrage, 1 bis 10000 | `500` |
+| `limit` | höchstens so viele Ergebnisse; `0`: alle | `0` |
+| `arrays`, `separator` | Arrays als JSON oder verbundene Liste | `json`, `, ` |
+| `key` | das Schlüsselfeld; wählen Sie `META(x).id AS id` für die Dokument-ID | `id` |
+
+**Nur Lesen ist möglich, doppelt.** Jede Anfrage trägt `readonly=true`, sodass schon der Query-Dienst jede Anweisung
+ablehnt, die Daten ändert. Davor lässt die Quelle nur ein einzelnes `SELECT` oder `WITH ... SELECT` durch und lehnt
+außerhalb von Zeichenketten, Bezeichnern in Backticks und Kommentaren die Wörter jeder anderen Anweisung ab: `INSERT`,
+`UPSERT`, `UPDATE`, `DELETE`, `MERGE`, `CREATE`, `DROP`, `ALTER`, `GRANT`, `REVOKE`, `EXECUTE` (auch
+`EXECUTE FUNCTION`), `INFER`, `PREPARE`, `BUILD`, `ADVISE`, `EXPLAIN`, `TRUNCATE`, `FLUSH`, die Transaktionsanweisungen
+(`BEGIN`, `COMMIT`, `ROLLBACK`, `SAVEPOINT`, `SET`), `FUNCTION` und `CURL()` (eine Anfrage vom Server aus). Auch die
+System-Keyspaces (`system:...`), Parameter (`$name`, `?`) und eine zweite Anweisung nach `;` werden abgelehnt. Ein
+Feld, das so heißt, wird in Backticks geschrieben (`` p.`update` ``). Die einzige Anfrage ist
+`POST <Server>/query/service`.
+
+**Blättern.** `offset` umschließt die Anweisung als `SELECT RAW exp_page FROM (<Anweisung>) AS exp_page LIMIT n
+OFFSET m` (eine `WITH`-Klausel bleibt davor); die Reihenfolge ist die der Abfrage, geben Sie ihr also ein `ORDER BY`
+auf ein eindeutiges Feld. `keyset` umschließt sie als `... WHERE exp_page.<Feld> > $after ORDER BY exp_page.<Feld>
+LIMIT n` mit dem letzten Wert der Seite als benanntem Parameter `$after`: schneller bei großen Ergebnissen, das Feld
+muss in den Ergebnissen stehen. `none` sendet die Anweisung, wie sie ist, einmal. `[CouchbaseSourceSettings]
+QueryTimeout` ist das `timeout` der Anfrage (30 Sekunden), `MaxPages` begrenzt die Abfragen eines Laufs.
+
+**Typen.** JSON, wie es ist: Zeichenketten, Zahlen, `true`/`false`, `null`; verschachtelte Objekte als Punktfelder,
+Arrays als JSON oder verbundene Liste. Felder, die `MISSING` sind, erscheinen nicht.
+
+**Geheimnisse und Hosts.** Das Passwort ist der Name eines Geheimnisses und wird in jeder Meldung maskiert. Ein Server
+in einem privaten oder reservierten Netz wird abgelehnt, außer bei `AllowPrivateHosts=enabled` oder wenn er in
+`[CouchbaseSourceSettings] AllowedHosts[]` steht.
+
+**Verbindung testen** führt die Anweisung für ein Ergebnis aus (`LIMIT 1`) und zeigt seine Felder oder den Fehler des
+Query-Dienstes mit seinem Code (`12003: Keyspace not found ...`), maskiert.
+
+**Was der Host braucht:** die `http`- und `https`-Streams von PHP, wie bei CouchDB; kein Couchbase-SDK.
+
+**Beispiel:** `share/examples/couchbase-products.ndjson` ist, was ein Lauf aus einer Abfrage von Produkten liest.
+
+## Azure-Cosmos-DB-Container (`cosmosdb`)
+
+Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Elemente eines Azure-Cosmos-DB-Containers der API für NoSQL
+(früher SQL-API), die eine Abfrage auswählt, gelesen über die REST-API und mit Fortsetzungstokens geblättert. Ein
+Datensatz ist ein Element, verschachtelte Objekte zu Punktnamen flachgeklopft (`customer.id`). Ein Konto der **API für
+MongoDB** wird mit der [MongoDB-Quelle](#mongodb-collection-mongodb) und seiner Verbindungszeichenkette gelesen
+(`mongodb://<Konto>.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb` ohne das Passwort, das ein Geheimnis
+ist); die APIs für Cassandra, Gremlin und Table werden nicht gelesen.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `endpoint` | die URI des Kontos: `https://<Konto>.documents.azure.com` | Pflicht |
+| `database`, `container` | Namen (Buchstaben, Ziffern, `_ . -`) | Pflicht |
+| `auth` | `master_key`: der Schlüssel des Kontos signiert jede Anfrage (verwenden Sie den **schreibgeschützten** Schlüssel); `resource_token`: ein Ressourcentoken mit der Berechtigung Read | `master_key` |
+| `key_secret` | der **Name** des Geheimnisses mit dem Schlüssel (Base64) oder dem Token | Pflicht |
+| `query` | ein `SELECT` ohne Parameter, z. B. `SELECT c.id, c.title FROM c WHERE c.status = 'published'` | `SELECT * FROM c` |
+| `cross_partition` | jede Partition abfragen | ja |
+| `partition_key` | nur eine Partition: ihr Schlüsselwert als JSON (`"tea"`, `42`) | |
+| `max_item_count` | Elemente pro Seite, 1 bis 1000 | `100` |
+| `limit` | höchstens so viele Elemente; `0`: alle | `0` |
+| `system_fields` | `_rid`, `_self`, `_etag` und `_attachments` behalten (`_ts`, die Zeit der letzten Änderung, bleibt immer) | nein |
+| `arrays`, `separator` | Arrays als JSON oder verbundene Liste | `json`, `, ` |
+| `key` | das Schlüsselfeld | `id` |
+
+**Signatur.** Mit einem Kontoschlüssel signiert die Quelle jede Anfrage selbst, wie die REST-API es beschreibt:
+HMAC-SHA256 mit dem dekodierten Schlüssel über Verb, Ressourcentyp (`docs`), Ressourcenlink
+(`dbs/<db>/colls/<Container>`) und Datum (`x-ms-date`), gesendet als `Authorization: type=master&ver=1.0&sig=...`;
+ein SDK wird nicht gebraucht. Ein Ressourcentoken wird gesendet, wie es ist.
+
+**Nur Lesen ist möglich.** Die einzige Anfrage ist die Abfrage des Containers:
+`POST .../dbs/<db>/colls/<Container>/docs` mit `x-ms-documentdb-isquery: True`. Die Abfrage muss ein `SELECT` sein;
+Parameter (`@name`), benutzerdefinierte Funktionen (`udf.`, JavaScript auf dem Server) und die Wörter schreibender
+Anweisungen (`INSERT`, `UPDATE`, `DELETE`, `UPSERT`, `MERGE`, `CREATE`, `DROP`, `ALTER`, `EXEC`, `PATCH`) außerhalb von
+Zeichenketten werden abgelehnt; ein so benanntes Feld wird als `c["update"]` gelesen. Die Abfragesprache der API für
+NoSQL hat keine Anweisung, die schreibt. Verwenden Sie den **schreibgeschützten** Schlüssel des Kontos (Schlüssel,
+Schreibgeschützte Schlüssel) oder ein Ressourcentoken mit der Berechtigung Read: Dann lehnt auch das Konto jedes
+Schreiben ab.
+
+**Blättern.** Jede Antwort gibt ein Fortsetzungstoken (`x-ms-continuation`), wenn weitere Elemente folgen; die Quelle
+sendet es mit der nächsten Anfrage, bis keines mehr kommt. `[CosmosDbSourceSettings] MaxPages` begrenzt die Seiten
+eines Laufs. Über Partitionen hinweg bedient das Gateway einen Filter und eine Projektion; `ORDER BY`, `TOP`,
+`DISTINCT`, `GROUP BY` und Aggregate über Partitionen lehnt das Gateway ab ("The provided cross partition query can not
+be directly served by the gateway"): Geben Sie dafür einen Partitionsschlüssel an.
+
+**Typen.** JSON, wie es ist; verschachtelte Objekte als Punktfelder, Arrays als JSON oder verbundene Liste; `_ts` ist
+die Zeit der letzten Änderung in Sekunden seit 1970.
+
+**Geheimnisse und Hosts.** Schlüssel oder Token sind der Name eines Geheimnisses und werden in jeder Meldung maskiert
+(auch URL-kodiert). Ein Endpunkt in einem privaten oder reservierten Netz (der Emulator auf `https://localhost:8081`,
+ein privater Endpunkt) wird abgelehnt, außer bei `AllowPrivateHosts=enabled` oder wenn er in
+`[CosmosDbSourceSettings] AllowedHosts[]` steht.
+
+**Verbindung testen** liest das erste Element der Abfrage und zeigt seine Felder oder den Fehler mit dem Code des
+Kontos (`Unauthorized`, `NotFound`, `BadRequest: ...`), maskiert.
+
+**Was der Host braucht:** den `https`-Stream von PHP (`allow_url_fopen=On`, `openssl`) und `hash_hmac` (Teil von PHP).
+
+**Beispiel:** `share/examples/cosmosdb-orders.ndjson` ist, was ein Lauf aus einem Container mit Bestellungen liest.
+
 ## LDAP-Verzeichnis (`ldap`)
 
 Gruppe: Daten. Herkunft: `remote`. Die Einträge eines LDAP-Verzeichnisses (OpenLDAP, Active Directory, 389 Directory

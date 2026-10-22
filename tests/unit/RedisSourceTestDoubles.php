@@ -77,6 +77,14 @@ class RedisSourceTestTransport implements expImportRedisTransport
                 return $flat;
             case 'XRANGE':
                 return array_slice( $entry['value'], 0, (int)$args[5] );
+            case 'JSON.GET':
+                // RedisJSON: a JSONPath ($...) gives the list of its matches, a legacy path (.x) the value
+                $document = json_decode( (string)$entry['value'], true );
+                $path = (string)$args[2];
+                $parts = array_values( array_filter( explode( '.', ltrim( $path, '$' ) ), 'strlen' ) );
+                foreach ( $parts as $part )
+                    $document = is_array( $document ) && array_key_exists( $part, $document ) ? $document[$part] : null;
+                return json_encode( $path[0] === '$' ? array( $document ) : $document );
         }
         return null;
     }

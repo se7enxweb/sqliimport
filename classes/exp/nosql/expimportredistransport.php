@@ -15,7 +15,7 @@
 interface expImportRedisTransport
 {
     /** The commands command() sends; anything else is refused before it reaches the server. */
-    const READ_COMMANDS = array( 'SCAN', 'TYPE', 'HGETALL', 'GET', 'LRANGE', 'SMEMBERS', 'ZRANGE', 'XRANGE', 'TTL' );
+    const READ_COMMANDS = array( 'SCAN', 'TYPE', 'HGETALL', 'GET', 'LRANGE', 'SMEMBERS', 'ZRANGE', 'XRANGE', 'TTL', 'JSON.GET' );
 
     /**
      * Connects, authenticates (AUTH user password, or AUTH password) and selects the database.

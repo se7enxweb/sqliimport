@@ -15,16 +15,25 @@
  * The source reads its data itself (origin "remote"): once per run fetch() reads the documents page by page (after the
  * last _id, or with skip and limit) and writes them into the run's snapshot, one JSON object per line.
  *
- * Only reading is possible: the only operation is a find (MongoDB\Driver\Query) with a filter, a projection and a sort;
- * no command, no aggregation, no write. checkJson() refuses the operators that run code on the server or write
+ * Only reading is possible: the only operations are a find (MongoDB\Driver\Query) with a filter, a projection and a
+ * sort, and (mode aggregate) an aggregation sent as a read command (executeReadCommand) whose pipeline has reading
+ * stages only: checkPipeline() lets through the stages of STAGES ($lookup, $unionWith and $facet with their own
+ * pipelines checked the same way, $geoNear only first) and refuses any other stage ($out, $merge, $currentOp,
+ * $listSessions ...). checkJson() and checkPipeline() refuse the operators that run code on the server or write
  * ($where, $function, $accumulator, $out, $merge) wherever they stand. The password is the name of a secret
  * (expImportSecrets), never part of the URI, and masked in every message; a server in a private network is refused
- * unless [MongoDbSourceSettings] AllowedHosts[] lists it; system collections (system.*) are not read.
+ * unless [MongoDbSourceSettings] AllowedHosts[] lists it; system collections (system.*) are not read, nor joined.
+ * MongoDB Atlas is reached with its mongodb+srv:// URI (the hosts of its SRV record are checked).
  */
 class expImportMongoDbSource extends expImportJsonSource
 {
     /** The operators a filter, projection or sort must not contain anywhere: code on the server, writes. */
-    const FORBIDDEN = array( '$where', '$function', '$accumulator', '$out', '$merge' );
+    const FORBIDDEN = array( '$where', '$function', '$accumulator', '$out', '$merge', '$currentop', '$listsessions' );
+
+    /** The stages a pipeline may have (lowercase): they only read and shape documents. */
+    const STAGES = array( '$match', '$project', '$addfields', '$set', '$unset', '$sort', '$limit', '$skip', '$unwind', '$group',
+                          '$bucket', '$bucketauto', '$count', '$facet', '$lookup', '$replaceroot', '$replacewith', '$sample',
+                          '$sortbycount', '$densify', '$fill', '$setwindowfields', '$geonear', '$unionwith' );
 
     /** The default port of MongoDB. */
     const PORT = 27017;
@@ -77,9 +86,10 @@ class expImportMongoDbSource extends expImportJsonSource
     {
         return 'The documents of a MongoDB collection (the database of another application, a product or event store): one '
              . 'record is one document, nested documents as dotted fields (author.name), ObjectId, dates, decimals and '
-             . 'binary values as text, arrays as JSON or a joined list. Only a find with a filter, projection and sort is '
-             . 'run, read page by page; the password is the name of a secret in the settings. Needs the PHP extension '
-             . 'mongodb in the PHP of the job queue\'s workers.';
+             . 'binary values as text, arrays as JSON or a joined list. Only a find with a filter, projection and sort, or '
+             . 'an aggregation pipeline of reading stages, is run, read page by page; the password is the name of a secret '
+             . 'in the settings. MongoDB Atlas by its mongodb+srv:// URI. Needs the PHP extension mongodb in the PHP of the '
+             . 'job queue\'s workers.';
     }
 
     public static function examples()
@@ -97,6 +107,11 @@ class expImportMongoDbSource extends expImportJsonSource
                    'options' => array( 'uri' => 'mongodb://db1.example.org:27017,db2.example.org:27017/?replicaSet=rs0', 'user' => 'reader',
                                        'password' => 'shop_mongo', 'database' => 'shop', 'collection' => 'products', 'filter' => '{"active": true}',
                                        'read_preference' => 'secondaryPreferred', 'key' => 'sku' ) ),
+            array( 'label' => 'MongoDB Atlas: the orders per customer of 2026 by an aggregation pipeline (mongodb+srv://cluster0.example.mongodb.net), the password as the secret atlas_reader',
+                   'options' => array( 'uri' => 'mongodb+srv://cluster0.example.mongodb.net/?retryWrites=true&w=majority', 'user' => 'reader',
+                                       'password' => 'atlas_reader', 'database' => 'shop', 'collection' => 'orders', 'mode' => 'aggregate',
+                                       'pipeline' => '[{"$match": {"created": {"$gte": {"$date": "2026-01-01T00:00:00Z"}}}}, {"$group": {"_id": "$customer", "orders": {"$sum": 1}, "total": {"$sum": "$total"}}}, {"$sort": {"_id": 1}}]',
+                                       'paging' => 'cursor', 'key' => '_id' ) ),
         );
     }
 
@@ -116,6 +131,10 @@ class expImportMongoDbSource extends expImportJsonSource
                                     'help' => 'The database the user is defined in; empty: the database of the URI, else admin' ),
             'database' => array( 'type' => 'string', 'label' => 'Database', 'required' => true, 'max' => 64, 'pattern' => '/^[A-Za-z0-9_-]+$/' ),
             'collection' => array( 'type' => 'string', 'label' => 'Collection', 'required' => true, 'max' => 255, 'pattern' => '/^[A-Za-z0-9_][A-Za-z0-9_.-]*$/' ),
+            'mode' => array( 'type' => 'enum', 'label' => 'Read', 'default' => 'find',
+                             'values' => array( 'find' => 'A find (filter, projection, sort)', 'aggregate' => 'An aggregation pipeline (reading stages only)' ) ),
+            'pipeline' => array( 'type' => 'text', 'label' => 'Pipeline (JSON)',
+                                 'help' => 'With an aggregation: a list of stages, e.g. [{"$match": {"status": "published"}}, {"$project": {"title": 1}}]. Only reading stages; $out, $merge, $function and the like are refused' ),
             'filter' => array( 'type' => 'text', 'label' => 'Filter (JSON)',
                                'help' => 'A query document, e.g. {"status": "published"}; Extended JSON for types: {"$oid": "..."}, {"$date": "2026-01-01T00:00:00Z"}. $where, $function and $accumulator are refused. Empty: every document' ),
             'projection' => array( 'type' => 'text', 'label' => 'Projection (JSON)',
@@ -123,7 +142,8 @@ class expImportMongoDbSource extends expImportJsonSource
             'sort' => array( 'type' => 'text', 'label' => 'Sort (JSON)',
                              'help' => 'e.g. {"published_at": -1}; needs the paging Skip and limit (paging by _id reads in _id order)' ),
             'paging' => array( 'type' => 'enum', 'label' => 'Paging', 'default' => 'id',
-                               'values' => array( 'id' => 'By _id (each page after the last _id; fast, in _id order)', 'skip' => 'Skip and limit (any sort order)' ) ),
+                               'values' => array( 'id' => 'By _id (each page after the last _id; fast, in _id order)', 'skip' => 'Skip and limit (any sort order)',
+                                                  'cursor' => 'One cursor read in batches (any order; the server keeps it open)' ) ),
             'batch_size' => array( 'type' => 'int', 'label' => 'Documents per page', 'default' => 500, 'min' => 1, 'max' => 10000 ),
             'limit' => array( 'type' => 'int', 'label' => 'Most documents', 'default' => 0, 'min' => 0,
                               'help' => '0: every matching document' ),
@@ -170,6 +190,107 @@ class expImportMongoDbSource extends expImportJsonSource
         if ( $found !== null )
             throw new expImportSourceException( "MongoDB: the $what contains $found, only reading is allowed" . ' ($where, $function, $accumulator, $out and $merge are refused)' );
         return $data;
+    }
+
+    /**
+     * An aggregation pipeline as given: one JSON list of stages, each a reading stage of STAGES, the pipelines of
+     * $facet, $lookup and $unionWith checked the same way, $geoNear only as the first stage, and no forbidden operator
+     * at any depth.
+     *
+     * @param string $json
+     * @return array the stages
+     * @throws expImportSourceException
+     */
+    public static function checkPipeline( $json )
+    {
+        $json = trim( (string)$json );
+        if ( $json === '' )
+            throw new expImportSourceException( 'MongoDB: the pipeline is empty; give a JSON list of stages ([{"$match": {...}}, ...])' );
+        if ( $json[0] !== '[' )
+            throw new expImportSourceException( 'MongoDB: the pipeline must be a JSON list of stages ([{"$match": {...}}, ...])' );
+        $data = json_decode( $json, true, 128 );
+        if ( !is_array( $data ) )
+            throw new expImportSourceException( 'MongoDB: the pipeline is not valid JSON: ' . json_last_error_msg() );
+        $refusal = self::checkStages( $data, true, 'the pipeline' );
+        if ( $refusal !== null )
+            throw new expImportSourceException( 'MongoDB: ' . $refusal );
+        return $data;
+    }
+
+    /**
+     * @param mixed $stages
+     * @param bool $top whether this is the pipeline itself (not one of a $facet, $lookup or $unionWith)
+     * @param string $where for the message
+     * @return string|null the reason a pipeline is refused, null when it only reads
+     */
+    protected static function checkStages( $stages, $top, $where )
+    {
+        if ( !is_array( $stages ) || ( $stages && array_values( $stages ) !== $stages ) )
+            return "$where must be a list of stages";
+        foreach ( $stages as $i => $stage )
+        {
+            if ( !is_array( $stage ) || count( $stage ) !== 1 || array_values( $stage ) === $stage )
+                return 'stage ' . ( $i + 1 ) . " of $where must be an object with one stage";
+            $name = trim( (string)key( $stage ) );
+            $body = reset( $stage );
+            $lower = strtolower( $name );
+            if ( in_array( $lower, self::FORBIDDEN, true ) || !in_array( $lower, self::STAGES, true ) )
+                return "$where has the stage $name, which is refused: only reading is allowed (reading stages: \$match, \$project, \$group, \$lookup ...)";
+            if ( $lower === '$geonear' && ( !$top || $i !== 0 ) )
+                return '$geoNear is only allowed as the first stage of the pipeline';
+            if ( $lower === '$facet' )
+            {
+                if ( !is_array( $body ) || !$body || array_values( $body ) === $body )
+                    return '$facet needs an object of named pipelines';
+                foreach ( $body as $facet => $sub )
+                    if ( ( $refusal = self::checkStages( $sub, false, "the facet $facet" ) ) !== null )
+                        return $refusal;
+                continue;
+            }
+            if ( $lower === '$lookup' || $lower === '$unionwith' )
+            {
+                $sub = null;
+                if ( $lower === '$unionwith' && is_string( $body ) )
+                    $collection = $body;
+                elseif ( is_array( $body ) )
+                {
+                    $collection = $lower === '$lookup' ? ( isset( $body['from'] ) ? $body['from'] : '' ) : ( isset( $body['coll'] ) ? $body['coll'] : '' );
+                    $sub = isset( $body['pipeline'] ) ? $body['pipeline'] : null;
+                    unset( $body['pipeline'] );
+                    if ( ( $found = self::forbiddenIn( $body ) ) !== null )
+                        return "$where contains $found, only reading is allowed";
+                }
+                else
+                    return "$name needs an object";
+                if ( !is_string( $collection ) )
+                    return "$name names its collection by a name only (no other database)";
+                if ( stripos( trim( $collection ), 'system.' ) === 0 )
+                    return 'system collections (system.*) are not read';
+                if ( $sub !== null && ( $refusal = self::checkStages( $sub, false, "the pipeline of $name" ) ) !== null )
+                    return $refusal;
+                continue;
+            }
+            if ( is_array( $body ) && ( $found = self::forbiddenIn( $body ) ) !== null )
+                return "$where contains $found, only reading is allowed";
+        }
+        return null;
+    }
+
+    /**
+     * A pipeline (JSON text, as given, so Extended JSON stays as it is) with more stages at its end.
+     *
+     * @param string $json the checked pipeline
+     * @param array $stages the stages to add, e.g. array( array( '$skip' => 500 ), array( '$limit' => 500 ) )
+     * @return string
+     */
+    public static function appendStages( $json, array $stages )
+    {
+        $json = trim( (string)$json );
+        $inner = trim( (string)substr( $json, 1, -1 ) );
+        $parts = $inner === '' ? array() : array( $inner );
+        foreach ( $stages as $stage )
+            $parts[] = (string)json_encode( $stage );
+        return '[' . implode( ', ', $parts ) . ']';
     }
 
     /** @return string|null the first forbidden operator among the keys of a decoded document, at any depth */
@@ -303,8 +424,20 @@ class expImportMongoDbSource extends expImportJsonSource
         $filter = self::checkJson( isset( $options['filter'] ) ? $options['filter'] : '', 'filter' );
         $projection = self::checkJson( isset( $options['projection'] ) ? $options['projection'] : '', 'projection' );
         $sort = self::checkJson( isset( $options['sort'] ) ? $options['sort'] : '', 'sort' );
-        $paging = isset( $options['paging'] ) && $options['paging'] === 'skip' ? 'skip' : 'id';
-        if ( $paging === 'id' )
+        $paging = isset( $options['paging'] ) && in_array( $options['paging'], array( 'skip', 'cursor' ), true ) ? (string)$options['paging'] : 'id';
+        $mode = isset( $options['mode'] ) && $options['mode'] === 'aggregate' ? 'aggregate' : 'find';
+        $pipeline = '';
+        if ( $mode === 'aggregate' )
+        {
+            if ( $filter || $projection || $sort )
+                throw new expImportSourceException( 'MongoDB: an aggregation has no filter, projection or sort of its own; give them as $match, $project and $sort stages of the pipeline' );
+            self::checkPipeline( isset( $options['pipeline'] ) ? $options['pipeline'] : '' );
+            $pipeline = trim( (string)$options['pipeline'] );
+            // an aggregation has no _id order to page by: one cursor, unless skip and limit are chosen
+            if ( $paging === 'id' )
+                $paging = 'cursor';
+        }
+        elseif ( $paging === 'id' )
         {
             if ( $sort && $sort !== array( '_id' => 1 ) )
                 throw new expImportSourceException( 'MongoDB: a sort needs the paging "Skip and limit" (paging by _id reads in _id order)' );
@@ -332,16 +465,16 @@ class expImportMongoDbSource extends expImportJsonSource
             if ( $source !== '' )
                 $uriOptions['authSource'] = $source;
         }
-        $mode = isset( $options['read_preference'] ) ? (string)$options['read_preference'] : 'primary';
-        if ( !in_array( $mode, array( 'primary', 'primaryPreferred', 'secondary', 'secondaryPreferred', 'nearest' ), true ) )
-            $mode = 'primary';
+        $preference = isset( $options['read_preference'] ) ? (string)$options['read_preference'] : 'primary';
+        if ( !in_array( $preference, array( 'primary', 'primaryPreferred', 'secondary', 'secondaryPreferred', 'nearest' ), true ) )
+            $preference = 'primary';
         $batch = isset( $options['batch_size'] ) ? (int)$options['batch_size'] : 500;
         $batch = max( 1, min( max( 1, (int)expImport::setting( 'MongoDbSourceSettings', 'MaxBatchSize', 10000 ) ), $batch ) );
         return array(
             'uri' => $uri, 'uri_options' => $uriOptions, 'database' => $database, 'collection' => $collection,
             'filter' => $filter ? trim( (string)$options['filter'] ) : '{}', 'projection' => $projection, 'sort' => $sort,
-            'paging' => $paging, 'batch' => $batch, 'limit' => isset( $options['limit'] ) ? max( 0, (int)$options['limit'] ) : 0,
-            'read_preference' => $mode, 'max_time_ms' => $seconds * 1000, 'refs' => $refs, 'password' => $password,
+            'mode' => $mode, 'pipeline' => $pipeline, 'paging' => $paging, 'batch' => $batch, 'limit' => isset( $options['limit'] ) ? max( 0, (int)$options['limit'] ) : 0,
+            'read_preference' => $preference, 'max_time_ms' => $seconds * 1000, 'refs' => $refs, 'password' => $password,
         );
     }
 
@@ -450,13 +583,30 @@ class expImportMongoDbSource extends expImportJsonSource
             $after = null;
             while ( true )
             {
-                $n = $limit > 0 ? min( $plan['batch'], $limit - $read ) : $plan['batch'];
-                $query = array( 'projection' => $plan['projection'], 'sort' => $plan['sort'], 'limit' => $n, 'batchSize' => $n,
-                                'maxTimeMS' => $plan['max_time_ms'], 'readPreference' => $plan['read_preference'] );
-                if ( $plan['paging'] === 'skip' && $read > 0 )
-                    $query['skip'] = $read;
+                $cursor = $plan['paging'] === 'cursor';
+                // one cursor: the whole read (up to the limit) in batches the driver fetches; else one page per query
+                $n = $cursor ? ( $limit > 0 ? $limit : PHP_INT_MAX ) : ( $limit > 0 ? min( $plan['batch'], $limit - $read ) : $plan['batch'] );
+                if ( $plan['mode'] === 'aggregate' )
+                {
+                    $stages = array();
+                    if ( !$cursor && $read > 0 )
+                        $stages[] = array( '$skip' => $read );
+                    if ( $n !== PHP_INT_MAX )
+                        $stages[] = array( '$limit' => $n );
+                    $documents = $transport->aggregate( $plan['database'], $plan['collection'], self::appendStages( $plan['pipeline'], $stages ),
+                                                        array( 'batchSize' => min( $n, $plan['batch'] ), 'maxTimeMS' => $plan['max_time_ms'],
+                                                               'readPreference' => $plan['read_preference'] ) );
+                }
+                else
+                {
+                    $query = array( 'projection' => $plan['projection'], 'sort' => $plan['sort'], 'limit' => $n === PHP_INT_MAX ? 0 : $n,
+                                    'batchSize' => min( $n, $plan['batch'] ), 'maxTimeMS' => $plan['max_time_ms'], 'readPreference' => $plan['read_preference'] );
+                    if ( $plan['paging'] === 'skip' && $read > 0 )
+                        $query['skip'] = $read;
+                    $documents = $transport->find( $plan['database'], $plan['collection'], $plan['filter'], $plan['paging'] === 'id' ? $after : null, $query );
+                }
                 $page = 0;
-                foreach ( $transport->find( $plan['database'], $plan['collection'], $plan['filter'], $plan['paging'] === 'id' ? $after : null, $query ) as $document )
+                foreach ( $documents as $document )
                 {
                     $document = (array)$document;
                     if ( $plan['paging'] === 'id' )
@@ -471,7 +621,7 @@ class expImportMongoDbSource extends expImportJsonSource
                     if ( $page >= $n )
                         break;
                 }
-                if ( $page < $n || ( $limit > 0 && $read >= $limit ) )
+                if ( $cursor || $page < $n || ( $limit > 0 && $read >= $limit ) )
                     break;
             }
             return $read;

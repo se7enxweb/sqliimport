@@ -56,6 +56,9 @@ foreach ( array( 'RunSettings' => array( 'ChunkSize', 'DryRunRows', 'LogLevel', 
                  'MongoDbSourceSettings' => array( 'AllowedHosts', 'Timeout', 'MaxBatchSize' ),
                  'RedisSourceSettings' => array( 'AllowedHosts', 'Client', 'Timeout', 'MaxValueMegabytes', 'MaxScannedKeys', 'TestScanRounds' ),
                  'LdapSourceSettings' => array( 'AllowedHosts', 'Timeout' ),
+                 'CouchDbSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
+                 'CouchbaseSourceSettings' => array( 'AllowedHosts', 'QueryTimeout', 'MaxPages' ),
+                 'CosmosDbSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
                  'ImportSettings' => array( 'DefaultParentNodeID', 'ViewCaching', 'ObjectIndexing', 'StreamTimeout' ),
                  'AdminSettings' => array( 'ListLimit' ) ) as $section => $names )
     foreach ( $names as $name )

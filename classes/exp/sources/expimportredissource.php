@@ -10,13 +10,15 @@
 /**
  * The keys of a Redis database that match a pattern: one record is one key, with _key (its name), _type and _ttl, and
  * its value by type: a hash's fields as fields, a string as value (decoded when it is JSON), the values of a list,
- * set or sorted set (with their scores), the entries of a stream.
+ * set or sorted set (with their scores), the entries of a stream, and a RedisJSON document (type ReJSON-RL, read with
+ * JSON.GET at a path) with its fields flattened like a hash's (nested ones as dotted names).
  *
  * The source reads its data itself (origin "remote"): once per run fetch() walks the keys with SCAN (MATCH and COUNT,
  * never KEYS) and writes them into the run's snapshot, one JSON object per line.
  *
  * Only reading is possible: after AUTH and SELECT the only commands sent are SCAN, TYPE, TTL, HGETALL, GET, LRANGE,
- * SMEMBERS, ZRANGE WITHSCORES and XRANGE (expImportRedisTransport::READ_COMMANDS; each transport refuses any other).
+ * SMEMBERS, ZRANGE WITHSCORES, XRANGE and JSON.GET (expImportRedisTransport::READ_COMMANDS; each transport refuses any
+ * other).
  * The password is the name of a secret (expImportSecrets) and masked in every message; a server in a private network
  * is refused unless [RedisSourceSettings] AllowedHosts[] lists it. The PHP extension redis is used where it is
  * installed, else a small RESP client over a socket (driver "socket").
@@ -24,7 +26,10 @@
 class expImportRedisSource extends expImportJsonSource
 {
     /** The types the source reads, as TYPE names them. */
-    const TYPES = array( 'hash', 'string', 'list', 'set', 'zset', 'stream' );
+    const TYPES = array( 'hash', 'string', 'list', 'set', 'zset', 'stream', 'json' );
+
+    /** The names TYPE gives for a type of a module, by the type of the source. */
+    const MODULE_TYPES = array( 'rejson-rl' => 'json' );
 
     /** The fields every record has; a hash field of the same name is left out. */
     const RESERVED = array( '_key', '_type', '_ttl' );
@@ -74,7 +79,8 @@ class expImportRedisSource extends expImportJsonSource
     {
         return 'The keys of a Redis database that match a pattern (a cache of product data, a store of another application): '
              . 'one record is one key with _key, _type and _ttl, a hash\'s fields as fields, a string as value (decoded when '
-             . 'it is JSON), the values of a list, set or sorted set, the entries of a stream. The keys are walked with SCAN, '
+             . 'it is JSON), the values of a list, set or sorted set, the entries of a stream, a RedisJSON document\'s fields. '
+             . 'The keys are walked with SCAN, '
              . 'only reading commands are sent; the password is the name of a secret in the settings. Uses the PHP extension '
              . 'redis where it is installed, else a small client of its own.';
     }
@@ -106,8 +112,10 @@ class expImportRedisSource extends expImportJsonSource
                                  'help' => 'The name of a secret of sqliimport.ini [SecretSettings] Secrets[] or env:VARIABLE, never the password; empty: no AUTH' ),
             'pattern' => array( 'type' => 'string', 'label' => 'Key pattern', 'default' => '*', 'max' => 1024, 'raw' => true,
                                 'help' => 'The keys to read, as SCAN MATCH reads it: product:*, user:?, news:[0-9]*' ),
-            'types' => array( 'type' => 'string', 'label' => 'Types', 'default' => 'hash,string,list,set,zset,stream', 'max' => 100,
-                              'pattern' => '/^[a-z, ]*$/', 'help' => 'The types of keys to read, separated by commas: hash, string, list, set, zset, stream' ),
+            'types' => array( 'type' => 'string', 'label' => 'Types', 'default' => 'hash,string,list,set,zset,stream,json', 'max' => 100,
+                              'pattern' => '/^[a-z, ]*$/', 'help' => 'The types of keys to read, separated by commas: hash, string, list, set, zset, stream, json (RedisJSON)' ),
+            'json_path' => array( 'type' => 'string', 'label' => 'JSON path', 'default' => '$', 'max' => 500, 'raw' => true,
+                                  'help' => 'RedisJSON keys: the path JSON.GET reads, $ (the whole document) or $.product; a legacy path (.product) works too' ),
             'scan_count' => array( 'type' => 'int', 'label' => 'Keys per SCAN', 'default' => 100, 'min' => 1, 'max' => 10000,
                                    'help' => 'The COUNT of each SCAN: a hint how many keys the server looks at per step' ),
             'max_items' => array( 'type' => 'int', 'label' => 'Most values per key', 'default' => 1000, 'min' => 1, 'max' => 100000,
@@ -336,6 +344,8 @@ class expImportRedisSource extends expImportJsonSource
     public static function record( expImportRedisTransport $transport, $key, array $types, $max, array $options )
     {
         $type = strtolower( (string)$transport->command( array( 'TYPE', $key ) ) );
+        if ( isset( self::MODULE_TYPES[$type] ) )
+            $type = self::MODULE_TYPES[$type];
         if ( !in_array( $type, $types, true ) )
             return null;
         $ttl = $transport->command( array( 'TTL', $key ) );
@@ -411,8 +421,47 @@ class expImportRedisSource extends expImportJsonSource
                 }
                 $record['entries'] = self::listValue( $list, $arrays, $separator );
                 return $record;
+            case 'json':
+                $path = isset( $options['json_path'] ) && trim( (string)$options['json_path'] ) !== '' ? trim( (string)$options['json_path'] ) : '$';
+                $text = $transport->command( array( 'JSON.GET', $key, $path ) );
+                if ( $text === null )
+                    return null;
+                $data = json_decode( (string)$text, true, 512 );
+                if ( $data === null && trim( (string)$text ) !== 'null' )
+                    throw new expImportSourceException( "Redis: JSON.GET of $key gave no JSON" );
+                // a JSONPath ($...) gives the list of its matches: one match is the value itself
+                if ( $path[0] === '$' && is_array( $data ) && count( $data ) === 1 && array_keys( $data ) === array( 0 ) )
+                    $data = $data[0];
+                return self::jsonRecord( $record, $data, $arrays, $separator );
         }
         return null;
+    }
+
+    /**
+     * A RedisJSON value as the fields of a record: an object flattened like a hash (nested objects as dotted names,
+     * a list of plain values as the option Lists says, a list of objects numbered: images.0.url), anything else as
+     * value; a field named _key, _type or _ttl is left out.
+     *
+     * @param array $record _key, _type, _ttl
+     * @param mixed $data
+     * @param string $arrays keep, json or join
+     * @param string $separator
+     * @return array
+     */
+    public static function jsonRecord( array $record, $data, $arrays, $separator )
+    {
+        if ( !is_array( $data ) || ( $data && array_values( $data ) === $data ) )
+            $data = array( 'value' => $data );
+        foreach ( expImportSearchSource::flatten( $data ) as $field => $value )
+        {
+            $field = self::text( (string)$field );
+            if ( in_array( $field, self::RESERVED, true ) )
+                continue;
+            if ( is_string( $value ) )
+                $value = self::text( $value );
+            $record[$field] = is_array( $value ) && $value !== array() ? self::listValue( $value, $arrays, $separator ) : $value;
+        }
+        return $record;
     }
 
     /** @return mixed a list as the option Lists says: the list, JSON, or joined (a list of lists as JSON) */

@@ -176,6 +176,31 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   never read. Bind and search only, the password by the name of a secret, servers in private networks only from
   [LdapSourceSettings] AllowedHosts[]; Test connection and the driver list say whether this PHP and the job queue's
   workers have the extension ldap.
+- Added: The format CouchDB database (couchdb): all documents (_all_docs), the rows of a view or the answer of a Mango
+  query (_find) over HTTP, with _id and _rev, nested objects as dotted fields; paged by the extra row (startkey,
+  startkey_docid), by bookmark, keys in slices; design documents left out by default. Only GET /, POST /_session,
+  _all_docs, _find and _view requests are sent (each checked before it goes out), a Mango selector may only use
+  Mango's query operators; basic or cookie authentication by the name of a secret; [CouchDbSourceSettings]
+  AllowedHosts[] and MaxPages; Test connection, the driver list and share/examples/couchdb-articles.ndjson.
+- Added: The format Couchbase query (couchbase): the results of a SQL++ SELECT through the REST API of the Query
+  service (8093, TLS 18093) with readonly=true on every request and a check that lets only one SELECT or
+  WITH ... SELECT without parameters through (INSERT, UPSERT, UPDATE, DELETE, MERGE, CREATE, DROP, ALTER, GRANT,
+  REVOKE, EXECUTE FUNCTION, INFER, CURL(), transactions and system keyspaces refused); paged by LIMIT and OFFSET or by
+  keyset; [CouchbaseSourceSettings] AllowedHosts[], QueryTimeout and MaxPages; Test connection, the driver list and
+  share/examples/couchbase-products.ndjson.
+- Added: The format Azure Cosmos DB container (cosmosdb, API for NoSQL): the items of a SELECT query through the REST
+  API, each request signed with the account key (HMAC-SHA256, no SDK) or sent with a resource token, both by the name
+  of a secret; paged with continuation tokens, across partitions or for one partition key; parameters, user-defined
+  functions and the words of writing statements refused; [CosmosDbSourceSettings] AllowedHosts[] and MaxPages; Test
+  connection, the driver list and share/examples/cosmosdb-orders.ndjson. An account of the API for MongoDB is read
+  with the MongoDB source.
+- Added: Aggregation pipelines in the MongoDB source (mode aggregate): the aggregate command sent as a read command,
+  with reading stages only ($match, $project, $group, $lookup, $unionWith, $facet and the like, the pipelines inside
+  checked the same way, $geoNear only first; $out, $merge, $function, $accumulator, $where, $currentOp, $listSessions
+  and any unknown stage refused), read through one cursor or paged with $skip and $limit; the paging cursor for a find
+  too; MongoDB Atlas by its mongodb+srv:// URI documented with an example.
+- Added: RedisJSON keys in the Redis source: keys of the type ReJSON-RL are read with JSON.GET at a path (json_path,
+  default $) and flattened like a hash; JSON.GET is the only command added to the read-only commands.
 
 ### Updated
 

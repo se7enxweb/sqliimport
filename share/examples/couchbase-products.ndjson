@@ -1,0 +1,3 @@
+{"sku":"TEA-301","name":"Sencha Asamushi","price":8.9,"active":true,"stock.store":14,"stock.warehouse":120,"tags":"[\"green\",\"japan\"]"}
+{"sku":"TEA-302","name":"Assam Second Flush","price":7.5,"active":true,"stock.store":3,"stock.warehouse":64,"tags":"[\"black\",\"india\"]"}
+{"sku":"TEA-303","name":"Silver Needle","price":19.0,"active":false,"stock.store":0,"stock.warehouse":8,"tags":"[\"white\"]"}

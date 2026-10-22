@@ -353,4 +353,130 @@ class MongoDbSourceTest extends TestCase
         $this->assertSame( array( false, 'yes' ), array( $drivers['mongodb']['available'], $drivers['mongodb']['worker'] ) );
         $this->assertStringContainsString( 'Runs still work', expImportMongoDbSource::missingDriverMessage() );
     }
+
+    public function testAPipelineWithReadingStagesOnly(): void
+    {
+        $ok = array(
+            '[]',
+            '[{"$match": {"status": "published"}}, {"$project": {"title": 1}}, {"$sort": {"title": 1}}, {"$skip": 1}, {"$limit": 5}]',
+            '[{"$geoNear": {"near": {"type": "Point", "coordinates": [0, 0]}, "distanceField": "d"}}, {"$unwind": "$tags"}, {"$group": {"_id": "$tags", "n": {"$sum": 1}}}]',
+            '[{"$addFields": {"x": 1}}, {"$set": {"y": 2}}, {"$unset": "z"}, {"$replaceRoot": {"newRoot": "$meta"}}, {"$replaceWith": "$meta"}, {"$sample": {"size": 3}}]',
+            '[{"$bucket": {"groupBy": "$price", "boundaries": [0, 10, 20]}}, {"$bucketAuto": {"groupBy": "$price", "buckets": 4}}, {"$count": "n"}]',
+            '[{"$sortByCount": "$tags"}, {"$densify": {"field": "d", "range": {"step": 1, "bounds": "full"}}}, {"$fill": {"output": {"x": {"value": 0}}}}]',
+            '[{"$setWindowFields": {"sortBy": {"d": 1}, "output": {"s": {"$sum": "$n", "window": {"documents": ["unbounded", "current"]}}}}}]',
+            '[{"$facet": {"a": [{"$match": {"x": 1}}], "b": [{"$count": "n"}]}}]',
+            '[{"$lookup": {"from": "authors", "localField": "author", "foreignField": "_id", "as": "a"}}]',
+            '[{"$lookup": {"from": "authors", "let": {"id": "$author"}, "pipeline": [{"$match": {"$expr": {"$eq": ["$_id", "$$id"]}}}], "as": "a"}}]',
+            '[{"$unionWith": "archive"}, {"$unionWith": {"coll": "old", "pipeline": [{"$match": {"y": 2025}}]}}]',
+            '[{"$match": {"published_at": {"$gte": {"$date": "2026-01-01T00:00:00Z"}}}}]',
+        );
+        foreach ( $ok as $json )
+            $this->assertIsArray( expImportMongoDbSource::checkPipeline( $json ), $json );
+        $refused = array(
+            '[{"$out": "copy"}]', '[{"$match": {}}, {"$merge": {"into": "other"}}]', '[{"$currentOp": {}}]', '[{"$listSessions": {}}]',
+            '[{"$collStats": {"count": {}}}]', '[{"$indexStats": {}}]', '[{"$changeStream": {}}]', '[{"$planCacheStats": {}}]', '[{"$documents": [{"a": 1}]}]',
+            '[{"$match": {"$where": "sleep(100)"}}]', '[{"$addFields": {"x": {"$function": {"body": "f", "args": [], "lang": "js"}}}}]',
+            '[{"$group": {"_id": null, "x": {"$accumulator": {}}}}]', '[{"$match": {}}, {"$geoNear": {"near": [0, 0], "distanceField": "d"}}]',
+            '[{"$facet": {"a": [{"$out": "x"}]}}]', '[{"$facet": {"a": [{"$facet": {"b": [{"$merge": "y"}]}}]}}]', '[{"$facet": {"a": [{"$geoNear": {}}]}}]',
+            '[{"$lookup": {"from": "a", "pipeline": [{"$merge": "x"}], "as": "a"}}]', '[{"$lookup": {"from": "system.users", "localField": "u", "foreignField": "_id", "as": "u"}}]',
+            '[{"$lookup": {"from": {"db": "other", "coll": "x"}, "pipeline": [], "as": "a"}}]', '[{"$unionWith": {"coll": "b", "pipeline": [{"$out": "c"}]}}]',
+            '[{"$unionWith": "system.profile"}]', '[{"$match": {}, "$out": "x"}]', '[{"$MATCH": {}}, {"$Out": "x"}]', '[{"$search": {}}]',
+            '{"$match": {}}', '[1]', '[{"$match": {}}', '', 'not json',
+        );
+        foreach ( $refused as $json )
+        {
+            try
+            {
+                expImportMongoDbSource::checkPipeline( $json );
+                $this->fail( "refused: $json" );
+            }
+            catch ( expImportSourceException $e )
+            {
+                $this->assertStringStartsWith( 'MongoDB: ', $e->getMessage(), $json );
+            }
+        }
+        $this->assertSame( '[{"$match": {}}, {"$skip":5}, {"$limit":2}]', expImportMongoDbSource::appendStages( '[{"$match": {}}]', array( array( '$skip' => 5 ), array( '$limit' => 2 ) ) ) );
+        $this->assertSame( '[{"$limit":2}]', expImportMongoDbSource::appendStages( ' [ ] ', array( array( '$limit' => 2 ) ) ) );
+        // a refused pipeline never reaches the server; an aggregation has no filter of its own
+        $transport = new MongoDbSourceTestTransport( $this->documents() );
+        $this->useTransport( $transport );
+        $result = expImportMongoDbSource::test( $this->options( array( 'mode' => 'aggregate', 'pipeline' => '[{"$match": {}}, {"$out": "copy"}]' ) ) );
+        $this->assertFalse( $result['ok'] );
+        $this->assertStringContainsString( 'only reading is allowed', $result['message'] );
+        $result = expImportMongoDbSource::test( $this->options( array( 'mode' => 'aggregate', 'pipeline' => '[]', 'filter' => '{"a": 1}' ) ) );
+        $this->assertFalse( $result['ok'] );
+        $this->assertStringContainsString( '$match', $result['message'] );
+        $this->assertSame( array(), $transport->aggregates );
+        $this->assertNull( $transport->opened );
+    }
+
+    public function testAggregatePagingByCursorAndBySkip(): void
+    {
+        $transport = new MongoDbSourceTestTransport( $this->documents() );
+        $this->useTransport( $transport );
+        $target = $this->dir . '/snapshot.ndjson';
+        $pipeline = '[{"$match": {"published_at": {"$gte": {"$date": "2026-01-01T00:00:00Z"}}}}, {"$project": {"title": 1, "author": 1}}]';
+        // the default of an aggregation: one cursor in batches
+        expImportMongoDbSource::fetch( $this->options( array( 'mode' => 'aggregate', 'pipeline' => $pipeline, 'batch_size' => 2, 'read_preference' => 'secondary' ) ), $target, 0 );
+        $rows = $this->snapshot( $target );
+        $this->assertSame( array( 'Tea 1', 'Tea 2', 'Tea 3', 'Tea 4', 'Tea 5' ), array_column( $rows, 'title' ) );
+        $this->assertSame( 'Town', $rows[4]['author.address.city'] );
+        $this->assertCount( 1, $transport->aggregates );
+        list( $database, $collection, $stages, $options ) = $transport->aggregates[0];
+        $this->assertSame( array( 'cms', 'articles' ), array( $database, $collection ) );
+        $this->assertSame( json_decode( $pipeline, true ), $stages, 'the pipeline as given, Extended JSON kept' );
+        $this->assertSame( array( 2, 'secondary' ), array( $options['batchSize'], $options['readPreference'] ) );
+        $this->assertSame( array(), $transport->finds );
+        // the sample: a $limit at the end
+        $transport->aggregates = array();
+        expImportMongoDbSource::fetch( $this->options( array( 'mode' => 'aggregate', 'pipeline' => $pipeline, 'batch_size' => 2 ) ), $target, 3 );
+        $this->assertCount( 3, $this->snapshot( $target ) );
+        $this->assertSame( array( '$limit' => 3 ), end( $transport->aggregates[0][2] ) );
+        // skip and limit: $skip and $limit per page
+        $transport->aggregates = array();
+        expImportMongoDbSource::fetch( $this->options( array( 'mode' => 'aggregate', 'pipeline' => $pipeline, 'batch_size' => 2, 'paging' => 'skip' ) ), $target, 0 );
+        $this->assertCount( 5, $this->snapshot( $target ) );
+        $this->assertCount( 3, $transport->aggregates );
+        $this->assertSame( array( '$limit' => 2 ), end( $transport->aggregates[0][2] ) );
+        $this->assertSame( array( array( '$skip' => 2 ), array( '$limit' => 2 ) ), array_slice( $transport->aggregates[1][2], -2 ) );
+        $this->assertSame( array( '$skip' => 4 ), array_slice( $transport->aggregates[2][2], -2 )[0] );
+        // a find read through one cursor
+        expImportMongoDbSource::fetch( $this->options( array( 'paging' => 'cursor', 'batch_size' => 2 ) ), $target, 0 );
+        $this->assertCount( 5, $this->snapshot( $target ) );
+        $this->assertCount( 1, $transport->finds );
+        $this->assertSame( array( 0, 2 ), array( $transport->finds[0][4]['limit'], $transport->finds[0][4]['batchSize'] ) );
+        // Test connection of an aggregation, and a masked failure
+        putenv( 'SQ688_MONGO_PASSWORD=pw-of-the-mongo-test' );
+        $result = expImportMongoDbSource::test( $this->options( array( 'mode' => 'aggregate', 'pipeline' => $pipeline ) ) );
+        $this->assertTrue( $result['ok'] );
+        $this->assertSame( 1, $result['rows'] );
+        $transport->fail = 'MongoDB: Authentication failed with pw-of-the-mongo-test';
+        $result = expImportMongoDbSource::test( $this->options( array( 'mode' => 'aggregate', 'pipeline' => $pipeline, 'user' => 'reader', 'password' => 'env:SQ688_MONGO_PASSWORD' ) ) );
+        $this->assertFalse( $result['ok'] );
+        $this->assertStringNotContainsString( 'pw-of-the-mongo-test', $result['message'] );
+    }
+
+    public function testAtlasSrvUris(): void
+    {
+        list( $uri, $hosts, $srv ) = expImportMongoDbSource::uriOf( array( 'uri' => 'mongodb+srv://cluster0.example.mongodb.net/?retryWrites=true&w=majority&appName=shop' ) );
+        $this->assertSame( 'mongodb+srv://cluster0.example.mongodb.net/?retryWrites=true&w=majority&appName=shop', $uri );
+        $this->assertSame( array( 'cluster0.example.mongodb.net' ), $hosts );
+        $this->assertTrue( $srv );
+        foreach ( array( 'mongodb+srv://reader:pw@cluster0.example.mongodb.net/', 'mongodb+srv://cluster0.example.mongodb.net:27017/' ) as $bad )
+        {
+            try
+            {
+                expImportMongoDbSource::uriOf( array( 'uri' => $bad ) );
+                $this->fail( "refused: $bad" );
+            }
+            catch ( expImportSourceException $e )
+            {
+                $this->assertStringStartsWith( 'MongoDB:', $e->getMessage() );
+            }
+        }
+        $atlas = expImportMongoDbSource::examples()[3];
+        $this->assertStringStartsWith( 'mongodb+srv://', $atlas['options']['uri'] );
+        $this->assertSame( 'aggregate', $atlas['options']['mode'] );
+        expImportMongoDbSource::checkPipeline( $atlas['options']['pipeline'] );
+    }
 }

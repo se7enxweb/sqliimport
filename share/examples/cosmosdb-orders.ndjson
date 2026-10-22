@@ -1,0 +1,3 @@
+{"id":"order-5001","customer.id":"c-17","customer.email":"buyer17@example.invalid","status":"open","total":"42.80","currency":"EUR","lines":"[{\"sku\":\"TEA-301\",\"qty\":2},{\"sku\":\"TEA-302\",\"qty\":1}]","_ts":1775118600}
+{"id":"order-5002","customer.id":"c-23","customer.email":"buyer23@example.invalid","status":"shipped","total":"19.00","currency":"EUR","lines":"[{\"sku\":\"TEA-303\",\"qty\":1}]","_ts":1775205000}
+{"id":"order-5003","customer.id":"c-17","customer.email":"buyer17@example.invalid","status":"open","total":"8.90","currency":"EUR","lines":"[{\"sku\":\"TEA-301\",\"qty\":1}]","_ts":1775291400}

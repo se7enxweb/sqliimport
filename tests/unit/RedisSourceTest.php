@@ -52,7 +52,8 @@ class RedisSourceTest extends TestCase
                                                                          array( '1700000000001-0', array( 'event', 'buy', 'n', '2' ) ) ) ),
             'product:8' => array( 'type' => 'string', 'value' => "\x89PNG\x00\xff" ),
             'session:1' => array( 'type' => 'string', 'value' => 'not matched' ),
-            'product:9' => array( 'type' => 'ReJSON-RL', 'value' => '' ),
+            'product:9' => array( 'type' => 'ReJSON-RL', 'value' => '{"sku":"TEA-9","name":"Matcha","dims":{"w":3,"unit":"cm"},"tags":["green","powder"],"_ttl":"not a field","variants":[{"g":30},{"g":100}]}' ),
+            'product:10' => array( 'type' => 'MBbloom--', 'value' => '' ),
         );
     }
 
@@ -119,8 +120,8 @@ class RedisSourceTest extends TestCase
         $target = $this->dir . '/snapshot.ndjson';
         expImportRedisSource::fetch( $this->options( array( 'max_items' => 3 ) ), $target, 0 );
         $rows = $this->snapshot( $target );
-        $this->assertSame( array( 'product:1', 'product:2', 'product:3', 'product:4', 'product:5', 'product:6', 'product:7', 'product:8' ), array_keys( $rows ),
-                           'session:1 does not match, a module type is left out' );
+        $this->assertSame( array( 'product:1', 'product:2', 'product:3', 'product:4', 'product:5', 'product:6', 'product:7', 'product:8', 'product:9' ), array_keys( $rows ),
+                           'session:1 does not match, the type of another module is left out' );
         $this->assertSame( array( '_key' => 'product:1', '_type' => 'hash', '_ttl' => -1, 'sku' => 'TEA-1', 'name' => 'Sencha', 'price' => '9.90' ), $rows['product:1'],
                            'a hash field of a reserved name is left out' );
         $this->assertSame( array( 'sku' => 'TEA-2', 'name' => 'Oolong', 'sizes' => array( 50, 100 ) ), $rows['product:2']['value'] );
@@ -153,6 +154,47 @@ class RedisSourceTest extends TestCase
         $this->assertSame( '["alpha","mu","zeta"]', $this->snapshot( $target )['product:5']['values'] );
     }
 
+    public function testRedisJsonDocumentsAreReadWithJsonGet(): void
+    {
+        $transport = new RedisSourceTestTransport( $this->data() );
+        $this->useTransport( $transport );
+        $target = $this->dir . '/snapshot.ndjson';
+        expImportRedisSource::fetch( $this->options( array( 'types' => 'json' ) ), $target, 0 );
+        $rows = $this->snapshot( $target );
+        $this->assertSame( array( 'product:9' ), array_keys( $rows ) );
+        $this->assertSame( array( '_key' => 'product:9', '_type' => 'json', '_ttl' => -1, 'sku' => 'TEA-9', 'name' => 'Matcha', 'dims.w' => 3, 'dims.unit' => 'cm',
+                                  'tags' => array( 'green', 'powder' ), 'variants.0.g' => 30, 'variants.1.g' => 100 ), $rows['product:9'],
+                           'flattened like a hash, a field of a reserved name left out' );
+        $this->assertContains( array( 'JSON.GET', 'product:9', '$' ), $transport->commands );
+        $this->assertContains( 'JSON.GET', expImportRedisTransport::READ_COMMANDS );
+        // a path, joined lists, a legacy path, a plain value
+        expImportRedisSource::fetch( $this->options( array( 'types' => 'json', 'json_path' => '$.dims' ) ), $target, 0 );
+        $this->assertSame( array( 'w' => 3, 'unit' => 'cm' ), array_slice( $this->snapshot( $target )['product:9'], 3 ) );
+        expImportRedisSource::fetch( $this->options( array( 'types' => 'json', 'arrays' => 'join' ) ), $target, 0 );
+        $this->assertSame( 'green, powder', $this->snapshot( $target )['product:9']['tags'] );
+        expImportRedisSource::fetch( $this->options( array( 'types' => 'json', 'json_path' => '.name' ) ), $target, 0 );
+        $this->assertSame( 'Matcha', $this->snapshot( $target )['product:9']['value'] );
+        expImportRedisSource::fetch( $this->options( array( 'types' => 'json', 'json_path' => '$.tags', 'arrays' => 'json' ) ), $target, 0 );
+        $this->assertSame( '["green","powder"]', $this->snapshot( $target )['product:9']['value'] );
+        $this->assertSame( array( '_key' => 'k', 'value' => null ), expImportRedisSource::jsonRecord( array( '_key' => 'k' ), null, 'keep', ', ' ) );
+        // the socket client sends JSON.GET; a write of the module is refused before it is sent
+        $client = new RedisSourceTestScriptedClient( array( "\$11\r\n[{\"a\":\"b\"}]\r\n" ) );
+        $this->assertSame( '[{"a":"b"}]', $client->command( array( 'JSON.GET', 'doc:1', '$' ) ) );
+        foreach ( array( 'JSON.SET', 'JSON.DEL', 'JSON.MERGE', 'JSON.ARRAPPEND' ) as $command )
+        {
+            try
+            {
+                $client->command( array( $command, 'doc:1', '$', '{}' ) );
+                $this->fail( "refused: $command" );
+            }
+            catch ( expImportSourceException $e )
+            {
+                $this->assertStringContainsString( 'not one of the read-only commands', $e->getMessage() );
+            }
+        }
+        $this->assertCount( 1, $client->sent );
+    }
+
     public function testScanPagingAndTheLimit(): void
     {
         $transport = new RedisSourceTestTransport( $this->data() );
@@ -160,10 +202,10 @@ class RedisSourceTest extends TestCase
         $this->useTransport( $transport );
         $target = $this->dir . '/snapshot.ndjson';
         expImportRedisSource::fetch( $this->options( array( 'scan_count' => 3 ) ), $target, 0 );
-        $this->assertCount( 8, $this->snapshot( $target ), 'a key SCAN gives twice is read once' );
+        $this->assertCount( 9, $this->snapshot( $target ), 'a key SCAN gives twice is read once' );
         $scans = array_values( array_filter( $transport->commands, function ( $c ) { return $c[0] === 'SCAN'; } ) );
         $this->assertSame( array( 'SCAN', '0', 'MATCH', 'product:*', 'COUNT', '3' ), $scans[0] );
-        $this->assertSame( array( '0', '3', '6' ), array_column( $scans, 1 ), 'each SCAN goes on from the cursor of the last' );
+        $this->assertSame( array( '0', '3', '6', '9' ), array_column( $scans, 1 ), 'each SCAN goes on from the cursor of the last' );
         // the sample of the editor and the option limit: the smaller wins
         $transport->commands = array();
         expImportRedisSource::fetch( $this->options( array( 'scan_count' => 3, 'limit' => 5 ) ), $target, 2 );
