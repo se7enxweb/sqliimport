@@ -1,4 +1,5 @@
-{* Editor step "schedule": when the import runs by itself, in a time zone; the next five times are shown after a save. *}
+{* Editor step "schedule": when the import runs by itself, in a time zone; the next five times are shown after a save.
+   Then the webhook / API trigger of the import (sqliimport/edit/trigger.tpl). *}
 <form class="a4-form is-wide" method="post" action={concat( $base, '/(step)/schedule' )|ezurl}>
 <fieldset class="a4-field a4-field-wide">
 <legend>{'Runs by itself'|i18n( 'extension/sqliimport/edit' )}</legend>
@@ -56,3 +57,4 @@
 {/if}
 {include uri='design:sqliimport/edit/buttons.tpl' step='schedule' stay=1}
 </form>
+{if $trigger}{include uri='design:sqliimport/edit/trigger.tpl' base=$base}{/if}

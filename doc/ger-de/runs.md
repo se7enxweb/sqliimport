@@ -28,6 +28,9 @@ Daraus folgen diese Regeln:
   Spitze wird am Lauf vermerkt.
 - Der Lauf wird als der Benutzer verarbeitet, der ihn gestartet hat, oder als Robot-Benutzer des Imports
   (`owner_id` des Ziels).
+- **Aus einem anderen System gestartet:** der Webhook-/API-Auslöser eines Imports startet einen Lauf mit einem
+  signierten Aufruf oder einem API-Schlüssel, als Laufbenutzer des Auslösers, und kann die Daten des Laufs im Aufruf
+  mitbringen (Auslöser `rest`, [triggers.md](triggers.md)).
 
 Die Job-Typen und ihre Zeitlimits stehen in `expqueue.ini [JobType_sqliimport.*]` (900 Sekunden für den Start,
 1800 für einen Abschnitt und den Abschluss, jeweils drei Versuche).

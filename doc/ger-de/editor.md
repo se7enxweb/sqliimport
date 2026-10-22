@@ -149,6 +149,11 @@ Nach dem Speichern nennt der Schritt die nächsten fünf Laufzeiten. Der Editor 
 „Never“ entfernt ihn. Auf der Seite Schedules werden Zeitpläne aufgelistet, angehalten und fortgesetzt
 ([schedules.md](schedules.md)).
 
+Unter dem Zeitplan schaltet der Abschnitt **Started by another system (webhook or API)** den Auslöser des Imports an
+oder aus, wählt seinen Laufbenutzer, erlaubt Daten im Aufruf, zeigt ein neues Signaturgeheimnis oder einen neuen
+API-Schlüssel einmal und erneuert das Geheimnis oder sperrt Schlüssel. Jedes davon ist ein eigenes Formular
+([triggers.md](triggers.md)).
+
 ## Schritt 6: Prüfung (Review and save)
 
 Die Prüfung zeigt den Import als Zusammenfassung: Name und Bezeichner, Quelle, Verarbeitung, Ziel und Zeitplan. Sie

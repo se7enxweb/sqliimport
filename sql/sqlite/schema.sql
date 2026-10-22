@@ -1,4 +1,4 @@
--- 7x SQLI Import: the tables sqliimport_definition, sqliimport_item, sqliimport_mapping, sqliimport_mapping_field, sqliimport_notice, sqliimport_run, sqliimport_run_log, sqliimport_run_row, sqliimport_schedule, sqliimport_scheduled (sqlite).
+-- 7x SQLI Import: the tables sqliimport_definition, sqliimport_item, sqliimport_mapping, sqliimport_mapping_field, sqliimport_notice, sqliimport_run, sqliimport_run_log, sqliimport_run_row, sqliimport_schedule, sqliimport_scheduled, sqliimport_trigger, sqliimport_trigger_call, sqliimport_trigger_key (sqlite).
 -- Generated from expImportSchema::definition() by ./console ext:sqliimport:install-schema --write-files with the
 -- kernel's schema handler; ./console ext:sqliimport:install-schema creates the same tables in a running installation.
 
@@ -179,3 +179,42 @@ CREATE TABLE sqliimport_scheduled (
 
 CREATE  INDEX sqliimport_scheduled__import_handler ON sqliimport_scheduled  ( handler );
 CREATE  INDEX sqliimport_scheduled__next_import ON sqliimport_scheduled  ( next );
+CREATE TABLE sqliimport_trigger (
+  allow_push INTEGER(11) NOT NULL DEFAULT '0',
+  created INTEGER(11) NOT NULL DEFAULT '0',
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  import_id INTEGER(11) NOT NULL DEFAULT '0',
+  is_enabled INTEGER(11) NOT NULL DEFAULT '0',
+  modified INTEGER(11) NOT NULL DEFAULT '0',
+  modifier_id INTEGER(11) NOT NULL DEFAULT '0',
+  run_user_id INTEGER(11) NOT NULL DEFAULT '0',
+  secret_ref varchar(100) NOT NULL DEFAULT '',
+  sign_created INTEGER(11) NOT NULL DEFAULT '0',
+  sign_salt varchar(64) NOT NULL DEFAULT ''
+);
+
+CREATE  UNIQUE INDEX sqliimport_trigger__sqliimport_trig_import ON sqliimport_trigger  ( import_id );
+CREATE TABLE sqliimport_trigger_call (
+  call_hash varchar(64) NOT NULL DEFAULT '',
+  created INTEGER(11) NOT NULL DEFAULT '0',
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  import_id INTEGER(11) NOT NULL DEFAULT '0',
+  kind varchar(20) NOT NULL DEFAULT ''
+);
+
+CREATE  UNIQUE INDEX sqliimport_trigger_call__sqliimport_tcall_hash ON sqliimport_trigger_call  ( import_id, call_hash );
+CREATE  INDEX sqliimport_trigger_call__sqliimport_tcall_time ON sqliimport_trigger_call  ( import_id, kind, created );
+CREATE TABLE sqliimport_trigger_key (
+  created INTEGER(11) NOT NULL DEFAULT '0',
+  creator_id INTEGER(11) NOT NULL DEFAULT '0',
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  import_id INTEGER(11) NOT NULL DEFAULT '0',
+  key_hash varchar(64) NOT NULL DEFAULT '',
+  key_id varchar(32) NOT NULL DEFAULT '',
+  label varchar(100) NOT NULL DEFAULT '',
+  last_used INTEGER(11) NOT NULL DEFAULT '0',
+  revoked INTEGER(11) NOT NULL DEFAULT '0'
+);
+
+CREATE  UNIQUE INDEX sqliimport_trigger_key__sqliimport_tkey_id ON sqliimport_trigger_key  ( key_id );
+CREATE  INDEX sqliimport_trigger_key__sqliimport_tkey_import ON sqliimport_trigger_key  ( import_id );

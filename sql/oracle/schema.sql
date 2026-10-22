@@ -1,4 +1,4 @@
--- 7x SQLI Import: the tables sqliimport_definition, sqliimport_item, sqliimport_mapping, sqliimport_mapping_field, sqliimport_notice, sqliimport_run, sqliimport_run_log, sqliimport_run_row, sqliimport_schedule, sqliimport_scheduled (oracle).
+-- 7x SQLI Import: the tables sqliimport_definition, sqliimport_item, sqliimport_mapping, sqliimport_mapping_field, sqliimport_notice, sqliimport_run, sqliimport_run_log, sqliimport_run_row, sqliimport_schedule, sqliimport_scheduled, sqliimport_trigger, sqliimport_trigger_call, sqliimport_trigger_key (oracle).
 -- Generated from expImportSchema::definition() by ./console ext:sqliimport:install-schema --write-files with the
 -- kernel's schema handler; ./console ext:sqliimport:install-schema creates the same tables in a running installation.
 
@@ -319,3 +319,84 @@ END;
 
 CREATE INDEX import_handler ON sqliimport_scheduled ( handler );
 CREATE INDEX next_import ON sqliimport_scheduled ( next );
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE SEQUENCE se_sqliimport_trigger';
+EXCEPTION WHEN OTHERS THEN
+  IF SQLCODE != -955 THEN RAISE; END IF;
+END;
+/
+CREATE TABLE sqliimport_trigger (
+  allow_push INTEGER DEFAULT 0 NOT NULL,
+  created INTEGER DEFAULT 0 NOT NULL,
+  id INTEGER NOT NULL,
+  import_id INTEGER DEFAULT 0 NOT NULL,
+  is_enabled INTEGER DEFAULT 0 NOT NULL,
+  modified INTEGER DEFAULT 0 NOT NULL,
+  modifier_id INTEGER DEFAULT 0 NOT NULL,
+  run_user_id INTEGER DEFAULT 0 NOT NULL,
+  secret_ref VARCHAR2(100),
+  sign_created INTEGER DEFAULT 0 NOT NULL,
+  sign_salt VARCHAR2(64),
+  PRIMARY KEY ( id )
+);
+
+CREATE OR REPLACE TRIGGER sqliimport_trigger_id_tr
+BEFORE INSERT ON sqliimport_trigger FOR EACH ROW WHEN (new.id IS NULL)
+BEGIN
+  SELECT se_sqliimport_trigger.nextval INTO :new.id FROM dual;
+END;
+/
+
+CREATE UNIQUE INDEX sqliimport_trig_import ON sqliimport_trigger ( import_id );
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE SEQUENCE se_sqliimport_trigger_call';
+EXCEPTION WHEN OTHERS THEN
+  IF SQLCODE != -955 THEN RAISE; END IF;
+END;
+/
+CREATE TABLE sqliimport_trigger_call (
+  call_hash VARCHAR2(64),
+  created INTEGER DEFAULT 0 NOT NULL,
+  id INTEGER NOT NULL,
+  import_id INTEGER DEFAULT 0 NOT NULL,
+  kind VARCHAR2(20),
+  PRIMARY KEY ( id )
+);
+
+CREATE OR REPLACE TRIGGER sqliimport_trigger_call_id_tr
+BEFORE INSERT ON sqliimport_trigger_call FOR EACH ROW WHEN (new.id IS NULL)
+BEGIN
+  SELECT se_sqliimport_trigger_call.nextval INTO :new.id FROM dual;
+END;
+/
+
+CREATE UNIQUE INDEX sqliimport_tcall_hash ON sqliimport_trigger_call ( import_id, call_hash );
+CREATE INDEX sqliimport_tcall_time ON sqliimport_trigger_call ( import_id, kind, created );
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE SEQUENCE se_sqliimport_trigger_key';
+EXCEPTION WHEN OTHERS THEN
+  IF SQLCODE != -955 THEN RAISE; END IF;
+END;
+/
+CREATE TABLE sqliimport_trigger_key (
+  created INTEGER DEFAULT 0 NOT NULL,
+  creator_id INTEGER DEFAULT 0 NOT NULL,
+  id INTEGER NOT NULL,
+  import_id INTEGER DEFAULT 0 NOT NULL,
+  key_hash VARCHAR2(64),
+  key_id VARCHAR2(32),
+  label VARCHAR2(100),
+  last_used INTEGER DEFAULT 0 NOT NULL,
+  revoked INTEGER DEFAULT 0 NOT NULL,
+  PRIMARY KEY ( id )
+);
+
+CREATE OR REPLACE TRIGGER sqliimport_trigger_key_id_tr
+BEFORE INSERT ON sqliimport_trigger_key FOR EACH ROW WHEN (new.id IS NULL)
+BEGIN
+  SELECT se_sqliimport_trigger_key.nextval INTO :new.id FROM dual;
+END;
+/
+
+CREATE UNIQUE INDEX sqliimport_tkey_id ON sqliimport_trigger_key ( key_id );
+CREATE INDEX sqliimport_tkey_import ON sqliimport_trigger_key ( import_id );

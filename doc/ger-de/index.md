@@ -55,6 +55,7 @@ English: [../index.md](../index.md).
 | [statistics.md](statistics.md) | Die Diagramme des Dashboards und die Seite Statistik: Verläufe, je Import, Vergleich, Vorschläge, CSV |
 | [transfer.md](transfer.md) | Importe unter den Import- und Export-Werkzeugen: In diesen Ordner importieren, Dateien von Export und CIE, Ergebnis- und Zuordnungsdateien |
 | [schedules.md](schedules.md) | Arten von Zeitplänen, Zeitzonen, Sommerzeit, die Seite Schedules, der Cron-Teil |
+| [triggers.md](triggers.md) | Einen Import aus einem anderen System starten: signierte Aufrufe, API-Schlüssel, Daten im Aufruf, Status, Grenzen |
 | [cli.md](cli.md) | Jeder Befehl `./console ext:sqliimport:*` |
 | [permissions.md](permissions.md) | Die beiden Richtlinien von 2.x und die Richtlinien von 1.x |
 | [settings.md](settings.md) | Jede Einstellung von `sqliimport.ini` für 2.x, die Seite Settings, Export und Import |

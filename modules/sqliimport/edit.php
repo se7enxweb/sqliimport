@@ -86,6 +86,23 @@ if ( $isPost && $http->hasPostVariable( 'Step' ) )
             $ok = true;
             break;
         case 'schedule':
+            if ( $http->hasPostVariable( 'TriggerAction' ) )
+            {
+                // the trigger forms of the step: a new secret or key is shown in this answer only (no redirect, nothing
+                // in the session); otherwise back to the step
+                $triggerSaved = $editor->saveTrigger();
+                if ( $triggerSaved && !$editor->revealed )
+                {
+                    $Module->redirectTo( '/sqliimport/edit/' . (int)$editor->import->attribute( 'id' ) . '/(step)/schedule' );
+                    return;
+                }
+                if ( $triggerSaved )
+                    $editor->notice = $editor->revealed['kind'] === 'key'
+                        ? ezpI18n::tr( 'extension/sqliimport/edit', 'The API key is created. Copy it now: it is shown only this once.' )
+                        : ezpI18n::tr( 'extension/sqliimport/edit', 'The signing secret is new. Copy it now: it is shown only this once.' );
+                $ok = false;
+                break;
+            }
             $ok = $editor->saveSchedule();
             break;
         case 'review':
@@ -269,6 +286,8 @@ $tpl->setVariable( 'sample_error', $sampleError );
 $tpl->setVariable( 'preview', $preview );
 $tpl->setVariable( 'preview_error', $previewError );
 $tpl->setVariable( 'schedule', $editor->scheduleForForm() );
+$tpl->setVariable( 'trigger', $editor->import && $step === 'schedule' ? $editor->triggerForForm() : false );
+$tpl->setVariable( 'trigger_revealed', $editor->revealed ? $editor->revealed : false );
 $tpl->setVariable( 'timezones', DateTimeZone::listIdentifiers() );
 $tpl->setVariable( 'problems', $editor->import ? $editor->problems() : array() );
 $tpl->setVariable( 'can_settings', expImportAdmin::can( 'settings' ) );
@@ -287,6 +306,8 @@ if ( $failed || $sqlTest )
         if ( $p['legacy_options'] !== null )
             $tpl->setVariable( 'legacy_options', $p['legacy_options'] );
     }
+    elseif ( $step === 'schedule' && $http->hasPostVariable( 'TriggerAction' ) )
+        $tpl->setVariable( 'trigger', $editor->triggerFromPost() );
     elseif ( $step === 'schedule' )
         $tpl->setVariable( 'schedule', $editor->scheduleFromPost() );
 }

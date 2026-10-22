@@ -5,7 +5,8 @@
  * 2.x views: list (the dashboard: figures, charts, imports, runs), statistics (the run history: trends, a table per
  * import, comparison of two periods, suggestions, CSV), run (one run: progress, counters, rows, log), edit (the
  * import editor), schedules, catalogue, settings (export and import of definitions) and action
- * (every change: run, dry run, cancel, retry failed rows; POST only, checked by ezformtoken).
+ * (every change: run, dry run, cancel, retry failed rows; POST only, checked by ezformtoken) and trigger (the webhook
+ * / API trigger of an import for other systems: no session, a signature or an API key; doc/triggers.md).
  * The 1.x requests and scheduled imports are part of these pages (expImportLegacy): the dashboard lists the 1.x
  * import requests (request, cancel, interrupt, purge), sqliimport/schedules the 1.x scheduled imports (add, edit, run
  * now, enable, disable, delete). The addresses of the 1.x views stay (items, scheduledlist, addimport, addscheduled,
@@ -108,6 +109,15 @@ $ViewList['settings'] = array(
     'params' => array(),
     'default_navigation_part' => 'sqliimportnavigationpart',
     'functions' => array( 'manage or manageimports' ),
+);
+
+// The webhook / API trigger of an import (expImportTriggerEndpoint): called by machines without a session, so it has
+// no policy (site.ini [RoleSettings] PolicyOmitList[] and [SiteAccessSettings] AnonymousAccessList[] name it) and
+// checks the caller itself: a signature or an API key of the import, off unless the import's trigger is switched on.
+$ViewList['trigger'] = array(
+    'script' => 'trigger.php',
+    'params' => array( 'Identifier', 'Action', 'RunID' ),
+    'default_navigation_part' => 'sqliimportnavigationpart',
 );
 
 // The addresses of the 1.x views: a GET goes to the 2.x page (expImportLegacy::redirectFor()), a POST does what the

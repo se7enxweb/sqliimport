@@ -1,4 +1,4 @@
--- 7x SQLI Import: the tables sqliimport_definition, sqliimport_item, sqliimport_mapping, sqliimport_mapping_field, sqliimport_notice, sqliimport_run, sqliimport_run_log, sqliimport_run_row, sqliimport_schedule, sqliimport_scheduled (postgresql).
+-- 7x SQLI Import: the tables sqliimport_definition, sqliimport_item, sqliimport_mapping, sqliimport_mapping_field, sqliimport_notice, sqliimport_run, sqliimport_run_log, sqliimport_run_row, sqliimport_schedule, sqliimport_scheduled, sqliimport_trigger, sqliimport_trigger_call, sqliimport_trigger_key (postgresql).
 -- Generated from expImportSchema::definition() by ./console ext:sqliimport:install-schema --write-files with the
 -- kernel's schema handler; ./console ext:sqliimport:install-schema creates the same tables in a running installation.
 
@@ -249,3 +249,63 @@ CREATE TABLE IF NOT EXISTS sqliimport_scheduled (
 CREATE INDEX import_handler ON sqliimport_scheduled USING btree ( "handler" );
 CREATE INDEX next_import ON sqliimport_scheduled USING btree ( "next" );
 ALTER TABLE ONLY sqliimport_scheduled ADD CONSTRAINT sqliimport_scheduled_pkey PRIMARY KEY ( id );
+CREATE SEQUENCE IF NOT EXISTS sqliimport_trigger_id_seq
+  START 1
+  INCREMENT 1
+  MAXVALUE 9223372036854775807
+  MINVALUE 1
+  CACHE 1;
+CREATE TABLE IF NOT EXISTS sqliimport_trigger (
+  allow_push integer DEFAULT 0 NOT NULL,
+  created integer DEFAULT 0 NOT NULL,
+  id integer DEFAULT nextval('sqliimport_trigger_id_seq'::text) NOT NULL,
+  import_id integer DEFAULT 0 NOT NULL,
+  is_enabled integer DEFAULT 0 NOT NULL,
+  modified integer DEFAULT 0 NOT NULL,
+  modifier_id integer DEFAULT 0 NOT NULL,
+  run_user_id integer DEFAULT 0 NOT NULL,
+  secret_ref character varying(100) DEFAULT ''::character varying NOT NULL,
+  sign_created integer DEFAULT 0 NOT NULL,
+  sign_salt character varying(64) DEFAULT ''::character varying NOT NULL
+);
+
+CREATE UNIQUE INDEX sqliimport_trig_import ON sqliimport_trigger USING btree ( import_id );
+ALTER TABLE ONLY sqliimport_trigger ADD CONSTRAINT sqliimport_trigger_pkey PRIMARY KEY ( id );
+CREATE SEQUENCE IF NOT EXISTS sqliimport_trigger_call_id_seq
+  START 1
+  INCREMENT 1
+  MAXVALUE 9223372036854775807
+  MINVALUE 1
+  CACHE 1;
+CREATE TABLE IF NOT EXISTS sqliimport_trigger_call (
+  call_hash character varying(64) DEFAULT ''::character varying NOT NULL,
+  created integer DEFAULT 0 NOT NULL,
+  id integer DEFAULT nextval('sqliimport_trigger_call_id_seq'::text) NOT NULL,
+  import_id integer DEFAULT 0 NOT NULL,
+  kind character varying(20) DEFAULT ''::character varying NOT NULL
+);
+
+CREATE UNIQUE INDEX sqliimport_tcall_hash ON sqliimport_trigger_call USING btree ( import_id, call_hash );
+CREATE INDEX sqliimport_tcall_time ON sqliimport_trigger_call USING btree ( import_id, kind, created );
+ALTER TABLE ONLY sqliimport_trigger_call ADD CONSTRAINT sqliimport_trigger_call_pkey PRIMARY KEY ( id );
+CREATE SEQUENCE IF NOT EXISTS sqliimport_trigger_key_id_seq
+  START 1
+  INCREMENT 1
+  MAXVALUE 9223372036854775807
+  MINVALUE 1
+  CACHE 1;
+CREATE TABLE IF NOT EXISTS sqliimport_trigger_key (
+  created integer DEFAULT 0 NOT NULL,
+  creator_id integer DEFAULT 0 NOT NULL,
+  id integer DEFAULT nextval('sqliimport_trigger_key_id_seq'::text) NOT NULL,
+  import_id integer DEFAULT 0 NOT NULL,
+  key_hash character varying(64) DEFAULT ''::character varying NOT NULL,
+  key_id character varying(32) DEFAULT ''::character varying NOT NULL,
+  label character varying(100) DEFAULT ''::character varying NOT NULL,
+  last_used integer DEFAULT 0 NOT NULL,
+  revoked integer DEFAULT 0 NOT NULL
+);
+
+CREATE UNIQUE INDEX sqliimport_tkey_id ON sqliimport_trigger_key USING btree ( key_id );
+CREATE INDEX sqliimport_tkey_import ON sqliimport_trigger_key USING btree ( import_id );
+ALTER TABLE ONLY sqliimport_trigger_key ADD CONSTRAINT sqliimport_trigger_key_pkey PRIMARY KEY ( id );

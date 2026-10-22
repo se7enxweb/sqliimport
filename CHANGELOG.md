@@ -14,6 +14,22 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   or POST with a JSON body for an endpoint that reads; extra headers only Accept, Accept-Language and X-...; waits on
   429 and 503 after Retry-After, X-RateLimit-Reset or RateLimit-Reset up to [RestApiSourceSettings] MaxWaitSeconds;
   curl when allow_url_fopen is off.
+- Added: A webhook / API trigger per import (sqliimport/trigger/<identifier>), off until it is switched on in the
+  schedule step of the editor: a signed call (HMAC-SHA256 over method, path, timestamp and body hash, within
+  [TriggerSettings] SignatureWindowSeconds, each signature once) or an API key (Authorization: Bearer or X-Api-Key)
+  starts a run as the trigger's run user, who needs Run imports or Manage imports; never as anonymous. Answers JSON
+  202 with the run id, 401, 403, 404, 409 when a run is active, 413, 415 and 429; no session, no CORS. The signing
+  secret and each key are shown once; keys are stored only as a peppered hash, signing secrets are derived from a
+  server key outside the database (or named secrets); rotating and revoking in the editor.
+- Added: Data in the trigger call: for an import that reads a file and whose trigger allows it, the body (CSV, JSON,
+  NDJSON, XML, YAML, spreadsheets, up to [TriggerSettings] MaxBodyMegabytes) becomes the snapshot of that run.
+- Added: The status of a triggered run for API key holders (GET sqliimport/trigger/<identifier>/run/<run id>).
+- Added: Rate limits per import for started runs, status requests and refused calls, and audit events
+  trigger.start, trigger.refused, trigger.limited, trigger.change, trigger.rotate, trigger.key.create and
+  trigger.key.revoke (never a secret, key or signature).
+- Added: The tables sqliimport_trigger, sqliimport_trigger_key and sqliimport_trigger_call (install-schema creates
+  them on MySQL, PostgreSQL, SQLite and Oracle), and the settings [TriggerSettings].
+
 - Added: Files of the run as run:<path> for the transforms image, file and media_object (a document a remote source
   downloaded, a picture taken out of a document), never outside the run's directory.
 - Added: The richtext transform keeps the pictures of the run: each becomes an image object, embedded where it was

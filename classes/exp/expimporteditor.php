@@ -1004,6 +1004,163 @@ class expImportEditor
         return true;
     }
 
+    // ---- trigger (part of the schedule step) -----------------------------------------------------------------------
+
+    /**
+     * @var array|null a secret to show once after this request: array( 'kind' => signing|key, 'value', 'label' );
+     *                 never stored, never put in the session
+     */
+    public $revealed = null;
+
+    /** @return bool whether the import can take its data from a call (expImportTriggerAuth::takesData()) */
+    public function triggerTakesData()
+    {
+        $sources = expImportRegistry::instance()->sources();
+        $type = (string)$this->import->attribute( 'source_type' );
+        return expImportTriggerAuth::takesData( isset( $sources[$type] ) ? $sources[$type] : null, $this->import->sourceConfig(), $this->import->isLegacy() );
+    }
+
+    /** @return array the trigger as the form shows it (never a secret: only whether there is one) */
+    public function triggerForForm()
+    {
+        $trigger = expImportTrigger::forImport( $this->import->attribute( 'id' ) );
+        $user = (int)$trigger->attribute( 'run_user_id' ) ? eZUser::fetch( (int)$trigger->attribute( 'run_user_id' ) ) : null;
+        $keys = array();
+        foreach ( expImportTriggerKey::fetchByImport( $this->import->attribute( 'id' ) ) as $key )
+            $keys[] = array( 'id' => (int)$key->attribute( 'id' ), 'label' => (string)$key->attribute( 'label' ), 'key_id' => (string)$key->attribute( 'key_id' ),
+                             'created' => (int)$key->attribute( 'created' ), 'last_used' => (int)$key->attribute( 'last_used' ),
+                             'revoked' => (int)$key->attribute( 'revoked' ) );
+        $identifier = (string)$this->import->attribute( 'identifier' );
+        $url = 'sqliimport/trigger/' . $identifier;
+        if ( class_exists( 'eZURI' ) )
+            eZURI::transformURI( $url, false, 'full' );
+        return array(
+            'is_enabled' => (bool)$trigger->attribute( 'is_enabled' ),
+            'run_user_id' => (int)$trigger->attribute( 'run_user_id' ),
+            'run_user_login' => $user ? (string)$user->attribute( 'login' ) : '',
+            'allow_push' => (bool)$trigger->attribute( 'allow_push' ),
+            'secret_ref' => (string)$trigger->attribute( 'secret_ref' ),
+            'has_signing' => (string)$trigger->attribute( 'sign_salt' ) !== '' || (string)$trigger->attribute( 'secret_ref' ) !== '',
+            'sign_created' => (int)$trigger->attribute( 'sign_created' ),
+            'keys' => $keys,
+            'url' => $url,
+            'path' => expImportTriggerAuth::canonicalPath( $identifier ),
+            'takes_data' => $this->triggerTakesData(),
+            'globally_enabled' => expImport::setting( 'TriggerSettings', 'Trigger', 'enabled' ) === 'enabled',
+            'max_body_megabytes' => max( 1, (int)expImport::setting( 'TriggerSettings', 'MaxBodyMegabytes', 20 ) ),
+        );
+    }
+
+    /** @return array the trigger as it was posted, over the stored one (a trigger form that could not be saved) */
+    public function triggerFromPost()
+    {
+        $t = $this->triggerForForm();
+        if ( $this->posted( 'TriggerAction' ) === 'save' )
+        {
+            $t['is_enabled'] = (bool)$this->posted( 'TriggerEnabled' );
+            $t['allow_push'] = (bool)$this->posted( 'TriggerAllowPush' );
+            foreach ( array( 'TriggerRunUserID' => 'run_user_id', 'TriggerSecretRef' => 'secret_ref' ) as $field => $key )
+                if ( ( $v = $this->posted( $field ) ) !== null )
+                    $t[$key] = $v;
+        }
+        return $t;
+    }
+
+    /**
+     * Saves one action of the trigger form: save (on or off, run user, data, secret name), rotate (a new signing
+     * secret), newkey (a new API key with a label), revoke (an API key). A new secret or key is in $revealed, for this
+     * answer only.
+     *
+     * @return bool
+     */
+    public function saveTrigger()
+    {
+        $importID = (int)$this->import->attribute( 'id' );
+        $trigger = expImportTrigger::forImport( $importID );
+        $action = (string)$this->post( 'TriggerAction', 'save' );
+        $now = expImport::now();
+        $audit = array( 'id' => $importID, 'identifier' => $this->import->attribute( 'identifier' ) );
+        switch ( $action )
+        {
+            case 'save':
+                $enabled = (bool)$this->post( 'TriggerEnabled' );
+                $userID = (int)$this->post( 'TriggerRunUserID', 0 );
+                $user = $userID ? eZUser::fetch( $userID ) : null;
+                if ( $userID && !$user )
+                    $this->errors['TriggerRunUserID'] = ezpI18n::tr( 'extension/sqliimport/edit', 'There is no user with this ID.' );
+                elseif ( $user && !expImportAdmin::can( 'run', (string)$this->import->attribute( 'handler' ), $user ) )
+                    $this->errors['TriggerRunUserID'] = ezpI18n::tr( 'extension/sqliimport/edit', 'This user may not run this import (policy Run imports or Manage imports).' );
+                elseif ( $enabled && !$user )
+                    $this->errors['TriggerRunUserID'] = ezpI18n::tr( 'extension/sqliimport/edit', 'Choose the user a triggered run runs as.' );
+                $ref = trim( (string)$this->post( 'TriggerSecretRef', '' ) );
+                if ( $ref !== '' && ( !preg_match( '/^[A-Za-z0-9_.:-]{1,100}$/', $ref ) || expImportSecrets::get( $ref ) === null ) )
+                    $this->errors['TriggerSecretRef'] = ezpI18n::tr( 'extension/sqliimport/edit', 'There is no secret of this name.' );
+                elseif ( $ref !== '' && strlen( (string)expImportSecrets::get( $ref ) ) < 32 )
+                    $this->errors['TriggerSecretRef'] = ezpI18n::tr( 'extension/sqliimport/edit', 'A signing secret has at least 32 characters.' );
+                $push = (bool)$this->post( 'TriggerAllowPush' );
+                if ( $push && !$this->triggerTakesData() )
+                    $this->errors['TriggerAllowPush'] = ezpI18n::tr( 'extension/sqliimport/edit', 'Only an import that reads a file can take its data from a call.' );
+                if ( $this->errors )
+                    return false;
+                $trigger->setAttribute( 'is_enabled', $enabled ? 1 : 0 );
+                $trigger->setAttribute( 'run_user_id', $user ? $userID : 0 );
+                $trigger->setAttribute( 'allow_push', $push ? 1 : 0 );
+                $trigger->setAttribute( 'secret_ref', $ref );
+                // the first time it is switched on without a secret name: a signing secret, shown once
+                if ( $enabled && $ref === '' && (string)$trigger->attribute( 'sign_salt' ) === '' )
+                    $this->revealed = array( 'kind' => 'signing', 'value' => $trigger->rotate(), 'label' => '' );
+                $event = 'trigger.change';
+                $audit += array( 'enabled' => $enabled, 'run_user' => $user ? $userID : 0, 'push' => $push, 'secret_name' => $ref !== '' );
+                break;
+            case 'rotate':
+                if ( (string)$trigger->attribute( 'secret_ref' ) !== '' )
+                {
+                    $this->errors['TriggerSecretRef'] = ezpI18n::tr( 'extension/sqliimport/edit', 'The trigger signs with a named secret: change it where the secret is kept.' );
+                    return false;
+                }
+                $this->revealed = array( 'kind' => 'signing', 'value' => $trigger->rotate(), 'label' => '' );
+                $event = 'trigger.rotate';
+                break;
+            case 'newkey':
+                $label = trim( (string)$this->post( 'TriggerKeyLabel', '' ) );
+                if ( $label === '' )
+                {
+                    $this->errors['TriggerKeyLabel'] = ezpI18n::tr( 'extension/sqliimport/edit', 'Name the key (who or what uses it).' );
+                    return false;
+                }
+                if ( !$trigger->attribute( 'id' ) )
+                    $trigger->store();
+                list( $row, $key ) = expImportTriggerKey::create( $importID, $label );
+                $this->revealed = array( 'kind' => 'key', 'value' => $key, 'label' => (string)$row->attribute( 'label' ) );
+                $event = 'trigger.key.create';
+                $audit['key'] = (string)$row->attribute( 'key_id' );
+                break;
+            case 'revoke':
+                $row = expImportTriggerKey::fetch( (int)$this->post( 'TriggerKeyID', 0 ) );
+                if ( !$row || (int)$row->attribute( 'import_id' ) !== $importID )
+                {
+                    $this->errors['TriggerKeyLabel'] = ezpI18n::tr( 'extension/sqliimport/edit', 'This key does not exist.' );
+                    return false;
+                }
+                if ( !(int)$row->attribute( 'revoked' ) )
+                {
+                    $row->setAttribute( 'revoked', $now );
+                    $row->store( array( 'revoked' ) );
+                }
+                $event = 'trigger.key.revoke';
+                $audit['key'] = (string)$row->attribute( 'key_id' );
+                break;
+            default:
+                return false;
+        }
+        $trigger->setAttribute( 'modified', $now );
+        $trigger->setAttribute( 'modifier_id', expImport::currentUserID() );
+        $trigger->store();
+        // never the secret or the key in the audit trail: what changed only
+        expImport::audit( $event, $audit );
+        return true;
+    }
+
     // ---- review --------------------------------------------------------------------------------------------------
 
     /**
@@ -1054,6 +1211,7 @@ class expImportEditor
         'MatchAttribute' => 'sq-mattr', 'LocationParentNodeID' => 'sq-lparent', 'LocationParentFrom' => 'sq-lfrom',
         'LocationExtraParentsFrom' => 'sq-lextra', 'MappingFile' => 'sq-mapfile', 'RunAt' => 'sq-runat', 'Timezone' => 'sq-tz',
         'IntervalMinutes' => 'sq-interval', 'CronExpr' => 'sq-cron', 'CatchUp' => 'sq-catch', 'Notify' => 'sq-notify',
+        'TriggerRunUserID' => 'sq-trig-user', 'TriggerSecretRef' => 'sq-trig-ref', 'TriggerAllowPush' => 'sq-trig-push', 'TriggerKeyLabel' => 'sq-trig-label',
     );
 
     /**
