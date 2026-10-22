@@ -10,7 +10,7 @@ A source type reads records from a local file. Where the file comes from is the 
 | `upload` | `file`: the stored name of an uploaded file | The upload (kept in the site's storage directory, `sqliimport/uploads/`) is copied into the run's directory |
 | `url` | `url`: an `http` or `https` address | The address is downloaded into the run's directory, with the time limit `[ImportSettings] StreamTimeout` and the size limit `[SourceSettings] MaxSourceMegabytes` |
 | `path` | `path`: a file on the server | The file is read in place, but only if it lies inside one of `[SourceSettings] AllowedPaths[]` |
-| `remote` | the source's own options (a database, a search index, a mailbox) | The source reads its data itself once per run and writes it into the run's directory as JSON Lines (`sql`, `elasticsearch`, `duckdb`, `imap`) |
+| `remote` | the source's own options (a database, a search index, a mailbox, a directory, a service) | The source reads its data itself once per run and writes it into the run's directory as JSON Lines (`sql`, `mongodb`, `redis`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion` and the sites of the platforms group) |
 
 Rules:
 
@@ -872,6 +872,70 @@ install redis`; Debian: `php-redis`); without it, a small client of the extensio
 
 **Example:** `share/examples/redis-products.ndjson` is what a run reads from the keys `product:*` (two hashes, a JSON
 string and a set), to try a mapping.
+## LDAP directory (`ldap`)
+
+Group: data. Origin: `remote`. The entries of an LDAP directory (OpenLDAP, Active Directory, 389 Directory Server and
+the like): one record is one entry of a search, its fields the DN (`dn`) and the entry's attributes by name. Once per
+run the source binds, searches and writes the entries into the run's directory, one per line; the editor's sample
+reads the first ones. A directory of people holds **personal data**: import only the attributes the site needs.
+
+| Option | Values | Default |
+|---|---|---|
+| `uri` | `ldaps://host[:port]` (TLS from the start, port 636) or `ldap://host[:port]` (port 389, with StartTLS); a bare host is `ldaps://` | |
+| `starttls` | StartTLS on an `ldap://` connection | yes |
+| `allow_plain` | allow an unencrypted connection, only to `localhost` (`127.0.0.1`, `::1`) | no |
+| `bind_dn` | the user to bind as (`cn=reader,ou=Services,dc=example,dc=org`; Active Directory also `reader@example.org`); empty: anonymous | |
+| `password` | the **name** of a secret, never the password; needed with a bind DN | |
+| `base_dn` | where the search starts, e.g. `ou=Staff,dc=example,dc=org` | |
+| `filter` | an LDAP filter (RFC 4515) | `(objectClass=*)` |
+| `attributes` | the attributes to read, one per line; empty: all user attributes. A listed attribute is in every record (`null` when an entry has none) | |
+| `scope` | `sub` (the base and everything below it), `one` (the entries directly below the base), `base` (the base entry only) | `sub` |
+| `page_size` | entries per page of the paged results control (RFC 2696); `0`: no paging, the server's size limit applies (often 1000 in Active Directory) | `500` |
+| `size_limit` | the most entries; `0`: all | `0` |
+| `binary` | binary attributes as `base64:<data>`, or `skip` to leave them out | `base64` |
+| `multi_valued` | an attribute with several values as a list (`array`; one value stays a value) or joined (`join`) | `array` |
+| `separator` | the separator of joined values | `; ` |
+| `key` | the key field: `dn`, or an attribute such as `uid`, `entryUUID`, `objectGUID_text` | `dn` |
+
+**Read-only.** The source connects, binds and searches; it has no way to add, change or delete an entry. Give it a
+directory user that may only read the part of the tree the import needs.
+
+**Encrypted.** The connection is `ldaps://` or `ldap://` with StartTLS, and the server's certificate is checked (the
+CA certificates of the system's OpenLDAP client, `TLS_CACERT` in `ldap.conf`). An unencrypted connection is refused,
+except to `localhost` when the import ticks `allow_plain`. A directory server in a private or reserved network (the
+usual intranet directory, and `localhost`) is refused unless `[SourceSettings] AllowPrivateHosts=enabled` or the
+administrator lists it in `[LdapSourceSettings] AllowedHosts[]`. `[LdapSourceSettings] Timeout` (30 seconds) limits
+connecting and each search. Referrals are not followed.
+
+**The filter is checked** against the grammar of RFC 4515 before anything is sent: equality, presence (`(mail=*)`),
+substrings (`(cn=Sam*)`), `~=`, `>=`, `<=`, extensible matches (`(memberOf:1.2.840.113556.1.4.1941:=cn=Press,...)`),
+`&`, `|` and `!` nested at most 32 deep. Special characters in values are written as escapes: `\28` for `(`, `\29`
+for `)`, `\2a` for `*`, `\5c` for `\`. A filter without outer brackets gets them. Attribute names are checked too.
+
+**Values.** An attribute with one value is that value, one with several a list (`telephoneNumber.0`) or, with
+`multi_valued=join`, the values joined. Binary attributes (`jpegPhoto`, `thumbnailPhoto`, `objectGUID`, `objectSid`,
+certificates, an attribute with the option `;binary`, and every value that is not UTF-8 text) are written as
+`base64:<data>` (the mapping can make an image of a photo) or left out with `binary=skip`. `objectGUID` of Active
+Directory is also given as text in `objectGUID_text` (`12345678-9abc-...`), a key that stays when a user is renamed.
+Password attributes (`userPassword`, `unicodePwd`, `sambaNTPassword`, the LAPS passwords ...) are never read into a
+record, even when the server returns them.
+
+**Paging.** With a page size, every request carries the paged results control and the cookie of the page before,
+until the server has no more; the source needs PHP 7.3 or later for it. Without paging, a server stops at its own
+size limit.
+
+**Test connection.** On the source step, *Test connection* connects, binds, searches for the first entry and shows its
+fields, or the error (a password never appears: it is masked). Nothing is saved; it needs the same permission as
+saving the import. Next to the button, *What this server can connect with* says whether this PHP has the extension
+`ldap` and, after the first run, whether the job queue's workers have it.
+
+**What the host needs:** the PHP extension `ldap` in the PHP of the job queue's workers, which read the runs (RHEL:
+`php-ldap`; Debian: `php-ldap`; Plesk: the `ldap` extension of the PHP version), and in the web server's PHP for the
+editor's test and sample.
+
+**Example:** `share/examples/ldap-staff.ndjson` is the snapshot of three invented entries (what a run writes). The
+catalogue also shows a configuration for an OpenLDAP staff directory and one for the users of an Active Directory
+group over StartTLS, keyed by `objectGUID_text`.
 
 ## Pages of a site by its sitemap (`sitemap`) and the web page scraper (`webpage`)
 
@@ -1041,6 +1105,108 @@ in its text form: rich text as plain text, an image as its address on the site, 
 The mapping is made from the first record when the import is saved: its class, every attribute by identifier (rich
 text through `richtext`, images through `image`; relations are left to you), matched by the remote ID, so the copy
 follows the original at every run.
+
+## Hosted services read by the source (`airtable`, `notion`)
+
+These formats read a hosted service's API with a token: once per run the source requests the records page by page
+and writes them as a snapshot (`source.ndjson`) into the run's directory, which every chunk of the run then reads;
+the editor's dry run reads only as many records as it shows. They share these rules:
+
+- **Read-only.** The sources only read: Airtable through `GET` requests, Notion through its database query and `GET`
+  requests. Give the token as little as it needs (see each format).
+- **The token is never stored in the import.** The option takes the *name* of a secret: `Secrets[<name>]` of
+  `[SecretSettings]` in the site's own settings, or `env:<VARIABLE>` of the PHP process. Messages show
+  `[secret <name>]`, never the token, also when the service quotes it in an error.
+- **Rate limits.** The source keeps the least time between two requests the service allows, and when the service
+  answers `429 Too Many Requests` it waits (the `Retry-After` of the answer, else the service's own penalty) and tries
+  again, up to four times; a gateway error (502, 503, 504) is tried again the same way.
+- `[PlatformSettings] MaxPages` limits the requests of a run (200), `MaxResponseMegabytes` one answer (20) and
+  `[ImportSettings] StreamTimeout` the time of a request.
+- **Test connection** on the source step reads the first record and shows its fields, or the error (masked). Nothing
+  is saved; it needs the same permission as saving the import. *What this server can connect with* names what the
+  host needs.
+- **What the host needs:** the PHP extension `openssl` and `allow_url_fopen=On` (both part of the usual PHP
+  packages), and that the server may reach the service's address over HTTPS.
+- The data may contain **personal data** (names and e-mail addresses of collaborators and people). Map only what the
+  site needs.
+
+### Airtable (`airtable`)
+
+Group: platforms. The records of an Airtable table through the Airtable Web API (v0): the source requests
+`https://api.airtable.com/v0/<base>/<table>` and follows the `offset` of every answer.
+
+| Option | Meaning | Default |
+|---|---|---|
+| `base_id` | Required. The ID of the base, `app...` (in the address of the base) | |
+| `table` | Required. The name of the table or its ID (`tbl...`; it stays right when the table is renamed) | |
+| `view` | The name or ID of a view: its filters and order apply | empty |
+| `formula` | `filterByFormula`: an Airtable formula a record must make true, e.g. `{Status} = "Published"` | empty |
+| `fields` | The fields to read, one per line; empty: all. A listed field is in every record (`null` when it is empty) | empty |
+| `page_size` | Records per request (at most 100) | `100` |
+| `token` | Required. The **name** of the secret holding a personal access token | |
+| `key` | the key field | `id` (the record ID, `rec...`) |
+
+Create the personal access token on airtable.com (Developer hub) with the scope `data.records:read` only and access
+to the bases the import reads. Airtable allows five requests a second per base: the source keeps a fifth of a second
+between two requests and waits 30 seconds (Airtable's penalty) or the `Retry-After` after a `429`.
+
+A record has `id`, `created_time` and every field by its name (Airtable leaves empty fields out of an answer; list
+them in `fields` to have them in every record). Values: text, numbers, checkboxes, dates (ISO 8601), single and
+multiple selects (a list) as Airtable gives them; **attachments** as the list of their addresses (`<field>`, which the
+mapping can download, e.g. with the transform `image`) and of their file names (`<field>_names`); **linked records**
+as the list of their record IDs; a **collaborator** as the name (`<field>`) and the e-mail address (`<field>_email`),
+several as two lists; a button as its address, a barcode as its text, an AI text as its value. A field called like
+one of the record's own fields (`id`) is written as `field_<name>`. Airtable's addresses of attachments expire after
+a few hours, so the files are downloaded by the run that reads them.
+
+**Example:** `share/examples/airtable-events.ndjson` is the snapshot of three invented records of a table `Events`;
+the catalogue also shows a configuration for the published events of a view.
+
+### Notion (`notion`)
+
+Group: platforms. The pages of a Notion database through the Notion API (version `2022-06-28`): the source queries
+`POST https://api.notion.com/v1/databases/<id>/query` with the import's filter and sorts, and follows `next_cursor`
+while `has_more`.
+
+| Option | Meaning | Default |
+|---|---|---|
+| `database_id` | Required. The ID of the database (32 characters, with or without dashes) or its link (Share, Copy link) | |
+| `filter` | A filter object of the Notion API, e.g. `{"property": "Status", "status": {"equals": "Published"}}` | none |
+| `sorts` | A list of sorts, e.g. `[{"property": "Date", "direction": "descending"}]` | none |
+| `content` | `none`, or the page content as `markdown` or `html` in the field `content` | `none` |
+| `page_size` | Pages per request (at most 100) | `100` |
+| `token` | Required. The **name** of the secret holding the token of an internal integration | |
+| `key` | the key field | `id` (the ID of the page) |
+
+Create an internal integration (notion.so, My integrations) with the capability *Read content* only, and share the
+database with it (the database's menu, Connections). Notion allows about three requests a second: the source keeps a
+third of a second between two requests and follows the `Retry-After` of a `429`.
+
+A record has `id`, `url`, `created_time`, `last_edited_time`, `archived`, `title` (the text of the title property) and
+every property by its name, as a plain value:
+
+| Property type | Value |
+|---|---|
+| `title`, `rich_text` | the plain text |
+| `number`, `checkbox`, `url`, `email`, `phone_number` | as it is |
+| `select`, `status` | the option's name |
+| `multi_select` | the names joined by `, ` |
+| `date` | the start in ISO 8601 (`<name>`) and the end (`<name>_end`, `null` without one) |
+| `people`, `created_by`, `last_edited_by` | the names (a list for `people`) |
+| `files` | the list of addresses (`<name>`) and of file names (`<name>_names`); Notion's own file addresses expire after an hour |
+| `relation` | the list of the related pages' IDs |
+| `formula`, `rollup` | the value (a rollup of a list: the list of values) |
+| `created_time`, `last_edited_time`, `unique_id`, `verification` | as text (`unique_id` as `PREFIX-42`) |
+
+With `content` set, the source requests the blocks of every page (one more request per page, paged by their own
+cursor) and writes the **first level** as Markdown or HTML: paragraphs, headings, bulleted, numbered and to-do lists,
+quotes and callouts, code, dividers, images and the links of bookmarks, embeds, videos and files; bold, italic,
+strikethrough, code and links of the text are kept. A toggle gives its own text; nested blocks (the children of a
+list item or a toggle), tables and child databases are not read.
+
+**Example:** `share/examples/notion-articles.ndjson` is the snapshot of two invented pages with their content as
+Markdown; the catalogue also shows a configuration for the published articles, newest first, with the content as
+HTML.
 
 ## Exports of other systems (`joomla`, `ezpkg`)
 

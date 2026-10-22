@@ -45,6 +45,11 @@ Formats[]=Elasticsearch
 Formats[]=OpenSearch
 Formats[]=Parquet
 Formats[]=DuckDB
+Formats[]=MongoDB
+Formats[]=Redis
+Formats[]=LDAP
+Formats[]=Airtable
+Formats[]=Notion
 EntryURL=sqliimport/list
 Permission=sqliimport/manage|sqliimport/run|sqliimport/manageimports|sqliimport/listimports
 HelpPage=ext/sqliimport/README.md
@@ -255,6 +260,14 @@ Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: Redis keys (SCAN by pattern, read-only commands)
 
+[Service_sqliimport.source.ldap]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportLdapSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: entries of an LDAP directory (read-only search)
+
 [Service_sqliimport.source.cie]
 Class=expImportSourceEntry
 Factory=expImportSourceEntry::of
@@ -319,6 +332,22 @@ Arguments[]=expImportJoomlaSource
 Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: Joomla articles exported as CSV or XML
+
+[Service_sqliimport.source.airtable]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportAirtableSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: records of an Airtable table (Web API, read-only)
+
+[Service_sqliimport.source.notion]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportNotionSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: pages of a Notion database (API, read-only)
 
 [Service_sqliimport.source.media]
 Class=expImportSourceEntry

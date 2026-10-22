@@ -158,6 +158,20 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   load extensions, is sandboxed to the import's files (Sandbox, DuckDB 1.3 and later) and its configuration locked.
   Through the duckdb program (no shell, time and size limits) or PHP FFI with libduckdb; with Test connection, the
   driver list and the example share/examples/duckdb-teas.csv.
+- Added: The format Airtable table (airtable): the records of a table, a view or a filter formula through the Airtable
+  Web API, page by page with offset; attachments as addresses the mapping can download, linked records as IDs,
+  collaborators as name and e-mail address. Read-only, the personal access token by the name of a secret, five
+  requests a second and a wait after 429; Test connection reads the first record.
+- Added: The format Notion database (notion): the pages of a database through the Notion API (2022-06-28) with filter
+  and sorts, page by page with start_cursor; every property type as a plain value, and on request the first level of
+  the page content as Markdown or HTML. Read-only, the integration token by the name of a secret, waits after 429;
+  Test connection reads the first page.
+- Added: The format LDAP directory (ldap): the entries of a search (base DN, RFC 4515 filter checked before it is
+  sent, attributes, scope sub, one or base) over ldaps:// or StartTLS with the certificate checked, page by page with
+  the paged results control; binary attributes as base64 or left out, objectGUID also as text, password attributes
+  never read. Bind and search only, the password by the name of a secret, servers in private networks only from
+  [LdapSourceSettings] AllowedHosts[]; Test connection and the driver list say whether this PHP and the job queue's
+  workers have the extension ldap.
 
 ### Updated
 
