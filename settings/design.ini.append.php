@@ -14,5 +14,7 @@ BackendCSSFileList[]=sqliimport.css
 # No template carries an inline script or event handler attribute (tests/unit/ScriptRulesTest.php).
 [JavaScriptSettings]
 BackendJavaScriptList[]=sqliimport_confirm.js
+# The live run page (sqliimport::runstatus through Exp.io of expui)
+BackendJavaScriptList[]=sqliimport_admin.js
 
 */ ?>

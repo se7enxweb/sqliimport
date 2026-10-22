@@ -1,0 +1,109 @@
+{* Editor step "mapping": the class, how a record finds its object, where new objects go, and the grid: one line per
+   attribute of the class with its source field (the fields of the sample are offered), its transforms (one line:
+   trim | date(format=d.m.Y)), a default and whether it is required. Auto-match fills the empty lines from the
+   field names, without AI. *}
+<form method="post" action={concat( $base, '/(step)/mapping' )|ezurl}>
+{if ne( $sample_error, '' )}<p class="a4-notice is-warn">{'The sample of the source could not be read: %error'|i18n( 'extension/sqliimport/edit',, hash( '%error', $sample_error ) )|wash}</p>{/if}
+<datalist id="sq-sample-fields">{if $sample}{foreach $sample.fields as $f}<option value="{$f|wash}"></option>{/foreach}{/if}</datalist>
+
+<div class="a4-form is-wide a4-sqliimport-options">
+<div class="a4-field">
+<label for="sq-class">{'Content class'|i18n( 'extension/sqliimport/edit' )} <span class="a4-required-mark" aria-hidden="true">*</span></label>
+<select id="sq-class" name="ClassIdentifier"{if is_set( $errors.ClassIdentifier )} aria-invalid="true"{/if}>
+<option value="">{'Choose a class'|i18n( 'extension/sqliimport/edit' )}</option>
+{foreach $classes as $c}<option value="{$c.identifier|wash}"{if eq( $mapping.class, $c.identifier )} selected="selected"{/if}>{$c.name|wash} ({$c.identifier|wash})</option>{/foreach}
+</select>
+<span class="a4-help">{'After a new class is chosen, save to see its attributes.'|i18n( 'extension/sqliimport/edit' )}</span>
+</div>
+<div class="a4-field">
+<label for="sq-mlang">{'Language of the fields'|i18n( 'extension/sqliimport/edit' )}</label>
+<select id="sq-mlang" name="MappingLanguage">
+<option value="">{'The language of the import'|i18n( 'extension/sqliimport/edit' )}</option>
+{foreach $languages as $l}<option value="{$l.locale|wash}"{if eq( $mapping.language, $l.locale )} selected="selected"{/if}>{$l.name|wash}</option>{/foreach}
+</select>
+</div>
+<fieldset class="a4-field a4-field-wide">
+<legend>{'How a record finds its object'|i18n( 'extension/sqliimport/edit' )}</legend>
+<div class="a4-radios">
+<label><input type="radio" name="MatchType" value="remote_id"{if ne( $mapping.match.type, 'attribute' )} checked="checked"{/if} /> {'By a remote ID made from the record'|i18n( 'extension/sqliimport/edit' )}</label>
+<label><input type="radio" name="MatchType" value="attribute"{if eq( $mapping.match.type, 'attribute' )} checked="checked"{/if} /> {'By the value of an attribute'|i18n( 'extension/sqliimport/edit' )}</label>
+</div>
+</fieldset>
+<div class="a4-field">
+<label for="sq-pattern">{'Remote ID pattern'|i18n( 'extension/sqliimport/edit' )}</label>
+<input type="text" id="sq-pattern" name="MatchPattern" value="{if is_set( $mapping.match.pattern )}{$mapping.match.pattern|wash}{/if}" placeholder="news-{ldelim}id{rdelim}" />
+<span class="a4-help">{'Fields of the record in braces, for example:'|i18n( 'extension/sqliimport/edit' )} <code>product-{ldelim}sku{rdelim}</code></span>
+</div>
+<div class="a4-field">
+<label for="sq-mattr">{'Attribute and source field to match on'|i18n( 'extension/sqliimport/edit' )}</label>
+<div class="a4-row">
+<select id="sq-mattr" name="MatchAttribute" aria-label="{'Attribute'|i18n( 'extension/sqliimport/edit' )|wash}">
+<option value="">–</option>
+{foreach $grid as $g}<option value="{$g.attribute|wash}"{if and( is_set( $mapping.match.attribute ), eq( $mapping.match.attribute, $g.attribute ) )} selected="selected"{/if}>{$g.name|wash}</option>{/foreach}
+</select>
+<input type="text" name="MatchSource" list="sq-sample-fields" value="{if is_set( $mapping.match.source )}{$mapping.match.source|wash}{/if}" aria-label="{'Source field'|i18n( 'extension/sqliimport/edit' )|wash}" />
+</div>
+</div>
+<div class="a4-field">
+<label for="sq-lparent">{'Parent node of new objects'|i18n( 'extension/sqliimport/edit' )}</label>
+<input type="number" id="sq-lparent" name="LocationParentNodeID" value="{first_set( $mapping.location.parent_node_id, 0 )|wash}" min="0" />
+</div>
+<div class="a4-field">
+<label for="sq-lfrom">{'Parent from a field (its remote ID)'|i18n( 'extension/sqliimport/edit' )}</label>
+<div class="a4-row">
+<input type="text" id="sq-lfrom" name="LocationParentFrom" list="sq-sample-fields" value="{first_set( $mapping.location.parent_from, '' )|wash}" aria-label="{'Field'|i18n( 'extension/sqliimport/edit' )|wash}" />
+<input type="text" name="LocationParentPrefix" value="{first_set( $mapping.location.parent_prefix, '' )|wash}" placeholder="{'prefix'|i18n( 'extension/sqliimport/edit' )|wash}" aria-label="{'Prefix of the remote ID'|i18n( 'extension/sqliimport/edit' )|wash}" />
+</div>
+</div>
+<div class="a4-field">
+<label for="sq-lextra">{'More locations from a field'|i18n( 'extension/sqliimport/edit' )}</label>
+<input type="text" id="sq-lextra" name="LocationExtraParentsFrom" list="sq-sample-fields" value="{first_set( $mapping.location.extra_parents_from, '' )|wash}" />
+</div>
+</div>
+
+{if $grid|count|gt( 0 )}
+<section class="a4-section" aria-labelledby="sq-grid-title">
+<div class="a4-section-head">
+<h2 class="a4-h2" id="sq-grid-title">{'Attributes'|i18n( 'extension/sqliimport/edit' )}</h2>
+<button type="submit" class="a4-btn a4-btn-small" name="AutoMatchButton" value="1"><span class="a4-icon a4-bi-magic" aria-hidden="true"></span> {'Auto-match by name'|i18n( 'extension/sqliimport/edit' )}</button>
+</div>
+<div class="a4-sqliimport-scroll" tabindex="0" role="region" aria-labelledby="sq-grid-title">
+<table class="a4-table is-compact a4-sqliimport-grid">
+<thead><tr>
+<th>{'Attribute'|i18n( 'extension/sqliimport/edit' )}</th>
+<th>{'Source field'|i18n( 'extension/sqliimport/edit' )}</th>
+<th>{'Transforms'|i18n( 'extension/sqliimport/edit' )}</th>
+<th>{'Default'|i18n( 'extension/sqliimport/edit' )}</th>
+<th>{'Required'|i18n( 'extension/sqliimport/edit' )}</th>
+</tr></thead>
+<tbody>
+{foreach $grid as $g}
+<tr{if is_set( $errors[concat( 'Fields_', $g.attribute )] )} class="is-error"{/if}>
+<td><strong>{$g.name|wash}</strong>{if $g.is_required} <span class="a4-required-mark" title="{'required by the class'|i18n( 'extension/sqliimport/edit' )|wash}">*</span>{/if}<br /><span class="a4-meta">{$g.attribute|wash} · {$g.datatype|wash}</span></td>
+<td><input type="text" class="a4-input" name="Fields[{$g.attribute|wash}][source]" list="sq-sample-fields" value="{$g.source|wash}" aria-label="{'Source field of %a'|i18n( 'extension/sqliimport/edit',, hash( '%a', $g.name ) )|wash}" /></td>
+<td><input type="text" class="a4-input a4-sqliimport-chain" name="Fields[{$g.attribute|wash}][transforms]" value="{$g.transforms|wash}" aria-label="{'Transforms of %a'|i18n( 'extension/sqliimport/edit',, hash( '%a', $g.name ) )|wash}" placeholder="trim" /></td>
+<td><input type="text" class="a4-input" name="Fields[{$g.attribute|wash}][default]" value="{$g.default|wash}" aria-label="{'Default of %a'|i18n( 'extension/sqliimport/edit',, hash( '%a', $g.name ) )|wash}" /></td>
+<td><input type="checkbox" name="Fields[{$g.attribute|wash}][required]" value="1"{if $g.required} checked="checked"{/if} aria-label="{'%a is required'|i18n( 'extension/sqliimport/edit',, hash( '%a', $g.name ) )|wash}" /></td>
+</tr>
+{/foreach}
+</tbody>
+</table>
+</div>
+<details class="a4-fold a4-sqliimport-transforms">
+<summary>{'The transforms'|i18n( 'extension/sqliimport/edit' )}</summary>
+<p class="a4-help">{'One line per attribute, steps separated by a vertical bar, arguments in parentheses, for example:'|i18n( 'extension/sqliimport/edit' )} <code>trim | date(format=d.m.Y, timezone=Europe/Berlin) | map(table={ldelim}"D":"Germany"{rdelim})</code></p>
+<table class="a4-table is-compact"><thead><tr><th>{'Name'|i18n( 'extension/sqliimport/edit' )}</th><th>{'What it does'|i18n( 'extension/sqliimport/edit' )}</th><th>{'Arguments'|i18n( 'extension/sqliimport/edit' )}</th></tr></thead>
+<tbody>{foreach $transforms as $tname => $t}<tr><td><code>{$tname|wash}</code></td><td>{$t.label|wash}</td><td>{foreach $t.schema as $an => $ad}<code>{$an|wash}</code>{delimiter}, {/delimiter}{/foreach}</td></tr>{/foreach}</tbody></table>
+</details>
+</section>
+{/if}
+
+{if $sample}
+<details class="a4-fold">
+<summary>{'The fields of the sample (%n records)'|i18n( 'extension/sqliimport/edit',, hash( '%n', $sample.records|count ) )}</summary>
+<p>{foreach $sample.fields as $f}<code>{$f|wash}</code>{delimiter} {/delimiter}{/foreach}</p>
+</details>
+{/if}
+
+{include uri='design:sqliimport/edit/buttons.tpl' step='mapping' stay=1}
+</form>

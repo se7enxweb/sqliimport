@@ -1,7 +1,7 @@
 {* sqliimport/run/<id>: one run of an import. Its status and progress, the counters per outcome, Cancel and Retry
    failed rows, the records filtered by outcome (with the changed fields of a dry run), and the run's log. Shared
    components only; no inline CSS or script. *}
-<div class="context-block a4-page a4-sqliimport">
+<div class="context-block a4-page a4-sqliimport"{if $run.is_final|not} data-exp-sqliimport-run='{ldelim}"run": {$run.id}, "log": {$last_log_id}{rdelim}'{/if}>
 
 <div class="box-header"><div class="box-ml">
 <h1 class="context-title">{'Run #%id'|i18n( 'extension/sqliimport',, hash( '%id', $run.id ) )} · {$run.import_name|wash}</h1>
@@ -12,26 +12,26 @@
 {include uri='design:sqliimport/parts/flash.tpl' flash=$flash}
 
 <div class="a4-toolbar a4-sqliimport-toolbar">
-{include uri='design:sqliimport/parts/status.tpl' label=$run.status_label kind=$run.status_kind}
+{include uri='design:sqliimport/parts/status.tpl' label=$run.status_label kind=$run.status_kind field='status_label'}
 <span class="a4-meta">{$run.kind_label|wash} · {$run.trigger_label|wash}{if ne( $run.user, '' )} · {$run.user|wash}{/if}{if $run.parent_run_id} · {'retry of'|i18n( 'extension/sqliimport' )} <a href={concat( '/sqliimport/run/', $run.parent_run_id )|ezurl}>#{$run.parent_run_id}</a>{/if}</span>
 {if $can_run}
-{if $run.is_final|not}{include uri='design:sqliimport/parts/button.tpl' action='cancel' run=$run.id here=$here label='Cancel'|i18n( 'extension/sqliimport' ) kind='danger' icon='x-circle-fill' confirm='Cancel this run? Records already processed stay as they are.'|i18n( 'extension/sqliimport' )}{/if}
-{if $can_retry}{include uri='design:sqliimport/parts/button.tpl' action='retry' run=$run.id here=$here label='Retry failed rows'|i18n( 'extension/sqliimport' ) kind='primary' icon='arrow-clockwise'}{/if}
+{if $run.is_final|not}{include uri='design:sqliimport/parts/button.tpl' action='cancel' run_id=$run.id here=$here label='Cancel'|i18n( 'extension/sqliimport' ) kind='danger' icon='x-circle-fill' confirm='Cancel this run? Records already processed stay as they are.'|i18n( 'extension/sqliimport' )}{/if}
+{if $can_retry}{include uri='design:sqliimport/parts/button.tpl' action='retry' run_id=$run.id here=$here label='Retry failed rows'|i18n( 'extension/sqliimport' ) kind='primary' icon='arrow-clockwise'}{/if}
 {/if}
 <a class="a4-btn a4-btn-ghost" href={$here|ezurl}><span class="a4-icon a4-bi-arrow-clockwise" aria-hidden="true"></span> {'Refresh'|i18n( 'extension/sqliimport' )}</a>
 {if ne( $run.queue_group, '' )}<a class="a4-btn a4-btn-ghost" href={concat( '/expqueue/group/', $run.queue_group )|ezurl}>{'Jobs of this run'|i18n( 'extension/sqliimport' )}</a>{/if}
 </div>
 
-<div class="a4-meter{if eq( $run.status, 'failed' )} is-bad{elseif eq( $run.status, 'completed_with_errors' )} is-warn{elseif eq( $run.status, 'completed' )} is-ok{/if} a4-sqliimport-meter is-large" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{$run.percent}" aria-label="{'Progress'|i18n( 'extension/sqliimport' )|wash}"><span class="a4-pct-{$run.percent}"></span></div>
-<p class="a4-meta">{'%done of %total records, %percent%'|i18n( 'extension/sqliimport',, hash( '%done', $run.done, '%total', cond( gt( $run.total, 0 ), $run.total, '?' ), '%percent', $run.percent ) )} · {'duration %d'|i18n( 'extension/sqliimport',, hash( '%d', $run.duration ) )}{if gt( $run.memory, 0 )} · {'memory peak %m MB'|i18n( 'extension/sqliimport',, hash( '%m', $run.memory ) )}{/if}</p>
+<div class="a4-meter{if eq( $run.status, 'failed' )} is-bad{elseif eq( $run.status, 'completed_with_errors' )} is-warn{elseif eq( $run.status, 'completed' )} is-ok{/if} a4-sqliimport-meter is-large" data-sq-meter="1" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{$run.percent}" aria-label="{'Progress'|i18n( 'extension/sqliimport' )|wash}"><span class="a4-pct-{$run.percent}"></span></div>
+<p class="a4-meta">{'%done of %total records, %percent%'|i18n( 'extension/sqliimport',, hash( '%done', concat( '<span data-sq-field="done">', $run.done, '</span>' ), '%total', concat( '<span data-sq-field="total">', cond( gt( $run.total, 0 ), $run.total, '?' ), '</span>' ), '%percent', concat( '<span data-sq-field="percent">', $run.percent, '</span>' ) ) )} · {'duration %d'|i18n( 'extension/sqliimport',, hash( '%d', concat( '<span data-sq-field="duration">', $run.duration|wash, '</span>' ) ) )}{if gt( $run.memory, 0 )} · {'memory peak %m MB'|i18n( 'extension/sqliimport',, hash( '%m', $run.memory ) )}{/if}</p>
 
 <ul class="a4-figures" aria-label="{'Outcomes'|i18n( 'extension/sqliimport' )|wash}">
-    <li class="a4-figure is-ok"><a href={concat( '/sqliimport/run/', $run.id, '/(outcome)/created' )|ezurl}><strong>{$run.created}</strong><span>{'Created'|i18n( 'extension/sqliimport' )}</span></a></li>
-    <li class="a4-figure"><a href={concat( '/sqliimport/run/', $run.id, '/(outcome)/updated' )|ezurl}><strong>{$run.updated}</strong><span>{'Updated'|i18n( 'extension/sqliimport' )}</span></a></li>
-    <li class="a4-figure"><a href={concat( '/sqliimport/run/', $run.id, '/(outcome)/unchanged' )|ezurl}><strong>{$run.unchanged}</strong><span>{'Unchanged'|i18n( 'extension/sqliimport' )}</span></a></li>
-    <li class="a4-figure"><a href={concat( '/sqliimport/run/', $run.id, '/(outcome)/skipped' )|ezurl}><strong>{$run.skipped}</strong><span>{'Skipped'|i18n( 'extension/sqliimport' )}</span></a></li>
-    <li class="a4-figure{if gt( $run.failed, 0 )} is-bad{/if}"><a href={concat( '/sqliimport/run/', $run.id, '/(outcome)/failed' )|ezurl}><strong>{$run.failed}</strong><span>{'Failed'|i18n( 'extension/sqliimport' )}</span></a></li>
-    {if gt( $run.processed, 0 )}<li class="a4-figure"><a href={concat( '/sqliimport/run/', $run.id, '/(outcome)/processed' )|ezurl}><strong>{$run.processed}</strong><span>{'Processed (1.x)'|i18n( 'extension/sqliimport' )}</span></a></li>{/if}
+    <li class="a4-figure is-ok"><a href={concat( '/sqliimport/run/', $run.id, '/(outcome)/created' )|ezurl}><strong data-sq-field="created">{$run.created}</strong><span>{'Created'|i18n( 'extension/sqliimport' )}</span></a></li>
+    <li class="a4-figure"><a href={concat( '/sqliimport/run/', $run.id, '/(outcome)/updated' )|ezurl}><strong data-sq-field="updated">{$run.updated}</strong><span>{'Updated'|i18n( 'extension/sqliimport' )}</span></a></li>
+    <li class="a4-figure"><a href={concat( '/sqliimport/run/', $run.id, '/(outcome)/unchanged' )|ezurl}><strong data-sq-field="unchanged">{$run.unchanged}</strong><span>{'Unchanged'|i18n( 'extension/sqliimport' )}</span></a></li>
+    <li class="a4-figure"><a href={concat( '/sqliimport/run/', $run.id, '/(outcome)/skipped' )|ezurl}><strong data-sq-field="skipped">{$run.skipped}</strong><span>{'Skipped'|i18n( 'extension/sqliimport' )}</span></a></li>
+    <li class="a4-figure{if gt( $run.failed, 0 )} is-bad{/if}"><a href={concat( '/sqliimport/run/', $run.id, '/(outcome)/failed' )|ezurl}><strong data-sq-field="failed">{$run.failed}</strong><span>{'Failed'|i18n( 'extension/sqliimport' )}</span></a></li>
+    {if gt( $run.processed, 0 )}<li class="a4-figure"><a href={concat( '/sqliimport/run/', $run.id, '/(outcome)/processed' )|ezurl}><strong data-sq-field="processed">{$run.processed}</strong><span>{'Processed (1.x)'|i18n( 'extension/sqliimport' )}</span></a></li>{/if}
 </ul>
 
 <section class="a4-section" aria-labelledby="a4-sqliimport-rows-title">
@@ -86,9 +86,9 @@
 <section class="a4-section" aria-labelledby="a4-sqliimport-log-title">
 <div class="a4-section-head"><h2 class="a4-h2" id="a4-sqliimport-log-title">{'Log'|i18n( 'extension/sqliimport' )}</h2></div>
 {if $log|count|eq( 0 )}
-<p class="a4-empty">{'Nothing logged yet.'|i18n( 'extension/sqliimport' )}</p>
-{else}
-<ol class="a4-timeline a4-sqliimport-log">
+<p class="a4-empty" data-sq-log-empty="1">{'Nothing logged yet.'|i18n( 'extension/sqliimport' )}</p>
+{/if}
+<ol class="a4-timeline a4-sqliimport-log" data-sq-log="1"{if $log|count|eq( 0 )} hidden="hidden"{/if}>
 {foreach $log as $line}
 <li class="{if eq( $line.severity, 'error' )}is-bad{elseif eq( $line.severity, 'warning' )}is-warn{elseif eq( $line.severity, 'notice' )}is-info{else}is-ok{/if}">
 <span class="a4-timeline-time">{$line.time|l10n( 'shortdatetime' )}</span>
@@ -96,7 +96,6 @@
 </li>
 {/foreach}
 </ol>
-{/if}
 </section>
 
 </div></div></div>

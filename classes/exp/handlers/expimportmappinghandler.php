@@ -59,7 +59,8 @@ class expImportMappingHandler implements expImportHandlerInterface
             return is_array( $object ) ? (int)$object['id'] : 0;
         };
         $run = $context->run;
-        expImportTransforms::$download = function ( $url, $kind ) use ( $run )
+        // a dry run downloads nothing: the address stands for the file
+        expImportTransforms::$download = $context->dryRun ? function ( $url, $kind ) { return $url; } : function ( $url, $kind ) use ( $run )
         {
             return expImportSourceFiles::downloadAsset( $url, $kind, $run );
         };

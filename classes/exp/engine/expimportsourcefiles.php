@@ -33,18 +33,19 @@ class expImportSourceFiles
     }
 
     /**
-     * The local snapshot of an import's source for a run.
+     * The local snapshot of an import's source for a run, or for the sample and preview of the import editor
+     * (without a run: var/<site>/storage/sqliimport/preview/<import id>/).
      *
      * @param expImportDefinition $import
-     * @param expImportRun $run
+     * @param expImportRun|null $run
      * @return string the file
      * @throws expImportSourceException
      */
-    public static function snapshot( expImportDefinition $import, expImportRun $run )
+    public static function snapshot( expImportDefinition $import, ?expImportRun $run = null )
     {
         $config = $import->sourceConfig();
         $origin = isset( $config['origin'] ) ? (string)$config['origin'] : 'upload';
-        $dir = self::runDirectory( $run->attribute( 'id' ) );
+        $dir = $run ? self::runDirectory( $run->attribute( 'id' ) ) : expImport::storageDirectory( 'preview/' . (int)$import->attribute( 'id' ) );
         switch ( $origin )
         {
             case 'upload':
