@@ -10,7 +10,7 @@ A source type reads records from a local file. Where the file comes from is the 
 | `upload` | `file`: the stored name of an uploaded file | The upload (kept in the site's storage directory, `sqliimport/uploads/`) is copied into the run's directory |
 | `url` | `url`: an `http` or `https` address | The address is downloaded into the run's directory, with the time limit `[ImportSettings] StreamTimeout` and the size limit `[SourceSettings] MaxSourceMegabytes` |
 | `path` | `path`: a file on the server | The file is read in place, but only if it lies inside one of `[SourceSettings] AllowedPaths[]` |
-| `remote` | the source's own options (a database, a search index, a mailbox, a directory, a service) | The source reads its data itself once per run and writes it into the run's directory as JSON Lines (`sql`, `mongodb`, `redis`, `couchdb`, `couchbase`, `cosmosdb`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion`, `dynamodb`, `firestore`, `bigquery`, `firebase_rtdb`, `cassandra`, `neo4j`, `arangodb`, `clickhouse`, `snowflake`, `influxdb`, `supabase`, `baserow`, `salesforce`, `hubspot` and the sites of the platforms group) |
+| `remote` | the source's own options (a database, a search index, a mailbox, a directory, a service) | The source reads its data itself once per run and writes it into the run's directory as JSON Lines (`sql`, `mongodb`, `redis`, `couchdb`, `couchbase`, `cosmosdb`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion`, `dynamodb`, `firestore`, `bigquery`, `firebase_rtdb`, `cassandra`, `neo4j`, `arangodb`, `clickhouse`, `snowflake`, `influxdb`, `supabase`, `baserow`, `salesforce`, `hubspot`, `youtube`, `youtube_page` and the sites of the platforms group) |
 
 Rules:
 
@@ -422,6 +422,101 @@ The podcast preset imports an episode into a `file` object (name, description, a
 transform `file`). The video preset stores a video as a `link` (name, description, address), matched by
 `video-{video_id}`. A YouTube channel's feed is `https://www.youtube.com/feeds/videos.xml?channel_id=<channel ID>`
 (a playlist: `?playlist_id=`), a Vimeo user's `https://vimeo.com/<user>/videos/rss`.
+
+## YouTube Data API (`youtube`)
+
+Group: media. The videos of a YouTube channel, of a playlist or of a search through the YouTube Data API v3 at
+`https://www.googleapis.com/youtube/v3/` (the host is fixed). Unlike the channel feed (`video_feed`, the last 15
+videos), it reads every video and its details.
+
+| Option | Meaning | Default |
+|---|---|---|
+| `mode` | `channel` (the uploads of a channel), `playlist` or `search` | `channel` |
+| `channel` | Channel and search: the channel ID (`UC...`) or `@handle`, or the channel's address (`youtube.com/@name`, `youtube.com/channel/UC...`); a search without it searches all of YouTube | empty |
+| `playlist_id` | Playlist: the playlist ID (`PL...`) or its address (`youtube.com/playlist?list=...`) | empty |
+| `query` | Search: the terms (`q`) | empty |
+| `published_after`, `published_before` | Search: `2026-01-31` or `2026-01-31T12:00:00Z` (sent as RFC 3339 in UTC) | empty |
+| `order` | Search: `date`, `rating`, `relevance`, `title`, `viewCount` | `date` |
+| `page_size` | Videos per request (at most 50) | `50` |
+| `max_records` | The most videos one run reads; `0`: all | `0` |
+| `api_key` | Required. The **name** of the secret holding the API key | |
+| `key` | the key field | `id` |
+
+**How it reads:** `channel` asks `channels.list` (by `id` or `forHandle`) for the channel's playlist of uploads
+(`contentDetails.relatedPlaylists.uploads`) and reads it like `playlist` with `playlistItems.list`; `search` uses
+`search.list` with `type=video`, `q`, `channelId`, `publishedAfter`, `publishedBefore` and `order`. Each page of video
+IDs is followed by `videos.list` (`snippet`, `contentDetails`, `statistics`, `status`) for up to 50 videos per
+request; the records keep the order of the listing, a video listed twice comes once, and a private or deleted video
+of a playlist (which `videos.list` does not give) is left out. Paging follows `nextPageToken`.
+
+**Quota:** a Google Cloud project has 10,000 units a day by default. `channels.list`, `playlistItems.list` and
+`videos.list` cost 1 unit per request, `search.list` **100**: a channel of 500 videos costs about 21 units a run, a
+search of 5 pages 505. `[YouTubeSettings] MaxPages` (100) limits the pages of a channel or playlist and
+`MaxSearchPages` (5) those of a search; a run with more pages stops with a message rather than import a part (set
+`max_records`, or raise the setting). After a `429` the source waits (`Retry-After`); when the quota is used up the
+message says so (it is reset at midnight Pacific Time).
+
+**Read-only guarantee:** the source sends `GET` requests only, to the four methods `channels`, `playlistItems`,
+`search` and `videos`; any other method is refused before a request is made. Create an API key in the Google Cloud
+console, enable the YouTube Data API v3 and restrict the key to it. The key is sent in the header `X-goog-api-key`,
+never in an address, and is masked in every message. A service account is not used: the Data API reads public videos
+with an API key, and private ones only with the channel owner's OAuth consent, which this source does not ask for.
+
+**Fields:**
+
+| Field | What it holds |
+|---|---|
+| `id`, `url`, `embed_url` | the video ID, `https://www.youtube.com/watch?v=<id>` and `https://www.youtube-nocookie.com/embed/<id>` |
+| `title`, `description`, `published` | the title, the description (plain text with line breaks) and the time of publication (ISO 8601) |
+| `channel_id`, `channel_title` | the channel |
+| `tags`, `category_id` | the tags (a list, empty when none) and the category's ID |
+| `duration_seconds`, `duration` | the length from the ISO 8601 duration (`PT1H2M3S`) in seconds (`3723`) and as `H:MM:SS` (`1:02:03`); `0` for a live stream that has not started |
+| `thumbnail`, `thumbnails` | the address of the largest thumbnail (`maxres`, `standard`, `high`, `medium`, `default`) and all of them as JSON |
+| `view_count`, `like_count`, `comment_count` | numbers; `null` when the channel hides them |
+| `privacy`, `live_broadcast_content` | `public`, `unlisted` or `private`; `none`, `upcoming` or `live` |
+
+**Preset:** a `link` object matched by `youtube-{id}`: `title` to `name`, `description` to `description` (rich text),
+`url` to `location`; a class with an image attribute (`ezimage`) called `image` also gets the thumbnail (transform
+`image`), one with `publish_date` the time of publication.
+
+**Test connection** makes one request of 1 unit: `channels.list` for a channel (and a search that names a channel,
+with the number of its videos), `playlistItems.list` for a playlist (with its total), `videos.list` of one popular
+video for a search without a channel, so a test never costs the 100 units of a search; the message says what was used.
+**What the server needs:** the PHP extension openssl and `allow_url_fopen=On`.
+
+**Example:** `share/examples/youtube-videos.ndjson` (three invented videos).
+
+## YouTube channel or playlist page (`youtube_page`, opt-in)
+
+Group: media. **Reading youtube.com pages with a program is against YouTube's Terms of Service, and this source may
+break whenever YouTube changes its pages.** Use it only where you may, and prefer the Data API (`youtube`) or the
+channel feed (`video_feed`). It is **off** by default: until an administrator sets `sqliimport.ini [YouTubeSettings]
+AllowPageScraper=enabled`, the catalogue lists it as disabled with the reason, the editor does not offer it, and a run
+or a test of an existing import is refused. The catalogue and the editor show the warning with the format.
+
+| Option | Meaning | Default |
+|---|---|---|
+| `url` | Required. A channel's videos page (`https://www.youtube.com/@name/videos`, `/channel/UC.../videos`, also `/streams` and `/shorts`) or a playlist (`https://www.youtube.com/playlist?list=...`) | |
+| `max_records` | The most videos one run reads; `0`: all the page lists | `0` |
+| `delay` | The pause before reading the page, in seconds (a longer `Crawl-delay` wins) | `2` |
+| `key` | the key field | `id` |
+
+Only `www.youtube.com` is read (`youtube.com` and `m.youtube.com` addresses are rewritten to it); other hosts, user
+names, ports and other paths (a single video, search results) are refused. The page is read like the web page scraper
+reads one: `robots.txt` of `www.youtube.com` is obeyed, the address checks and size limits of a URL source apply, no
+cookie and no credential is sent, and no script runs: the JSON object assigned to `ytInitialData` is cut out of the
+HTML text and decoded. A redirect to another host (a consent page) stops the run with a message. Only the first batch
+of videos the page holds is read (about 30 on a channel page, 100 on a playlist): more would need YouTube's internal
+API, which this source never calls.
+
+The records have the fields of `youtube` as far as the page gives them: `id`, `url`, `embed_url`, `title`,
+`duration_seconds`, `duration`, `thumbnail`, `thumbnails` (a JSON list), `view_count` (only an exact count such as
+`1,234 views`; `1.2K` gives `null`), `channel_id`, `channel_title` and `live_broadcast_content`; `published` is `null`
+and `published_text` holds the page's relative text (`3 days ago`); `like_count`, `comment_count`, `tags`,
+`category_id`, `privacy` and usually `description` are empty. The preset is the one of `youtube`. Test connection reads
+the page and reports how many videos it lists.
+
+**Example:** `share/examples/youtube-page-videos.ndjson` (three invented videos).
 
 ## YAML and TOML data files (`yaml`, `toml`)
 

@@ -71,6 +71,7 @@ foreach ( array( 'RunSettings' => array( 'ChunkSize', 'DryRunRows', 'LogLevel', 
                  'BaserowSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
                  'SalesforceSourceSettings' => array( 'AllowedDomains', 'AllowedHosts', 'MaxPages' ),
                  'HubSpotSourceSettings' => array( 'MaxPages' ),
+                 'YouTubeSettings' => array( 'MaxPages', 'MaxSearchPages', 'AllowPageScraper' ),
                  'ImportSettings' => array( 'DefaultParentNodeID', 'ViewCaching', 'ObjectIndexing', 'StreamTimeout' ),
                  'AdminSettings' => array( 'ListLimit' ) ) as $section => $names )
     foreach ( $names as $name )

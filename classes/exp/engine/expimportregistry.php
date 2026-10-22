@@ -87,7 +87,7 @@ class expImportRegistry
             // sqliimport.ini [Source_<id>] Status= switches a format of the service container off or to "example"
             $section = 'Source_' . $id;
             $status = $ini->hasVariable( $section, 'Status' ) ? $ini->variable( $section, 'Status' ) : 'enabled';
-            $out[$id] = array( 'id' => $id, 'status' => $status ) + $entry->toArray();
+            $out[$id] = self::available( array( 'id' => $id, 'status' => $status ) + $entry->toArray() );
         }
         return $this->sources = self::sortByGroup( $out );
     }
@@ -111,7 +111,21 @@ class expImportRegistry
             eZDebug::writeWarning( "source $id: $class is not an expImportSourceInterface", __METHOD__ );
             return;
         }
-        $out[$id] = array( 'id' => $id, 'status' => $status ) + $entry->toArray();
+        $out[$id] = self::available( array( 'id' => $id, 'status' => $status ) + $entry->toArray() );
+    }
+
+    /**
+     * An entry whose format cannot be used on this site (its availability() gives a reason: an opt-in format switched
+     * off in the settings) is disabled, whatever [Source_<id>] Status says.
+     *
+     * @param array $entry
+     * @return array
+     */
+    public static function available( array $entry )
+    {
+        if ( isset( $entry['availability'] ) && $entry['availability'] !== '' )
+            $entry['status'] = 'disabled';
+        return $entry;
     }
 
     /**

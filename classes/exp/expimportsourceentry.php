@@ -28,6 +28,9 @@
  *   examples()      list of array( 'label', 'file' (in the extension's share/examples) or 'url' )
  *   preset()        a mapping to start from (class, match, fields), or array() when none fits
  *   variants()      id => array( 'label', 'description', 'extensions', 'defaults' (option => value), 'examples', 'preset' )
+ *   notice()        a warning the catalogue and the editor show with the format (a scraper against a site's terms)
+ *   availability()  '' when the format may be used on this site, else why not: the catalogue then lists it as
+ *                   disabled with that reason (an opt-in format switched off in the settings)
  *
  * The entry holds nothing of a request, so one per worker is right.
  */
@@ -102,6 +105,9 @@ class expImportSourceEntry
             // a format that can try its connection (Test connection) and that names the drivers it needs
             'can_test' => method_exists( $class, 'test' ),
             'has_drivers' => method_exists( $class, 'drivers' ),
+            // a warning shown with the format, and why it cannot be used on this site ('' when it can)
+            'notice' => (string)self::call( $class, 'notice', '' ),
+            'availability' => (string)self::call( $class, 'availability', '' ),
         );
         if ( $this->variant !== '' )
         {

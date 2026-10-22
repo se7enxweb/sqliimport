@@ -31,6 +31,18 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   objects, listed with properties and associations or searched with checked filter groups and a sort, paged with
   after; the private app token by the name of a secret, 100 requests in 10 seconds and Retry-After; dates in
   milliseconds as ISO 8601.
+- Added: The format YouTube Data API (youtube): the videos of a channel (by its ID or @handle, through its uploads
+  playlist), of a playlist or of a search (terms, channel, published after and before, order), with their details
+  from videos.list in batches of 50: duration in seconds and as H:MM:SS, the largest thumbnail, statistics, tags,
+  privacy, watch and privacy-enhanced embed addresses. GET only to www.googleapis.com, the API key by the name of a
+  secret in a header, paged with pageToken within [YouTubeSettings] MaxPages and MaxSearchPages (a search costs 100
+  quota units per page); Test connection costs 1 unit.
+- Added: The format YouTube channel or playlist page (youtube_page), off unless [YouTubeSettings]
+  AllowPageScraper=enabled: the videos a youtube.com page lists, read from its ytInitialData without an API key,
+  robots.txt obeyed; the catalogue, the editor and the documentation warn that it is against YouTube's Terms of
+  Service and may break when the pages change.
+- Added: A format can show a warning (notice()) in the catalogue and the editor, and be disabled with a reason
+  (availability()) when the site's settings do not allow it.
 - Added: The formats Apache Avro (avro) and Apache Arrow or Feather (arrow), read in PHP alone: Avro object container
   files with every type and the logical types (codecs null and deflate, snappy and zstandard with their extensions),
   Arrow IPC files and streams and Feather v2 (struct, list, dictionary columns, decimals, timestamps; LZ4 in PHP,

@@ -36,6 +36,7 @@
 <div class="a4-radios">
 {foreach $g.sources as $id => $s}{if eq( $s.status, 'enabled' )}
 <label><input type="radio" name="SourceType" value="{$id|wash}"{if eq( $source_type, $id )} checked="checked"{/if} /> {$s.label|wash} <span class="a4-meta">{$s.extensions|implode( ', ' )|wash}</span></label>
+{if is_set( $s.notice )}{if ne( $s.notice, '' )}<p class="a4-notice is-warn" role="note">{$s.notice|wash}</p>{/if}{/if}
 {/if}{/foreach}
 </div>
 </div>
