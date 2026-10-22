@@ -98,4 +98,13 @@ Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: Markdown files with front matter
 
+# media
+[Service_sqliimport.source.media]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportMediaSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: media files with EXIF and IPTC
+
 */ ?>

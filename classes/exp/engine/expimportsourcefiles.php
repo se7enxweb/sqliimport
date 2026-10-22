@@ -174,6 +174,8 @@ class expImportSourceFiles
     public static function downloadAsset( $url, $kind, expImportRun $run )
     {
         $dir = expImport::storageDirectory( 'runs/' . (int)$run->attribute( 'id' ) . '/assets' );
+        if ( strpos( $url, 'source:' ) === 0 )
+            return self::sourceAsset( (string)substr( $url, 7 ), $kind, $run, $dir );
         $name = substr( sha1( $url ), 0, 16 ) . self::extensionOf( parse_url( $url, PHP_URL_PATH ) ?: '' );
         $target = $dir . '/' . $name;
         if ( is_file( $target ) )
@@ -186,6 +188,43 @@ class expImportSourceFiles
         {
             throw new expImportTransformException( "$kind: " . $e->getMessage() );
         }
+    }
+
+    /**
+     * A file of the run's own source ("source:<path in the ZIP>", or "source:" for a source that is the file itself),
+     * as the media source names them: taken out of the snapshot of the run, never from anywhere else.
+     *
+     * @param string $member
+     * @param string $kind
+     * @param expImportRun $run
+     * @param string $dir the run's asset directory
+     * @return string the local file
+     */
+    public static function sourceAsset( $member, $kind, expImportRun $run, $dir )
+    {
+        $member = ltrim( $member, '/' );
+        if ( strpos( $member, '..' ) !== false || strpos( $member, "\0" ) !== false )
+            throw new expImportTransformException( "$kind: the path $member is not a file of the source" );
+        $snapshot = glob( self::runDirectory( $run->attribute( 'id' ) ) . '/source*' ) ?: array();
+        $snapshot = $snapshot ? $snapshot[0] : '';
+        if ( $snapshot === '' || !is_file( $snapshot ) )
+            throw new expImportTransformException( "$kind: the run has no source file to take $member from" );
+        if ( $member === '' )
+            return $snapshot;
+        $target = $dir . '/' . substr( sha1( $member ), 0, 16 ) . self::extensionOf( $member );
+        if ( is_file( $target ) )
+            return $target;
+        $zip = new ZipArchive();
+        if ( $zip->open( $snapshot, ZipArchive::RDONLY ) !== true )
+            throw new expImportTransformException( "$kind: the source is no ZIP to take $member from" );
+        $content = $zip->getFromName( $member );
+        $zip->close();
+        if ( $content === false )
+            throw new expImportTransformException( "$kind: the source has no file $member" );
+        if ( strlen( $content ) > self::maxBytes() )
+            throw new expImportTransformException( "$kind: $member is larger than [SourceSettings] MaxSourceMegabytes" );
+        file_put_contents( $target, $content );
+        return $target;
     }
 
     /**
