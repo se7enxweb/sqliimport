@@ -90,4 +90,12 @@ Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: WordPress export (WXR)
 
+[Service_sqliimport.source.markdown]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportMarkdownSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: Markdown files with front matter
+
 */ ?>
