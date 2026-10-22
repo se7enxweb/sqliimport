@@ -1,0 +1,27 @@
+# Example tea catalogue
+shop: Example Tea Shop
+teas:
+  - id: sencha
+    name: Sencha
+    origin: Japan
+    price:
+      amount: 9.50
+      currency: EUR
+    tags: [green, steamed]
+    notes: |
+      Steep at 70 °C
+      for one minute.
+  - id: darjeeling
+    name: "Darjeeling: first flush"
+    origin: India
+    price: {amount: 11.00, currency: EUR}
+    tags:
+      - black
+      - spring
+  - id: rooibos
+    name: Rooibos
+    origin: South Africa
+    caffeine: false
+    price:
+      amount: 6.20
+      currency: EUR

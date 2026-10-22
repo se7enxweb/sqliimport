@@ -28,7 +28,7 @@ class MarkdownTest extends TestCase
         $this->assertTrue( $front['ok'] );
         $this->assertSame( array( 'first', 'second' ), $front['list'] );
         $this->assertSame( array( 'k' => 'v' ), $front['map'] );
-        $this->assertSame( "one\ntwo", $front['text'] );
+        $this->assertSame( "one\ntwo\n", $front['text'], 'a literal block keeps one final line break' );
         list( $front, , $format ) = expImportFrontMatter::split( "+++\ntitle = \"T\"\ntags = [\"a\", \"b\"]\n[params]\norigin = 'X'\n+++\n" );
         $this->assertSame( 'toml', $format );
         $this->assertSame( array( 'title' => 'T', 'tags' => array( 'a', 'b' ), 'params' => array( 'origin' => 'X' ) ), $front );

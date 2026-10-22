@@ -57,6 +57,23 @@ Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: JSON Lines (NDJSON)
 
+[Service_sqliimport.source.yaml]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportYamlSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: YAML data files
+
+[Service_sqliimport.source.toml]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportYamlSource
+Arguments[]=toml
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: TOML data files
+
 [Service_sqliimport.source.xml]
 Class=expImportSourceEntry
 Factory=expImportSourceEntry::of

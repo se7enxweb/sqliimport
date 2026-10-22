@@ -1,0 +1,27 @@
+# Example tea catalogue
+shop = "Example Tea Shop"
+
+[[teas]]
+id = "sencha"
+name = "Sencha"
+origin = "Japan"
+tags = ["green", "steamed"]
+price = { amount = 9.50, currency = "EUR" }
+
+[[teas]]
+id = "darjeeling"
+name = "Darjeeling: first flush"
+origin = "India"
+tags = [
+  "black",
+  "spring",
+]
+[teas.price]
+amount = 11.00
+currency = "EUR"
+
+[[teas]]
+id = "rooibos"
+name = "Rooibos"
+origin = "South Africa"
+caffeine = false
