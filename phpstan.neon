@@ -7,6 +7,10 @@ parameters:
         - modules/sqliimport/list.php
         - modules/sqliimport/run.php
         - modules/sqliimport/action.php
+        - modules/sqliimport/edit.php
+        - modules/sqliimport/schedules.php
+        - modules/sqliimport/catalogue.php
+        - modules/sqliimport/settings.php
         - cronjobs/sqliimport_schedule.php
     scanFiles:
         - tests/phpstan-kernel-stubs.php

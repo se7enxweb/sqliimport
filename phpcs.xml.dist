@@ -8,6 +8,10 @@
     <file>modules/sqliimport/list.php</file>
     <file>modules/sqliimport/run.php</file>
     <file>modules/sqliimport/action.php</file>
+    <file>modules/sqliimport/edit.php</file>
+    <file>modules/sqliimport/schedules.php</file>
+    <file>modules/sqliimport/catalogue.php</file>
+    <file>modules/sqliimport/settings.php</file>
     <file>cronjobs/sqliimport_schedule.php</file>
     <file>bin/php</file>
     <exclude-pattern>bin/php/sqlidoimport.php</exclude-pattern>

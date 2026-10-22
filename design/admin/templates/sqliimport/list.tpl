@@ -34,7 +34,7 @@
 <button type="submit" class="a4-btn a4-btn-primary"><span class="a4-icon a4-bi-play-fill" aria-hidden="true"></span> {'Run now'|i18n( 'extension/sqliimport' )}</button>
 </form>
 {/if}
-{if $can_legacy}<a class="a4-btn" href={'/sqliimport/addimport'|ezurl}><span class="a4-icon a4-bi-plus-lg" aria-hidden="true"></span> {'New import'|i18n( 'extension/sqliimport' )}</a>{/if}
+{if $can_edit}<a class="a4-btn" href={'/sqliimport/edit/new'|ezurl}><span class="a4-icon a4-bi-plus-lg" aria-hidden="true"></span> {'New import'|i18n( 'extension/sqliimport' )}</a>{/if}
 <a class="a4-btn a4-btn-ghost" href={'/sqliimport/items'|ezurl}>{'1.x import requests'|i18n( 'extension/sqliimport' )}{if gt( $figures.legacy_pending, 0 )} <span class="a4-badge is-info">{$figures.legacy_pending}</span>{/if}</a>
 <a class="a4-btn a4-btn-ghost" href={'/expqueue/dashboard'|ezurl}>{'Job queue'|i18n( 'extension/sqliimport' )}</a>
 </div>
@@ -52,8 +52,8 @@
 {if $imports|count|eq( 0 )}
 <div class="a4-empty">
 <p><strong>{'No import yet.'|i18n( 'extension/sqliimport' )}</strong></p>
-<p>{'An import is made from a source (a file or an address) and a mapping to a content class, or from an import handler. The import editor comes with the next release; until then, imports are created with the command line or from a 1.x handler.'|i18n( 'extension/sqliimport' )}</p>
-<p>{if $can_legacy}<a class="a4-btn a4-btn-primary" href={'/sqliimport/addimport'|ezurl}><span class="a4-icon a4-bi-plus-lg" aria-hidden="true"></span> {'New import'|i18n( 'extension/sqliimport' )}</a> {/if}<a class="a4-btn" href={'/exphelp/extensions/sqliimport'|ezurl}><span class="a4-icon a4-bi-book" aria-hidden="true"></span> {'Read the manual'|i18n( 'extension/sqliimport' )}</a></p>
+<p>{'An import is made from a source (a file or an address) and a mapping to a content class, or from an import handler. The editor takes you through it step by step, with a preview before anything is published.'|i18n( 'extension/sqliimport' )}</p>
+<p>{if $can_edit}<a class="a4-btn a4-btn-primary" href={'/sqliimport/edit/new'|ezurl}><span class="a4-icon a4-bi-plus-lg" aria-hidden="true"></span> {'New import'|i18n( 'extension/sqliimport' )}</a> {/if}<a class="a4-btn" href={'/exphelp/extensions/sqliimport'|ezurl}><span class="a4-icon a4-bi-book" aria-hidden="true"></span> {'Read the manual'|i18n( 'extension/sqliimport' )}</a></p>
 </div>
 {else}
 <div class="a4-sqliimport-scroll" tabindex="0" role="region" aria-labelledby="a4-sqliimport-imports-title">
@@ -64,7 +64,7 @@
 <th class="a4-sqliimport-hide-narrow">{'Processing'|i18n( 'extension/sqliimport' )}</th>
 <th>{'Last run'|i18n( 'extension/sqliimport' )}</th>
 <th class="a4-sqliimport-hide-narrow">{'Next run'|i18n( 'extension/sqliimport' )}</th>
-{if $can_run}<th><span class="a4-sr-only">{'Actions'|i18n( 'extension/sqliimport' )}</span></th>{/if}
+{if or( $can_run, $can_edit )}<th><span class="a4-sr-only">{'Actions'|i18n( 'extension/sqliimport' )}</span></th>{/if}
 </tr></thead>
 <tbody>
 {foreach $imports as $i}
@@ -74,7 +74,7 @@
 <td class="a4-sqliimport-hide-narrow">{if eq( $i.import.handler, 'mapping' )}{'Mapping'|i18n( 'extension/sqliimport' )}{else}{$i.import.handler|wash}{/if}</td>
 <td>{if $i.last_run}<a href={concat( '/sqliimport/run/', $i.last_run.id )|ezurl}>#{$i.last_run.id}</a> {include uri='design:sqliimport/parts/status.tpl' label=$i.last_run.status_label kind=$i.last_run.status_kind}{else}<span class="a4-meta">{'never'|i18n( 'extension/sqliimport' )}</span>{/if}</td>
 <td class="a4-sqliimport-hide-narrow">{if gt( $i.next_run, 0 )}{$i.next_run|l10n( 'shortdatetime' )}{else}<span class="a4-meta">–</span>{/if}</td>
-{if $can_run}<td class="a4-end">{if $i.can_run}{if $i.import.is_enabled}{include uri='design:sqliimport/parts/button.tpl' action='run' import=$i.import.id here=$here small=1 label='Run now'|i18n( 'extension/sqliimport' ) kind='primary'}{/if}{if $i.import.is_legacy|not}{include uri='design:sqliimport/parts/button.tpl' action='dryrun' import=$i.import.id here=$here small=1 label='Dry run'|i18n( 'extension/sqliimport' )}{/if}{/if}</td>{/if}
+{if or( $can_run, $can_edit )}<td class="a4-end">{include uri='design:sqliimport/parts/import_actions.tpl' i=$i here=$here}</td>{/if}
 </tr>
 {/foreach}
 </tbody>

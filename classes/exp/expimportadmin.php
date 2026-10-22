@@ -23,21 +23,25 @@ class expImportAdmin
     );
 
     /**
-     * Whether the current user may use a function of the module. The 2.x functions accept their 1.x counterpart
-     * (view: listimports or manageimports; edit, run and manage: manageimports), so roles made for 1.x keep working.
+     * Whether the current user may do something. Two policies: manage (Manage imports: create, edit, copy, delete,
+     * schedule, settings, and run) and run (Run imports); the 1.x manageimports counts as manage, listimports lets one look.
      *
-     * @param string $function view, edit, run, manage, rollback, ai, settings
+     * @param string $function view, run, manage (edit and settings are manage)
      * @param string $handler the handler (for the SQLIImport_Type limitation), '' when none is concerned
      * @return bool
      */
     public static function can( $function, $handler = '' )
     {
         $user = eZUser::currentUser();
-        $names = array( $function );
-        if ( $function === 'view' )
-            $names = array( 'view', 'listimports', 'manageimports' );
-        elseif ( in_array( $function, array( 'edit', 'run', 'manage' ), true ) )
-            $names[] = 'manageimports';
+        // two policies: manage (Manage imports) and run (Run imports); the 1.x ones count as before
+        $map = array(
+            'view' => array( 'manage', 'run', 'listimports', 'manageimports' ),
+            'run' => array( 'run', 'manage', 'manageimports' ),
+            'manage' => array( 'manage', 'manageimports' ),
+            'edit' => array( 'manage', 'manageimports' ),
+            'settings' => array( 'manage', 'manageimports' ),
+        );
+        $names = isset( $map[$function] ) ? $map[$function] : array( $function );
         foreach ( $names as $name )
         {
             $access = $user->hasAccessTo( 'sqliimport', $name );
@@ -100,6 +104,7 @@ class expImportAdmin
                 'last_run' => $last ? self::runRow( $last ) : null,
                 'next_run' => $next,
                 'can_run' => self::can( 'run', (string)$import->attribute( 'handler' ) ),
+                'can_edit' => self::can( 'edit', (string)$import->attribute( 'handler' ) ),
             );
         }
         return $out;

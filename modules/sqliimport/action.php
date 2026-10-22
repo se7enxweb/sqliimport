@@ -1,7 +1,8 @@
 <?php
 /**
  * sqliimport/action: every change of the 2.x pages, POST only (ezformtoken checks the form token of every POST):
- *   run (ImportID), dryrun (ImportID), cancel (RunID), retry (RunID)
+ *   run, dryrun, duplicate, delete, enable, disable (ImportID); cancel, retry (RunID);
+ *   schedule_pause, schedule_resume, schedule_delete (ScheduleID)
  * The result is shown on the next page (a session message); RedirectURI must be a page of this module.
  *
  * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
@@ -64,6 +65,62 @@ try
                                            array( '%id' => $retry->attribute( 'id' ), '%parent' => $run->attribute( 'id' ) ) ) );
                 $redirect = '/sqliimport/run/' . (int)$retry->attribute( 'id' );
             }
+            break;
+        case 'duplicate':
+        case 'delete':
+        case 'enable':
+        case 'disable':
+            $import = expImportDefinition::fetch( (int)$http->postVariable( 'ImportID' ) );
+            if ( !$import )
+                throw new expImportException( ezpI18n::tr( 'extension/sqliimport', 'The import does not exist.' ) );
+            if ( !expImportAdmin::can( 'edit', (string)$import->attribute( 'handler' ) ) )
+                return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
+            if ( $action === 'duplicate' )
+            {
+                $copy = expImportEditor::duplicate( $import );
+                $flash( 'ok', ezpI18n::tr( 'extension/sqliimport', '"%name" is a copy (disabled until it is saved).', null, array( '%name' => $copy->attribute( 'name' ) ) ) );
+                $redirect = '/sqliimport/edit/' . (int)$copy->attribute( 'id' ) . '/(step)/source';
+            }
+            elseif ( $action === 'delete' )
+            {
+                if ( expImportRun::fetchActive( $import->attribute( 'id' ) ) )
+                    throw new expImportException( ezpI18n::tr( 'extension/sqliimport', 'The import runs now; cancel the run first.' ) );
+                $name = $import->attribute( 'name' );
+                expImport::audit( 'import.delete', array( 'id' => (int)$import->attribute( 'id' ), 'identifier' => $import->attribute( 'identifier' ) ) );
+                $import->removeAll();
+                $flash( 'ok', ezpI18n::tr( 'extension/sqliimport', 'The import "%name" is deleted; its runs stay in the history.', null, array( '%name' => $name ) ) );
+                $redirect = '/sqliimport/list';
+            }
+            else
+            {
+                $import->setAttribute( 'is_enabled', $action === 'enable' ? 1 : 0 );
+                $import->storeChange();
+                expImport::audit( 'import.change', array( 'id' => (int)$import->attribute( 'id' ), 'enabled' => $action === 'enable' ) );
+                $flash( 'ok', $action === 'enable' ? ezpI18n::tr( 'extension/sqliimport', 'The import "%name" is enabled.', null, array( '%name' => $import->attribute( 'name' ) ) )
+                                                   : ezpI18n::tr( 'extension/sqliimport', 'The import "%name" is disabled.', null, array( '%name' => $import->attribute( 'name' ) ) ) );
+            }
+            break;
+        case 'schedule_pause':
+        case 'schedule_resume':
+        case 'schedule_delete':
+            $schedule = expImportSchedule::fetch( (int)$http->postVariable( 'ScheduleID' ) );
+            $import = $schedule ? $schedule->import() : null;
+            if ( !$schedule || !$import )
+                throw new expImportException( ezpI18n::tr( 'extension/sqliimport', 'The schedule does not exist.' ) );
+            if ( !expImportAdmin::can( 'edit', (string)$import->attribute( 'handler' ) ) )
+                return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
+            if ( $action === 'schedule_delete' )
+                $schedule->remove();
+            else
+            {
+                $schedule->setAttribute( 'is_active', $action === 'schedule_resume' ? 1 : 0 );
+                if ( $action === 'schedule_resume' )
+                    $schedule->computeNext();
+                $schedule->setAttribute( 'modified', expImport::now() );
+                $schedule->store();
+            }
+            expImport::audit( 'schedule.change', array( 'id' => (int)$schedule->attribute( 'id' ), 'import' => (int)$import->attribute( 'id' ), 'action' => $action ) );
+            $flash( 'ok', ezpI18n::tr( 'extension/sqliimport', 'The schedule of "%name" is changed.', null, array( '%name' => $import->attribute( 'name' ) ) ) );
             break;
         default:
             $flash( 'warn', ezpI18n::tr( 'extension/sqliimport', 'Unknown action.' ) );

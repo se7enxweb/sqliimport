@@ -57,6 +57,7 @@ $tpl->setVariable( 'prev_url', $offset > 0 ? $here . ( $offset - $limit > 0 ? '/
 $tpl->setVariable( 'next_url', $offset + $limit < $runCount ? $here . '/(offset)/' . ( $offset + $limit ) : '' );
 $tpl->setVariable( 'flash', $flash );
 $tpl->setVariable( 'can_run', expImportAdmin::can( 'run' ) );
+$tpl->setVariable( 'can_edit', expImportAdmin::can( 'edit' ) );
 $tpl->setVariable( 'can_legacy', expImportAdmin::can( 'manageimports' ) && (bool)expImportLegacyHandlerAdapter::available() );
 $tpl->setVariable( 'now', expImport::now() );
 

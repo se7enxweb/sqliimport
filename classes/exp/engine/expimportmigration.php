@@ -15,8 +15,8 @@
  *   schedules   each row of sqliimport_scheduled becomes an import with its options (the k=v text as typed JSON
  *               options) and a schedule of the same frequency; the 1.x row is switched off, not removed
  *   history     each row of sqliimport_item becomes a read-only run (status, time, user; no rows or log)
- *   roles       the policies sqliimport/manageimports and sqliimport/listimports get the 2.x functions next to them
- *               (edit and run with the same handler limitation, view), only with --roles
+ *   roles       the policy sqliimport/manageimports gets sqliimport/manage ("Manage imports") next to it, with the same
+ *               handler limitation, only with --roles
  *
  * plan() reports what would be done and writes nothing; apply() does it. Both are idempotent: what was migrated
  * before is recognised (legacy_scheduled_id, legacy_item_id, existing policies) and left alone. The 1.x tables stay
@@ -219,14 +219,9 @@ class expImportMigration
             $has = $role['has'];
             if ( in_array( '*', $has, true ) )
                 continue;
-            if ( ( in_array( 'listimports', $has, true ) || in_array( 'manageimports', $has, true ) ) && !in_array( 'view', $has, true ) )
-                $add['view'] = array();
-            if ( in_array( 'manageimports', $has, true ) )
-            {
-                foreach ( array( 'edit', 'run' ) as $function )
-                    if ( !in_array( $function, $has, true ) )
-                        $add[$function] = $role['limitation'];
-            }
+            // manageimports becomes "Manage imports" with the same handler limitation; listimports needs nothing new
+            if ( in_array( 'manageimports', $has, true ) && !in_array( 'manage', $has, true ) )
+                $add['manage'] = $role['limitation'];
             if ( $add )
                 $out[] = array( 'role_id' => $role['role_id'], 'role' => $role['role'], 'add' => $add );
         }

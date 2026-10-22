@@ -2,12 +2,13 @@
 /**
  * The admin module "sqliimport" (the Imports tab).
  *
- * 2.x views: list (the dashboard: figures, imports, runs), run (one run: progress, counters, rows, log) and action
+ * 2.x views: list (the dashboard: figures, imports, runs), run (one run: progress, counters, rows, log), edit (the
+ * import editor), schedules, catalogue, settings (export and import of definitions) and action
  * (every change: run, dry run, cancel, retry failed rows; POST only, checked by ezformtoken).
  * 1.x views, kept: items (the 1.x import requests), scheduledlist, addimport, addscheduled, alterimport,
  * removescheduled, purgelist; their changes are POST only as well.
  *
- * Policies (2.x): view, edit, run, manage, rollback, ai, settings; edit and run take the handler limitation
+ * Policies (2.x, two as the owner chose): "Manage imports" (manage) and "Run imports" (run), both with the handler limitation
  * SQLIImport_Type. The 1.x functions listimports and manageimports stay and still give access (the view's
  * function expression accepts them, and expImportAdmin::can() checks the actions the same way).
  *
@@ -20,8 +21,8 @@ $Module = array( 'name' => 'sqliimport', 'variable_params' => false );
 
 $ViewList = array();
 
-// who may look: the 2.x function view, or a 1.x role
-$canView = array( 'view or listimports or manageimports' );
+// who may look: a 2.x policy (Manage imports, Run imports), or a 1.x one
+$canView = array( 'manage or run or listimports or manageimports' );
 // who may change through the 1.x pages (they check the 1.x function and its handler limitation themselves)
 $canManage = array( 'manageimports' );
 
@@ -46,6 +47,35 @@ $ViewList['action'] = array(
     'params' => array(),
     'default_navigation_part' => 'sqliimportnavigationpart',
     'functions' => $canView,
+);
+
+$ViewList['edit'] = array(
+    'script' => 'edit.php',
+    'params' => array( 'ImportID' ),
+    'unordered_params' => array( 'step' => 'Step' ),
+    'default_navigation_part' => 'sqliimportnavigationpart',
+    'functions' => array( 'manage or manageimports' ),
+);
+
+$ViewList['schedules'] = array(
+    'script' => 'schedules.php',
+    'params' => array(),
+    'default_navigation_part' => 'sqliimportnavigationpart',
+    'functions' => $canView,
+);
+
+$ViewList['catalogue'] = array(
+    'script' => 'catalogue.php',
+    'params' => array(),
+    'default_navigation_part' => 'sqliimportnavigationpart',
+    'functions' => $canView,
+);
+
+$ViewList['settings'] = array(
+    'script' => 'settings.php',
+    'params' => array(),
+    'default_navigation_part' => 'sqliimportnavigationpart',
+    'functions' => array( 'manage or manageimports' ),
 );
 
 $ViewList['items'] = array(
@@ -125,14 +155,10 @@ $Type = array(
 );
 
 $FunctionList = array();
-// 2.x
-$FunctionList['view'] = array();
-$FunctionList['edit'] = array( 'SQLIImport_Type' => $Type );
+// "Manage imports": create, edit, copy, delete, schedule and run imports, the settings and the export (with the
+// handler limitation); "Run imports": run, dry run, cancel and retry the imports one may see (with the limitation)
+$FunctionList['manage'] = array( 'SQLIImport_Type' => $Type );
 $FunctionList['run'] = array( 'SQLIImport_Type' => $Type );
-$FunctionList['manage'] = array();
-$FunctionList['rollback'] = array();
-$FunctionList['ai'] = array();
-$FunctionList['settings'] = array();
-// 1.x, kept: roles made for 1.x keep working
+// 1.x, kept: roles made for 1.x keep working (manageimports counts as manage, listimports lets one look)
 $FunctionList['listimports'] = array();
 $FunctionList['manageimports'] = array( 'SQLIImport_Type' => $Type );
