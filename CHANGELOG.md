@@ -76,6 +76,9 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   run, never), a notice for the starter on the dashboard (New since you last looked; read when the run is opened)
   and mails with the counts, the first errors and the link; fetch( 'sqliimport', 'notices' ) for a bell.
 
+- Added: Translations by column: the mapping step maps a column per language of the site to the translatable
+  attributes, and a run publishes the object with those translations.
+
 ### Updated
 
 - Updated: The tick also runs within the cron part expqueue, so schedules need no cron line of their own; a lock

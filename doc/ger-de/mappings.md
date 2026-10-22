@@ -149,6 +149,15 @@ Eine Website fügt eigene Umwandlungen als Kernel-Dienst mit dem Tag `sqliimport
 `expImportTransformInterface` implementiert (`name()`, `label()`, `schema()`, `apply( $value, $args, $record )`).
 Eine Zuordnung kann nur registrierte Umwandlungen nennen; sie enthält nie Code.
 
+## Übersetzungen je Spalte
+
+Eine Quelle mit einer Spalte je Sprache (`title`, `title_de`, `title_fr`) ergibt ein Objekt mit seinen Übersetzungen.
+Der Schritt Zuordnung führt unter **Translations by column** jede Sprache der Site außer der eigenen Sprache der
+Zuordnung auf, mit den übersetzbaren Attributen der Klasse: geben Sie jedem die Spalte dieser Sprache (und
+Umwandlungen wie im Raster). Eine Zeile behält ihre Sprache in der Zuordnung (`"language": "ger-DE"`); der Lauf
+veröffentlicht das Objekt mit einer Übersetzung je Sprache, die einen Wert hat. Eine geleerte Quelle entfernt die
+Zeile. Nicht übersetzbare Attribute übernehmen den Wert der Hauptsprache.
+
 ## Einen Import in PHP anlegen
 
 Der übliche Weg, einen Import anzulegen, ist der Import-Editor ([editor.md](editor.md)). Ein Skript, das Importe

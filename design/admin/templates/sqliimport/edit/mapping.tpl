@@ -89,6 +89,32 @@
 </tbody>
 </table>
 </div>
+{if $translation_grid|count|gt( 0 )}
+<section class="a4-section a4-sqliimport-translations" aria-labelledby="sq-tr-title">
+<div class="a4-section-head"><h3 class="a4-h3" id="sq-tr-title">{'Translations by column'|i18n( 'extension/sqliimport/edit' )}</h3></div>
+<p class="a4-meta">{'When the source has a column per language (title_de, title_fr), map it here: the object gets a translation in that language. Only translatable attributes are listed; an empty source leaves the language out.'|i18n( 'extension/sqliimport/edit' )}</p>
+{foreach $translation_grid as $sq_tr}
+<details class="a4-fold"{if gt( $sq_tr.count, 0 )} open="open"{/if}>
+<summary>{$sq_tr.name|wash} <span class="a4-meta">{$sq_tr.locale|wash}{if gt( $sq_tr.count, 0 )} · {'%n fields'|i18n( 'extension/sqliimport/edit',, hash( '%n', $sq_tr.count ) )}{/if}</span></summary>
+<div class="a4-sqliimport-scroll" tabindex="0" role="region" aria-label="{'Translation into %language'|i18n( 'extension/sqliimport/edit',, hash( '%language', $sq_tr.name ) )|wash}">
+<table class="a4-table is-compact">
+<thead><tr><th>{'Attribute'|i18n( 'extension/sqliimport/edit' )}</th><th>{'Source field'|i18n( 'extension/sqliimport/edit' )}</th><th>{'Transforms'|i18n( 'extension/sqliimport/edit' )}</th></tr></thead>
+<tbody>
+{foreach $sq_tr.lines as $sq_tl}
+<tr>
+<td>{$sq_tl.name|wash}<br /><span class="a4-meta">{$sq_tl.attribute|wash}</span></td>
+<td><input type="text" name="Translations[{$sq_tr.locale|wash}][{$sq_tl.attribute|wash}][source]" value="{$sq_tl.source|wash}" aria-label="{'Source of %a in %l'|i18n( 'extension/sqliimport/edit',, hash( '%a', $sq_tl.name, '%l', $sq_tr.name ) )|wash}" /></td>
+<td><input type="text" name="Translations[{$sq_tr.locale|wash}][{$sq_tl.attribute|wash}][transforms]" value="{$sq_tl.transforms|wash}" aria-label="{'Transforms of %a in %l'|i18n( 'extension/sqliimport/edit',, hash( '%a', $sq_tl.name, '%l', $sq_tr.name ) )|wash}" />
+{if ne( $sq_tl.error, '' )}<span class="a4-field-error">{$sq_tl.error|wash}</span>{/if}</td>
+</tr>
+{/foreach}
+</tbody>
+</table>
+</div>
+</details>
+{/foreach}
+</section>
+{/if}
 <details class="a4-fold a4-sqliimport-transforms">
 <summary>{'The transforms'|i18n( 'extension/sqliimport/edit' )}</summary>
 <p class="a4-help">{'One line per attribute, steps separated by a vertical bar, arguments in parentheses, for example:'|i18n( 'extension/sqliimport/edit' )} <code>trim | date(format=d.m.Y, timezone=Europe/Berlin) | map(table={ldelim}"D":"Germany"{rdelim})</code></p>

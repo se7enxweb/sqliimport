@@ -145,6 +145,15 @@ A site adds its own transform as a kernel service tagged `sqliimport.transform`,
 `expImportTransformInterface` (`name()`, `label()`, `schema()`, `apply( $value, $args, $record )`). A mapping can
 only name registered transforms; it never carries code.
 
+## Translations by column
+
+A source with a column per language (`title`, `title_de`, `title_fr`) gives one object with its translations. The
+mapping step lists, under **Translations by column**, every language of the site other than the mapping's own, with
+the translatable attributes of the class: give each the column of that language (and transforms, as in the grid). A
+line keeps its language in the mapping (`"language": "ger-DE"`); the run publishes the object with a translation per
+language that has a value. An emptied source removes the line. Attributes that are not translatable take the value of
+the main language.
+
 ## Creating an import in PHP
 
 The import editor is the usual way to create an import ([editor.md](editor.md)). A script that sets up imports,

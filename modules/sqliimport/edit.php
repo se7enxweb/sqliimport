@@ -218,6 +218,12 @@ $tpl->setVariable( 'options', $editor->import ? $editor->import->options() : arr
 $tpl->setVariable( 'legacy_options', $editor->import && $editor->import->isLegacy() ? $editor->import->options() : array() );
 $tpl->setVariable( 'mapping', $mapping );
 $tpl->setVariable( 'grid', expImportEditor::gridLines( $mapping ) );
+$translationGrid = $editor->import ? expImportEditor::translationGrid( $mapping, $languages ) : array();
+foreach ( $translationGrid as $i => $block )
+    foreach ( $block['lines'] as $j => $line )
+        $translationGrid[$i]['lines'][$j]['error'] = isset( $editor->errors['Translations_' . $block['locale'] . '_' . $line['attribute']] )
+                                                   ? $editor->errors['Translations_' . $block['locale'] . '_' . $line['attribute']] : '';
+$tpl->setVariable( 'translation_grid', $translationGrid );
 $tpl->setVariable( 'classes', $classes );
 $tpl->setVariable( 'languages', $languages );
 $tpl->setVariable( 'sample', $sample );

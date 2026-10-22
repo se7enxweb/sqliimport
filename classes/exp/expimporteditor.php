@@ -541,6 +541,46 @@ class expImportEditor
     }
 
     /**
+     * The translations by column of a mapping: per language of the site other than the mapping's own, the translatable
+     * attributes of the class with the source and transforms mapped for that language.
+     *
+     * @param array $mapping
+     * @param array $languages list of array( locale, name )
+     * @return array list of array( locale, name, count (lines mapped), lines: list of array( attribute, name, source, transforms ) )
+     */
+    public static function translationGrid( array $mapping, array $languages )
+    {
+        $class = $mapping['class'] !== '' ? eZContentClass::fetchByIdentifier( $mapping['class'] ) : null;
+        if ( !$class instanceof eZContentClass )
+            return array();
+        $main = (string)$mapping['language'] !== '' ? (string)$mapping['language'] : eZContentObject::defaultLanguage();
+        $byLocale = array();
+        foreach ( $mapping['fields'] as $field )
+            if ( isset( $field['language'] ) && $field['language'] !== '' )
+                $byLocale[$field['language']][$field['attribute']] = $field;
+        $out = array();
+        foreach ( $languages as $language )
+        {
+            if ( $language['locale'] === $main )
+                continue;
+            $lines = array();
+            foreach ( $class->fetchAttributes() as $attribute )
+            {
+                if ( !$attribute->attribute( 'can_translate' ) )
+                    continue;
+                $id = $attribute->attribute( 'identifier' );
+                $field = isset( $byLocale[$language['locale']][$id] ) ? $byLocale[$language['locale']][$id] : array();
+                $lines[] = array( 'attribute' => $id, 'name' => $attribute->attribute( 'name' ),
+                                  'source' => isset( $field['source'] ) ? $field['source'] : '',
+                                  'transforms' => isset( $field['transforms'] ) ? expImportTransforms::formatChain( (array)$field['transforms'] ) : '' );
+            }
+            $out[] = array( 'locale' => $language['locale'], 'name' => $language['name'],
+                            'count' => isset( $byLocale[$language['locale']] ) ? count( $byLocale[$language['locale']] ) : 0, 'lines' => $lines );
+        }
+        return $out;
+    }
+
+    /**
      * Saves the mapping step; with $autoMatch, the lines without a source are filled from the sample first.
      *
      * @param bool $autoMatch
@@ -583,10 +623,46 @@ class expImportEditor
             $fields[] = array( 'source' => $source, 'attribute' => (string)$attribute, 'transforms' => $chain, 'default' => $default,
                                'required' => !empty( $line['required'] ), 'language' => '' );
         }
-        // the lines in other languages are kept as they were (the grid edits the main language)
-        foreach ( $previous['fields'] as $field )
-            if ( isset( $field['language'] ) && $field['language'] !== '' && $previous['class'] === $class )
-                $fields[] = $field;
+        // translations by column: the lines of the other languages (Translations[<locale>][<attribute>]); without
+        // that part of the form, the lines in other languages are kept as they were
+        $translations = $this->postArray( 'Translations' );
+        if ( $translations && $previous['class'] === $class )
+        {
+            $languages = array();
+            foreach ( eZContentLanguage::fetchList() as $language )
+                $languages[$language->attribute( 'locale' )] = true;
+            foreach ( $translations as $locale => $lines )
+            {
+                if ( !isset( $languages[$locale] ) || !is_array( $lines ) )
+                    continue;
+                foreach ( $lines as $attribute => $line )
+                {
+                    if ( !isset( $attributes[$attribute] ) || !is_array( $line ) )
+                        continue;
+                    $source = trim( isset( $line['source'] ) ? (string)$line['source'] : '' );
+                    $text = isset( $line['transforms'] ) ? (string)$line['transforms'] : '';
+                    if ( $source === '' )
+                        continue;
+                    try
+                    {
+                        $chain = expImportTransforms::parseChain( $text );
+                    }
+                    catch ( expImportValidationException $e )
+                    {
+                        $this->errors['Translations_' . $locale . '_' . $attribute] = $locale . ' ' . $attribute . ': ' . $e->getMessage();
+                        $chain = array();
+                    }
+                    $fields[] = array( 'source' => $source, 'attribute' => (string)$attribute, 'transforms' => $chain, 'default' => '',
+                                       'required' => false, 'language' => (string)$locale );
+                }
+            }
+        }
+        else
+        {
+            foreach ( $previous['fields'] as $field )
+                if ( isset( $field['language'] ) && $field['language'] !== '' && $previous['class'] === $class )
+                    $fields[] = $field;
+        }
         if ( $autoMatch )
         {
             $have = array();
