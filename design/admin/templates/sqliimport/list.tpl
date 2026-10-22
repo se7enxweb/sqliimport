@@ -47,6 +47,8 @@
     <li class="a4-figure"><strong>{if gt( $figures.next_run, 0 )}{$figures.next_run|l10n( 'shortdatetime' )}{else}–{/if}</strong><span>{'Next scheduled run'|i18n( 'extension/sqliimport' )}{if gt( $figures.schedules, 0 )} ({$figures.schedules}){/if}</span></li>
 </ul>
 
+{include uri='design:sqliimport/parts/stats_overview.tpl' stats=$stats}
+
 <section class="a4-section" aria-labelledby="a4-sqliimport-imports-title">
 <div class="a4-section-head"><h2 class="a4-h2" id="a4-sqliimport-imports-title">{'Imports'|i18n( 'extension/sqliimport' )}</h2></div>
 {if $imports|count|eq( 0 )}

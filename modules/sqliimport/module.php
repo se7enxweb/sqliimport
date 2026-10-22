@@ -2,7 +2,8 @@
 /**
  * The admin module "sqliimport" (the Imports tab).
  *
- * 2.x views: list (the dashboard: figures, imports, runs), run (one run: progress, counters, rows, log), edit (the
+ * 2.x views: list (the dashboard: figures, charts, imports, runs), statistics (the run history: trends, a table per
+ * import, comparison of two periods, suggestions, CSV), run (one run: progress, counters, rows, log), edit (the
  * import editor), schedules, catalogue, settings (export and import of definitions) and action
  * (every change: run, dry run, cancel, retry failed rows; POST only, checked by ezformtoken).
  * 1.x views, kept: items (the 1.x import requests), scheduledlist, addimport, addscheduled, alterimport,
@@ -46,6 +47,15 @@ $ViewList['report'] = array(
     'script' => 'report.php',
     'params' => array( 'RunID' ),
     'unordered_params' => array( 'outcome' => 'Outcome' ),
+    'default_navigation_part' => 'sqliimportnavigationpart',
+    'functions' => $canView,
+);
+
+$ViewList['statistics'] = array(
+    'script' => 'statistics.php',
+    'params' => array(),
+    'unordered_params' => array( 'days' => 'Days', 'from' => 'From', 'to' => 'To', 'import' => 'Import', 'source' => 'Source', 'user' => 'User',
+                                 'scope' => 'Scope', 'compare' => 'Compare', 'cfrom' => 'CompareFrom', 'cto' => 'CompareTo', 'format' => 'Format' ),
     'default_navigation_part' => 'sqliimportnavigationpart',
     'functions' => $canView,
 );

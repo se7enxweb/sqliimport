@@ -5,6 +5,7 @@
     i18n_hash=hash(
     'Imports',   'Imports'|i18n( 'extension/sqliimport/menu' ),
     'dashboard', 'Overview'|i18n( 'extension/sqliimport/menu' ),
+    'statistics', 'Statistics'|i18n( 'extension/sqliimport/menu' ),
     'new',       'New import'|i18n( 'extension/sqliimport/menu' ),
     'schedules', 'Schedules'|i18n( 'extension/sqliimport/menu' ),
     'catalogue', 'Catalogue'|i18n( 'extension/sqliimport/menu' ),

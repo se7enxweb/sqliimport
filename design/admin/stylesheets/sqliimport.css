@@ -74,3 +74,100 @@
 .a4-sqliimport-format-desc { margin: 0; }
 .a4-sqliimport-format-foot { display: flex; flex-wrap: wrap; gap: var(--a4-space-1); margin-top: auto; }
 .a4-sqliimport-format-list { margin: 0; padding-inline-start: var(--a4-space-4); }
+
+/* ---- Statistics: the charts of the dashboard (parts/stats_overview.tpl) and the Statistics page (statistics.tpl).
+        A bar per day, week or month; its segments stacked bottom to top, their heights from .a4-pct-* of
+        components.css (no style=""); colours from the chart and status tokens, which have dark values. Every chart
+        has a legend and a table of its numbers in a <details>. ------------------------------------------------- */
+.a4-sqliimport-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: var(--a4-space-4); }
+.a4-sqliimport-stats-grid > .a4-card { margin: 0; min-width: 0; }
+.a4-sqliimport-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 140px;
+    margin: var(--a4-space-2) 0 var(--a4-space-1);
+    border-bottom: 1px solid var(--a4-line-strong);
+}
+.a4-sqliimport-bar { display: flex; flex: 1 1 0; flex-direction: column-reverse; gap: 1px; min-width: 0; height: 100%; }
+.a4-sqliimport-bar:hover { background-color: var(--a4-soft); }
+.a4-sqliimport-seg { display: block; flex: 0 0 auto; width: 100%; height: calc(var(--a4-pct, 0) * 1%); }
+.a4-sqliimport-bar > .a4-sqliimport-seg:last-child { border-radius: var(--a4-radius-s) var(--a4-radius-s) 0 0; }
+.a4-sqliimport-axis {
+    display: flex;
+    gap: 2px;
+    color: var(--a4-muted);
+    font-size: var(--a4-text-xs);
+    font-variant-numeric: tabular-nums;
+}
+.a4-sqliimport-axis > span { flex: 1 1 0; min-width: 0; overflow: visible; white-space: nowrap; }
+.a4-sqliimport-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--a4-space-1) var(--a4-space-3);
+    margin: var(--a4-space-3) 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--a4-text-xs);
+}
+.a4-sqliimport-legend i {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-inline-end: var(--a4-space-1);
+    border-radius: var(--a4-radius-s);
+    vertical-align: -1px;
+}
+/* the series: records by outcome, runs by status, and the single-value charts */
+.a4-sqliimport-seg.is-created, .a4-sqliimport-legend .is-created i,
+.a4-sqliimport-seg.is-ok, .a4-sqliimport-legend .is-ok i { background-color: var(--a4-chart-3); }
+.a4-sqliimport-seg.is-updated, .a4-sqliimport-legend .is-updated i,
+.a4-sqliimport-seg.is-duration, .a4-sqliimport-legend .is-duration i { background-color: var(--a4-chart-1); }
+.a4-sqliimport-seg.is-unchanged, .a4-sqliimport-legend .is-unchanged i,
+.a4-sqliimport-seg.is-other, .a4-sqliimport-legend .is-other i { background-color: var(--a4-muted); }
+.a4-sqliimport-seg.is-skipped, .a4-sqliimport-legend .is-skipped i,
+.a4-sqliimport-seg.is-with_errors, .a4-sqliimport-legend .is-with_errors i { background-color: var(--a4-chart-4); }
+.a4-sqliimport-seg.is-failed, .a4-sqliimport-legend .is-failed i,
+.a4-sqliimport-seg.is-failure, .a4-sqliimport-legend .is-failure i { background-color: var(--a4-bad); }
+.a4-sqliimport-tableview { margin: var(--a4-space-2) 0 0; font-size: var(--a4-text-s); }
+.a4-sqliimport-tableview > summary { cursor: pointer; color: var(--a4-accent-text); font-size: var(--a4-text-xs); }
+.a4-sqliimport-tableview .a4-sqliimport-scroll { max-height: 320px; margin: var(--a4-space-2) 0 0; overflow-y: auto; }
+
+/* a small meter under a figure or a failing import */
+.a4-sqliimport-figure-meter { height: 6px; margin: var(--a4-space-1) 0 0; }
+.a4-figure .a4-sqliimport-figure-meter { width: 100%; }
+
+/* the imports that fail most, and the most common errors */
+.a4-sqliimport-failing { display: grid; gap: var(--a4-space-3); margin: 0; padding: 0; list-style: none; }
+.a4-sqliimport-failing .a4-row { flex-wrap: wrap; align-items: baseline; }
+.a4-sqliimport-error { margin: var(--a4-space-1) 0 0; overflow-wrap: anywhere; }
+
+/* the form of the period and filters: the buttons under the fields */
+.a4-sqliimport-statform-actions { align-self: end; }
+.a4-sqliimport-statform input[type="date"] { min-width: 0; }
+
+/* suggestions: an icon and a sentence */
+.a4-sqliimport-suggestions { display: grid; gap: var(--a4-space-2); margin: 0; padding: 0; list-style: none; }
+.a4-sqliimport-suggestions > .a4-card { display: flex; align-items: flex-start; gap: var(--a4-space-2); margin: 0; }
+.a4-sqliimport-suggestions .a4-icon { margin-top: 2px; color: var(--a4-warn); }
+
+/* the table per import: a sparkline of records per bucket, wrapped error messages */
+.a4-sqliimport-spark {
+    display: flex;
+    align-items: flex-end;
+    gap: 1px;
+    width: 96px;
+    height: 24px;
+    margin: 0 0 var(--a4-space-1);
+    border-bottom: 1px solid var(--a4-line-strong);
+}
+.a4-sqliimport-spark > span { flex: 1 1 0; min-width: 1px; height: calc(var(--a4-pct, 0) * 1%); background-color: var(--a4-chart-1); }
+.a4-sqliimport-subrow > td { padding-top: 0; }
+.a4-sqliimport-errors { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--a4-space-2); }
+.a4-table tr:has(+ .a4-sqliimport-subrow) > :is(td, th) { border-bottom-color: transparent; }
+.a4-sqliimport-errors ul { display: grid; flex: 1 1 24rem; gap: var(--a4-space-1); margin: 0; padding: 0; list-style: none; }
+.a4-sqliimport-errors li { overflow-wrap: anywhere; font-size: var(--a4-text-s); }
+.a4-sqliimport-compare .a4-icon { vertical-align: -0.1em; }
+/* a row header of a statistics table reads as a cell, not as a column header */
+.a4-sqliimport .a4-table tbody th[scope="row"] { color: var(--a4-ink); font-size: inherit; font-weight: 600; letter-spacing: normal; text-transform: none; }
+.a4-sqliimport-stattable thead th { white-space: normal; }

@@ -50,6 +50,7 @@ German: [ger-de/index.md](ger-de/index.md).
 | [mappings.md](mappings.md) | The no-code mapping, the transforms and their one-line text, creating an import in PHP |
 | [handlers.md](handlers.md) | Writing a 2.x handler, and how 1.x handlers keep working |
 | [runs.md](runs.md) | How a run works, the live run page, statuses, rows and log, cancel, retry, dry run |
+| [statistics.md](statistics.md) | The charts of the dashboard and the Statistics page: trends, per import, comparison, suggestions, CSV |
 | [schedules.md](schedules.md) | Schedule kinds, time zones, daylight saving time, the Schedules page, the cron part |
 | [cli.md](cli.md) | Every `./console ext:sqliimport:*` command |
 | [permissions.md](permissions.md) | The two policies of 2.x and the policies of 1.x |

@@ -34,6 +34,7 @@ Shown[browse]=false
 Name=Imports
 Links[]
 Links[dashboard]=sqliimport/list
+Links[statistics]=sqliimport/statistics
 Links[new]=sqliimport/edit/new
 Links[schedules]=sqliimport/schedules
 Links[catalogue]=sqliimport/catalogue
@@ -46,6 +47,7 @@ Links[addimport]=sqliimport/addimport
 Links[queue]=expqueue/dashboard
 LinkNames[]
 LinkNames[dashboard]=Overview
+LinkNames[statistics]=Statistics
 LinkNames[new]=New import
 LinkNames[schedules]=Schedules
 LinkNames[catalogue]=Catalogue
@@ -64,6 +66,7 @@ GroupNames[runs]=Imports and runs
 GroupNames[legacy]=sqliimport 1.x
 GroupLinks_runs[]
 GroupLinks_runs[]=dashboard
+GroupLinks_runs[]=statistics
 GroupLinks_runs[]=new
 GroupLinks_runs[]=active
 GroupLinks_runs[]=failed

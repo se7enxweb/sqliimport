@@ -60,6 +60,7 @@ $tpl->setVariable( 'can_run', expImportAdmin::can( 'run' ) );
 $tpl->setVariable( 'can_edit', expImportAdmin::can( 'edit' ) );
 $tpl->setVariable( 'can_legacy', expImportAdmin::can( 'manageimports' ) && (bool)expImportLegacyHandlerAdapter::available() );
 $tpl->setVariable( 'now', expImport::now() );
+$tpl->setVariable( 'stats', $installed ? expImportStatistics::overview( 30 ) : array() );
 
 $Result = array();
 $Result['content'] = $tpl->fetch( 'design:sqliimport/list.tpl' );

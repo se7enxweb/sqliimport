@@ -24,6 +24,15 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   the run is left alone and listed. A run is undone once, within the days set by UndoDays (30, per import too).
 - Added: Conflict rules for objects a person changed since the last run: overwrite, skip, fill_empty (only empty
   fields) and merge (only the fields nobody changed), decided by the field values the import wrote.
+- Added: Charts on the dashboard (sqliimport/list): the records of the last 30 days per day by outcome, the share
+  of runs without errors, records processed, average and slowest duration, and the imports with the most failures.
+- Added: The Statistics page (sqliimport/statistics) for review and tuning: the last 7, 30, 90 or 365 days or a
+  chosen period, filters by import, source type, user and kind of run (dry runs only on request), trends of runs,
+  records, durations and failure rate, a table per import with a sparkline, average and 95th percentile duration,
+  records per second, failure rate and the most common errors, a comparison with the period before or a chosen
+  one, suggestions ("fails on the field price in 12 % of its records", "slow since <date>") and the table as CSV.
+- Added: expImportStatistics, the aggregation of the run history as pure functions (tested without a database)
+  and loaders with generic SQL for MySQL, PostgreSQL, SQLite and Oracle.
 
 ### Updated
 
