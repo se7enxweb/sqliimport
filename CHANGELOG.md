@@ -43,7 +43,6 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 - Added: The formats Shopify product CSV (the rows of one handle are one product with its variants and images) and
   WooCommerce product CSV (variations nested in their variable product), with prices as decimals, the currency as
   an option and the tax fields. Preset: the class product of the webshop.
-
 - Added: Markdown files with front matter (markdown), one file or a folder as ZIP (Jekyll, Hugo, Obsidian): title,
   date, tags, summary, the body as HTML and every front matter key; YAML and TOML read without a library.
 - Added: Media files with EXIF and IPTC (media), one file or a folder as ZIP: caption, keywords, photographer,
