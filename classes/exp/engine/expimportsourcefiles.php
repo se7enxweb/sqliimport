@@ -72,6 +72,22 @@ class expImportSourceFiles
                 return self::download( $url, $dir . '/source' . self::extensionOf( parse_url( $url, PHP_URL_PATH ) ?: '' ) );
             case 'path':
                 return self::allowedPath( isset( $config['path'] ) ? (string)$config['path'] : '' );
+            case 'remote':
+                // the source reads its data itself (a database, a mailbox, a site): it writes a snapshot of it once
+                // per run, which every chunk of the run then reads like a file
+                $sources = expImportRegistry::instance()->sources();
+                $type = (string)$import->attribute( 'source_type' );
+                if ( !isset( $sources[$type] ) || !method_exists( $sources[$type]['class'], 'fetch' ) )
+                    throw new expImportSourceException( "the source type '$type' cannot read data itself" );
+                list( $values, $errors ) = expImportOptionSchema::validate( $sources[$type]['schema'], $config );
+                if ( $errors )
+                    throw new expImportSourceException( 'the source is not configured correctly: ' . implode( '; ', $errors ) );
+                $target = $dir . '/source.ndjson';
+                $limit = $run ? 0 : max( 20, (int)expImport::setting( 'RunSettings', 'DryRunRows', 20 ) );
+                call_user_func( array( $sources[$type]['class'], 'fetch' ), $values, $target, $limit );
+                if ( !is_file( $target ) )
+                    throw new expImportSourceException( 'the source wrote no data' );
+                return $target;
         }
         throw new expImportSourceException( "unknown source origin '$origin'" );
     }

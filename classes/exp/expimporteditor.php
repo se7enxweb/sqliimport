@@ -109,7 +109,9 @@ class expImportEditor
             foreach ( $optionErrors as $key => $message )
                 $this->errors['SourceOptions_' . $key] = $message;
             $config = array_intersect_key( $config, array_flip( array( 'file', 'original_name', 'manifest_file', 'handed_over_by' ) ) ) + $options;
-            $config['origin'] = in_array( $origin, array( 'upload', 'url', 'path' ), true ) ? $origin : 'upload';
+            // the origins the format allows (a database or mailbox source reads its data itself: remote)
+            $origins = !empty( $sources[$type]['origins'] ) ? array_values( $sources[$type]['origins'] ) : array( 'upload', 'url', 'path' );
+            $config['origin'] = in_array( $origin, $origins, true ) ? $origin : $origins[0];
             if ( $config['origin'] === 'upload' )
             {
                 $file = eZHTTPFile::canFetch( 'SourceFile' ) ? eZHTTPFile::fetch( 'SourceFile' ) : null;
@@ -145,6 +147,11 @@ class expImportEditor
                 $refusal = expImportSourceFiles::refuseUrl( $config['url'] );
                 if ( $refusal !== null )
                     $this->errors['SourceURL'] = $refusal;
+            }
+            elseif ( $config['origin'] === 'remote' )
+            {
+                // the source's own options say where it reads (a connection, a mailbox, a site); no file
+                unset( $config['file'], $config['original_name'] );
             }
             else
             {

@@ -97,6 +97,8 @@ class expImportSourceEntry
             'defaults' => array(),
             'examples' => (array)self::call( $class, 'examples', array() ),
             'preset' => (array)self::call( $class, 'preset', array() ),
+            // where the data may come from: upload, url, path (a file the engine fetches) or remote (the source reads it itself)
+            'origins' => (array)self::call( $class, 'origins', method_exists( $class, 'fetch' ) ? array( 'remote' ) : array( 'upload', 'url', 'path' ) ),
         );
         if ( $this->variant !== '' )
         {

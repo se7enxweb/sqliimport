@@ -51,6 +51,7 @@
 <div class="a4-radios">
 <label><input type="radio" name="Origin" value="upload"{if or( is_unset( $source.origin ), eq( $source.origin, 'upload' ) )} checked="checked"{/if} /> {'An uploaded file'|i18n( 'extension/sqliimport/edit' )}</label>
 <label><input type="radio" name="Origin" value="url"{if and( is_set( $source.origin ), eq( $source.origin, 'url' ) )} checked="checked"{/if} /> {'An address (http or https), read at every run'|i18n( 'extension/sqliimport/edit' )}</label>
+{if and( is_set( $source.origin ), eq( $source.origin, 'remote' ) )}<label><input type="radio" name="Origin" value="remote" checked="checked" /> {'Read by the source itself (a database, a mailbox, a site), with the options below'|i18n( 'extension/sqliimport/edit' )}</label>{/if}
 {if $allowed_paths|count|gt( 0 )}<label><input type="radio" name="Origin" value="path"{if and( is_set( $source.origin ), eq( $source.origin, 'path' ) )} checked="checked"{/if} /> {'A file on the server'|i18n( 'extension/sqliimport/edit' )}</label>{/if}
 </div>
 </fieldset>
