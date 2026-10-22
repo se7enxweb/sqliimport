@@ -274,6 +274,8 @@ class CrawlTest extends TestCase
         $this->assertNotNull( expImportCrawler::refusal( 'https://user:secret@example.org/' ) );
         $this->assertNotNull( expImportCrawler::refusal( 'ftp://example.org/' ) );
         $this->assertNull( expImportCrawler::refusal( 'https://example.org/' ) );
+        $this->assertSame( expImportCrawler::site( 'https://www.example.org/sitemap.xml' ), expImportCrawler::site( 'http://example.org:8080/a' ) );
+        $this->assertNotSame( expImportCrawler::site( 'https://example.org/' ), expImportCrawler::site( 'https://shop.example.org/' ) );
     }
 
     /**

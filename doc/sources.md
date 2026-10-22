@@ -490,7 +490,7 @@ author=xpath://span[@itemprop='author']
 
 The pages listed by a sitemap (`sitemap.xml`, gzip-compressed or not, or a text file of addresses), followed
 through a sitemap index; for a site's root (`https://example.org/`) or its `robots.txt`, the `Sitemap:` lines of
-robots.txt (else `/sitemap.xml`). Only pages and sitemaps of the sitemap's own host are read. One record per page:
+robots.txt (else `/sitemap.xml`). Only pages and sitemaps of the sitemap's own site are read (its host, with or without `www.`). One record per page:
 `url` (the key), `url_hash` (the SHA-1 of the address, for the remote ID), `lastmod`, `priority` and `changefreq`
 from the sitemap, `status` (HTTP), `title` (of `<title>`), `description` (the meta description), `canonical`,
 `language` (of `<html lang>`), and every pick (a pick `title` replaces the page title).

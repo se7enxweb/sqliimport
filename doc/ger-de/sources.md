@@ -501,7 +501,7 @@ author=xpath://span[@itemprop='author']
 Die Seiten, die eine Sitemap aufführt (`sitemap.xml`, mit gzip komprimiert oder nicht, oder eine Textdatei mit
 Adressen), auch über einen Sitemap-Index; für die Wurzel einer Website (`https://example.org/`) oder ihre
 `robots.txt` die Zeilen `Sitemap:` der robots.txt (sonst `/sitemap.xml`). Gelesen werden nur Seiten und Sitemaps
-desselben Hosts wie die Sitemap. Ein Datensatz je Seite: `url` (der Schlüssel), `url_hash` (der SHA-1 der Adresse,
+derselben Website wie die Sitemap (ihr Host, mit oder ohne `www.`). Ein Datensatz je Seite: `url` (der Schlüssel), `url_hash` (der SHA-1 der Adresse,
 für die Remote-ID), `lastmod`, `priority` und `changefreq` aus der Sitemap, `status` (HTTP), `title` (aus
 `<title>`), `description` (die Meta-Beschreibung), `canonical`, `language` (aus `<html lang>`) und jeder Pick (ein
 Pick `title` ersetzt den Seitentitel).

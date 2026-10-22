@@ -93,6 +93,16 @@ class expImportCrawler
         return $scheme . '://' . ( isset( $p['host'] ) ? strtolower( $p['host'] ) : '' ) . ':' . $port;
     }
 
+    /**
+     * @return string the site of an address: its host without a leading "www.", whatever the scheme and port (a
+     *                sitemap of https://www.example.org/ that lists http://example.org/ addresses lists its own site)
+     */
+    public static function site( $url )
+    {
+        $host = strtolower( (string)parse_url( (string)$url, PHP_URL_HOST ) );
+        return strpos( $host, 'www.' ) === 0 ? (string)substr( $host, 4 ) : $host;
+    }
+
     /** @return string|null why an address is not read (another scheme, a user name or password), null when fine */
     public static function refusal( $url )
     {
@@ -418,13 +428,13 @@ class expImportCrawler
         $base = rtrim( (string)preg_replace( '#^([a-z]+://[^/?\#]+).*$#is', '$1', (string)$start ), '/' );
         $out = array();
         foreach ( $this->robotsFor( $start )->sitemaps() as $sitemap )
-            if ( self::origin( $sitemap ) === self::origin( $start ) )
+            if ( self::site( $sitemap ) === self::site( $start ) )
                 $out[] = $sitemap;
         return $out ? $out : array( $base . '/sitemap.xml' );
     }
 
     /**
-     * The pages a sitemap (or a sitemap index, followed) lists on its own host, filtered by the patterns.
+     * The pages a sitemap (or a sitemap index, followed) lists on its own site, filtered by the patterns.
      *
      * @param string $start the sitemap, a sitemap index, a site's root or its robots.txt
      * @param int $max the most pages
@@ -439,7 +449,7 @@ class expImportCrawler
         $refusal = self::refusal( $start );
         if ( $refusal !== null )
             throw new expImportSourceException( $refusal );
-        $host = self::origin( $start );
+        $host = self::site( $start );
         $queue = $this->sitemapStarts( $start );
         $seenMaps = array();
         $seen = array();
@@ -448,7 +458,7 @@ class expImportCrawler
         while ( $queue && count( $entries ) < $max && count( $seenMaps ) < 100 )
         {
             $map = array_shift( $queue );
-            if ( isset( $seenMaps[$map] ) || self::origin( $map ) !== $host )
+            if ( isset( $seenMaps[$map] ) || self::site( $map ) !== $host )
                 continue;
             $seenMaps[$map] = true;
             try
@@ -470,7 +480,7 @@ class expImportCrawler
             foreach ( $parsed['urls'] as $entry )
             {
                 $loc = self::resolve( $map, $entry['loc'] );
-                if ( isset( $seen[$loc] ) || self::origin( $loc ) !== $host || !self::urlWanted( $loc, $include, $exclude ) )
+                if ( isset( $seen[$loc] ) || self::site( $loc ) !== $host || !self::urlWanted( $loc, $include, $exclude ) )
                     continue;
                 $seen[$loc] = true;
                 $entry['loc'] = $loc;
