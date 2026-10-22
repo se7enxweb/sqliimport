@@ -3,6 +3,33 @@
 Every release, newest first, in the form Added / Updated / Fixed / Removed / Renamed. The history of 1.x before 1.3.1
 is in [doc/CHANGELOG](doc/CHANGELOG).
 
+## Unreleased (branch 2.0-dev, in testing for 2.0.0-beta.1)
+
+### Added
+
+- Added: The import editor (sqliimport/edit): source (upload, address or server file with the options of its type),
+  processing (the no-code mapping or a handler with a form made from its options; target and behaviour), mapping
+  (class, remote ID pattern or attribute to match, parents, a grid with a line per attribute; Auto-match by name),
+  preview (the sample and a dry run of the first records with the changed fields), schedule (with the next runs)
+  and review (Save, or Save and run). Every step is saved on its own and every value is checked on the server.
+- Added: The live run page: status, progress, counters and new log lines every two seconds while a run goes on.
+- Added: The pages Schedules (pause, resume, edit, delete), Catalogue (sources, handlers, transforms) and Settings
+  (the settings as they stand, export and import of import definitions as JSON), and a dashboard block with the
+  latest runs.
+- Added: Edit, Duplicate, Enable or Disable and Delete of an import in the list.
+- Added: Spreadsheet sources (XLSX and ODS), read without a library; date(format=excel) for spreadsheet dates.
+- Added: The one-line text of a transform chain in the mapping grid: trim | date(format=d.m.Y) | map(table={...}).
+
+### Updated
+
+- Updated: Two policies, as the owner chose: manage (Manage imports) and run (Run imports), both with the handler
+  limitation; the functions view, edit, rollback, ai and settings of 2.0.0-alpha.1 are gone. manageimports of 1.x
+  counts as manage, listimports lets one look; migrate-1x --roles gives manage to the roles with manageimports.
+
+### Fixed
+
+- Fixed: The run page of a queued or running run ended in an error (2.0.0-alpha.1).
+
 ## 2.0.0-alpha.1 (2026-10-22)
 
 The first release of 7x SQLI Import 2: the foundation and the engine, with the dashboard and run pages of the
