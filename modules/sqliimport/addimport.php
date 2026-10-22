@@ -35,7 +35,7 @@ try
         if( $importOptions )
             $pendingImport->setAttribute( 'options', SQLIImportHandlerOptions::fromText( $importOptions ) );
         $pendingImport->store();
-        $Module->redirectToView( 'list' );
+        $Module->redirectToView( 'items' );
     }
     
     $importHandlers = $importINI->variable( 'ImportSettings', 'AvailableSourceHandlers' );
@@ -73,5 +73,4 @@ $Result['path'] = array(
         'text'      => SQLIImportUtils::translate( 'extension/sqliimport', 'Request a new immediate import' )
     )
 );
-$Result['left_menu'] = 'design:sqliimport/parts/leftmenu.tpl';
 $Result['content'] = $tpl->fetch( 'design:sqliimport/addimport.tpl' );

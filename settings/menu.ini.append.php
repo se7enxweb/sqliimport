@@ -4,6 +4,8 @@
 Part[sqliimportnavigationpart]=Import management
 
 [TopAdminMenu]
+# A siteaccess that resets Tabs[] in its own menu.ini.append.php (a line "Tabs[]" with no value) must list
+# Tabs[]=sqliimport there itself, or the tab is not shown.
 Tabs[]=sqliimport
 
 [Topmenu_sqliimport]
@@ -25,7 +27,41 @@ Shown[default]=true
 Shown[navigation]=true
 Shown[browse]=false
 
-# Tabs policy on admin interface in 4.3
-PolicyList[]=sqliimport/manageimports
+# The left menu of the Imports tab (parts/sqliimport/menu.tpl draws it with the administration's shared menu
+# template, parts/ini_menu.tpl, and in admin4 with its width switch). A tab or link is shown only to a user who may
+# open its address (menu.ini [MenuAccessSettings] CheckViewAccess): the views accept the 2.x and the 1.x policies.
+[Leftmenu_sqliimport]
+Name=Imports
+Links[]
+Links[dashboard]=sqliimport/list
+Links[active]=sqliimport/list/(status)/active
+Links[failed]=sqliimport/list/(status)/failed
+Links[items]=sqliimport/items
+Links[scheduled]=sqliimport/scheduledlist
+Links[addimport]=sqliimport/addimport
+Links[queue]=expqueue/dashboard
+LinkNames[]
+LinkNames[dashboard]=Overview
+LinkNames[active]=Running runs
+LinkNames[failed]=Failed runs
+LinkNames[items]=1.x import requests
+LinkNames[scheduled]=1.x scheduled imports
+LinkNames[addimport]=New 1.x import request
+LinkNames[queue]=Job queue
+Groups[]
+Groups[]=runs
+Groups[]=legacy
+GroupNames[]
+GroupNames[runs]=Imports and runs
+GroupNames[legacy]=sqliimport 1.x
+GroupLinks_runs[]
+GroupLinks_runs[]=dashboard
+GroupLinks_runs[]=active
+GroupLinks_runs[]=failed
+GroupLinks_runs[]=queue
+GroupLinks_legacy[]
+GroupLinks_legacy[]=items
+GroupLinks_legacy[]=scheduled
+GroupLinks_legacy[]=addimport
 
 */ ?>

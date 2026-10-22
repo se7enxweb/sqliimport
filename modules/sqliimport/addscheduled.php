@@ -155,5 +155,4 @@ $Result['path'] = array(
         'text'      => SQLIImportUtils::translate( 'extension/sqliimport', 'Edit a scheduled import' )
     )
 );
-$Result['left_menu'] = 'design:sqliimport/parts/leftmenu.tpl';
 $Result['content'] = $tpl->fetch( 'design:sqliimport/addscheduled.tpl' );

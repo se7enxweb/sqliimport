@@ -1,0 +1,42 @@
+/* 7x SQLI Import: the pages of the Imports tab.
+   The pages are built from the administration's shared components (.a4-page, .a4-card, .a4-table, .a4-figures,
+   .a4-badge, .a4-tag, .a4-btn, .a4-notice, .a4-empty, .a4-meter, .a4-timeline, .a4-toolbar) and take every colour,
+   radius, size and space from the --a4-* tokens of components.css, which have a light and a dark value. This file
+   holds only what the components cannot do, as .a4-sqliimport-* classes. Loaded through design.ini
+   [StylesheetSettings] BackendCSSFileList. */
+
+/* an action of a row or the toolbar: a small POST form that sits in the line like a button */
+.a4-sqliimport-inline { display: inline-block; margin: 0 var(--a4-space-1) var(--a4-space-1) 0; }
+
+/* the toolbar: Run now (a choice of import and its button) and the links */
+.a4-sqliimport-toolbar { flex-wrap: wrap; gap: var(--a4-space-2); margin: 0 0 var(--a4-space-4); }
+.a4-sqliimport-runform { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--a4-space-2); min-width: 0; }
+.a4-sqliimport-runform select { max-width: 100%; min-width: 0; }
+
+/* the filters above a table */
+.a4-sqliimport-filters { margin: 0 0 var(--a4-space-3); }
+
+/* a wide table scrolls inside its region, never the page */
+.a4-sqliimport-scroll { max-width: 100%; overflow-x: auto; }
+
+/* the progress bar of a run: narrow in a table, wide on the run's page */
+.a4-sqliimport-meter { min-width: 80px; margin: 0 0 var(--a4-space-1); }
+.a4-sqliimport-meter.is-large { height: var(--a4-space-3); margin: 0 0 var(--a4-space-2); }
+
+/* the changed fields of a dry run, under a record's message */
+.a4-sqliimport-diff { margin: var(--a4-space-2) 0 0; }
+.a4-sqliimport-diff td { overflow-wrap: anywhere; }
+
+/* the log: long messages wrap */
+.a4-sqliimport-log .a4-timeline-body { overflow-wrap: anywhere; }
+
+/* columns that make way on narrow screens (and at 200% zoom) */
+@media (max-width: 760px) {
+    .a4-sqliimport-hide-narrow { display: none; }
+}
+
+/* a figure that is a link: its number above its name, as the figures without a link */
+.a4-sqliimport .a4-figure > a { display: flex; flex-direction: column; gap: 2px; }
+
+/* the name of an import keeps a readable width; the table scrolls in its region instead */
+.a4-sqliimport-name { min-width: 11rem; }

@@ -1,0 +1,14 @@
+{* The links of the Imports tab's left menu: menu.ini [Leftmenu_sqliimport] drawn by the administration's shared menu
+   template (parts/ini_menu.tpl): the same markup, groups, access checks and current-page mark as every module's menu.
+   The names are translated here, in the context extension/sqliimport/menu. *}
+{include uri='design:parts/ini_menu.tpl' ini_section='Leftmenu_sqliimport'
+    i18n_hash=hash(
+    'Imports',   'Imports'|i18n( 'extension/sqliimport/menu' ),
+    'dashboard', 'Overview'|i18n( 'extension/sqliimport/menu' ),
+    'active',    'Running runs'|i18n( 'extension/sqliimport/menu' ),
+    'failed',    'Failed runs'|i18n( 'extension/sqliimport/menu' ),
+    'items',     '1.x import requests'|i18n( 'extension/sqliimport/menu' ),
+    'scheduled', '1.x scheduled imports'|i18n( 'extension/sqliimport/menu' ),
+    'addimport', 'New 1.x import request'|i18n( 'extension/sqliimport/menu' ),
+    'queue',     'Job queue'|i18n( 'extension/sqliimport/menu' ),
+)}

@@ -41,5 +41,4 @@ $Result['path'] = array(
         'text'      => SQLIImportUtils::translate( 'extension/sqliimport', 'Scheduled import list' )
     )
 );
-$Result['left_menu'] = 'design:sqliimport/parts/leftmenu.tpl';
 $Result['content'] = $tpl->fetch( 'design:sqliimport/scheduledlist.tpl' );
