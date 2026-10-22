@@ -232,6 +232,34 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   TLS, the common types); maps as JSON, user-defined types flattened. The password by the name of a secret, contact
   points in private networks only from [CassandraSourceSettings] AllowedHosts[]; the built-in client is so far tested
   against a scripted server only.
+- Added: The format Neo4j or Memgraph graph (neo4j): the rows of a Cypher query through Neo4j's HTTP transactional
+  endpoint (access-mode READ), the Query API ("accessMode": "READ") or Bolt with a small Bolt 4.0 to 4.4 client of its
+  own (RUN in mode "r", PULL n per page), which also reads Memgraph. Nodes as their properties with _labels and
+  _element_id, relationships with _type, _start and _end, paths as JSON, temporal values in ISO 8601, points as "x,y".
+  Clauses that write (CREATE, MERGE, SET, DELETE, LOAD CSV, FOREACH, CALL { } IN TRANSACTIONS), USE system and the
+  procedures and functions that write, load or run code (dbms.*, db.create*, apoc.create/merge/load/periodic/cypher
+  ..., gds.*.write) are refused; paging with SKIP and LIMIT over HTTP; [Neo4jSourceSettings].
+- Added: The format ArangoDB query (arangodb): the results of an AQL query through the cursor API (batchSize, the
+  next batch with POST or PUT, a streaming cursor, an open cursor deleted after an early stop), documents flattened
+  with _key, _id and _rev; INSERT, UPDATE, REPLACE, REMOVE, UPSERT and calls of code refused; basic or JWT
+  authentication by the names of secrets; [ArangoDbSourceSettings].
+- Added: The format ClickHouse query (clickhouse): a single SELECT through the HTTP interface with readonly=2 (or 1),
+  max_execution_time and max_result_rows, in JSONEachRow, paged with LIMIT and OFFSET; statements and clauses that
+  write or change settings and the table functions that reach outside the server (url, s3, file, remote, mysql,
+  postgresql, hdfs, jdbc, odbc, executable ...) refused unless [ClickHouseSourceSettings] AllowedTableFunctions[] lists
+  one; user and password as headers, never in the address.
+- Added: The format Snowflake query (snowflake): a single SELECT, WITH, SHOW or DESCRIBE through the SQL API v2 with
+  key-pair authentication (a JWT signed RS256 with openssl, the fingerprint computed from the public key; the private
+  key and its passphrase by the names of secrets), warehouse, database, schema and role; partitions paged, running
+  statements polled; FIXED as text, timestamps in ISO 8601, VARIANT, OBJECT and ARRAY decoded and flattened;
+  [SnowflakeSourceSettings].
+- Added: The format InfluxDB query (influxdb): Flux through /api/v2/query (annotated CSV, several tables, error
+  tables, an optional pivot) with an allow-list of packages and to(), wideTo(), sleep() and string interpolation
+  refused, or InfluxQL through /query (SELECT or SHOW only, INTO refused, paged with LIMIT and OFFSET per series);
+  _time in ISO 8601, tags and fields as columns; [InfluxDbSourceSettings]. TimescaleDB is read through the SQL source's
+  PostgreSQL driver (doc/sources.md).
+- Added: Test connection, the driver list (with what the job queue's workers have) and an example snapshot in
+  share/examples for each of these five formats.
 
 ### Updated
 

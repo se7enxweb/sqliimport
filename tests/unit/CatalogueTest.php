@@ -109,7 +109,8 @@ class CatalogueTest extends TestCase
             }
         }
         foreach ( array( 'sql', 'imap', 'sitemap', 'webpage', 'drupal', 'exponential_site', 'airtable', 'notion', 'ldap',
-                         'couchdb', 'couchbase', 'cosmosdb', 'dynamodb', 'firestore', 'bigquery', 'firebase_rtdb', 'cassandra' ) as $id )
+                         'couchdb', 'couchbase', 'cosmosdb', 'dynamodb', 'firestore', 'bigquery', 'firebase_rtdb', 'cassandra', 'neo4j',
+                         'arangodb', 'clickhouse', 'snowflake', 'influxdb' ) as $id )
             $this->assertContains( $id, $remote, "$id reads its data itself" );
     }
 

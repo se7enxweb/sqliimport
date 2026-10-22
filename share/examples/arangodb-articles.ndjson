@@ -1,0 +1,3 @@
+{"_key":"1001","_id":"articles/1001","_rev":"_hX2kQ3a---","title":"A guide to white tea","status":"published","author.name":"Tea desk","author.city":"Example Town","tags":["white tea","guide"],"published_at":"2026-02-11T08:30:00Z"}
+{"_key":"1002","_id":"articles/1002","_rev":"_hX2kQ3b---","title":"Water hardness and taste","status":"published","author.name":"Tea desk","author.city":"Example Town","tags":["water"],"published_at":"2026-02-18T08:30:00Z"}
+{"_key":"1003","_id":"articles/1003","_rev":"_hX2kQ3c---","title":"Cold brew in summer","status":"draft","author.name":"Guest writer","author.city":"Sample City","tags":[],"published_at":null}

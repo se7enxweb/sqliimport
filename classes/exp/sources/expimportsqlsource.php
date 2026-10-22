@@ -1163,7 +1163,9 @@ class expImportSqlSource extends expImportJsonSource
                 if ( class_exists( $class ) && method_exists( $class, 'localDrivers' ) )
                     $sources[(string)call_user_func( array( $class, 'identifier' ) )] = (array)call_user_func( array( $class, 'localDrivers' ) );
             // the other sources that need something of the host, as <prefix>.<driver> (expImportSearchSource::withWorker())
-            foreach ( array( 'search' => 'expImportSearchSource', 'duckdb' => 'expImportDuckDbSource' ) as $prefix => $class )
+            foreach ( array( 'search' => 'expImportSearchSource', 'duckdb' => 'expImportDuckDbSource', 'neo4j' => 'expImportNeo4jSource',
+                             'arangodb' => 'expImportArangoDbSource', 'clickhouse' => 'expImportClickHouseSource',
+                             'snowflake' => 'expImportSnowflakeSource', 'influxdb' => 'expImportInfluxDbSource' ) as $prefix => $class )
                 if ( class_exists( $class ) )
                     foreach ( (array)call_user_func( array( $class, 'drivers' ) ) as $id => $row )
                         $drivers[$prefix . '.' . $id] = (string)$row['via'];

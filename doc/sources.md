@@ -10,7 +10,7 @@ A source type reads records from a local file. Where the file comes from is the 
 | `upload` | `file`: the stored name of an uploaded file | The upload (kept in the site's storage directory, `sqliimport/uploads/`) is copied into the run's directory |
 | `url` | `url`: an `http` or `https` address | The address is downloaded into the run's directory, with the time limit `[ImportSettings] StreamTimeout` and the size limit `[SourceSettings] MaxSourceMegabytes` |
 | `path` | `path`: a file on the server | The file is read in place, but only if it lies inside one of `[SourceSettings] AllowedPaths[]` |
-| `remote` | the source's own options (a database, a search index, a mailbox, a directory, a service) | The source reads its data itself once per run and writes it into the run's directory as JSON Lines (`sql`, `mongodb`, `redis`, `couchdb`, `couchbase`, `cosmosdb`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion`, `dynamodb`, `firestore`, `bigquery`, `firebase_rtdb`, `cassandra` and the sites of the platforms group) |
+| `remote` | the source's own options (a database, a search index, a mailbox, a directory, a service) | The source reads its data itself once per run and writes it into the run's directory as JSON Lines (`sql`, `mongodb`, `redis`, `couchdb`, `couchbase`, `cosmosdb`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion`, `dynamodb`, `firestore`, `bigquery`, `firebase_rtdb`, `cassandra`, `neo4j`, `arangodb`, `clickhouse`, `snowflake`, `influxdb` and the sites of the platforms group) |
 
 Rules:
 
@@ -564,6 +564,15 @@ and create an import with the driver `sqlite`, the path of the file as database,
 
 ```sql
 SELECT id, name, origin, kind, price, description FROM teas WHERE kind <> 'herbal' ORDER BY id
+```
+
+**TimescaleDB** is PostgreSQL with an extension, so it has no source of its own: read it with the driver `pgsql` of
+this source. Its functions are ordinary functions in a `SELECT` (`time_bucket`, `first`, `last`, continuous
+aggregates as views), for example
+
+```sql
+SELECT time_bucket('1 hour', time) AS hour, room, avg(temperature) AS temperature
+FROM climate WHERE time > now() - interval '1 day' GROUP BY hour, room ORDER BY hour, room
 ```
 
 ### Secrets
@@ -1349,6 +1358,264 @@ frame larger than `[CassandraSourceSettings] MaxFrameMegabytes`. `[CassandraSour
 of the protocol specification; it has not yet been run against a live Cassandra or ScyllaDB server.
 
 **Example:** `share/examples/cassandra-events.ndjson` is what a run reads from a table of events.
+
+## Query languages of other databases over HTTP (`neo4j`, `arangodb`, `clickhouse`, `snowflake`, `influxdb`)
+
+These five sources send one query in the database's own language and write its rows into the run's directory, one
+JSON object per line. They have in common:
+
+- **Read-only, checked before anything is sent.** Each query is checked by a lexer of its language: string literals,
+  quoted names and comments are taken out as the server reads them (escapes, doubled quotes, heredocs), so a keyword
+  inside a text does not count and a statement hidden behind a quote or a comment is found. What writes, administers,
+  runs code or reaches outside the database is refused at any depth, and a refused query sends nothing. Where the
+  server has a read-only mode, the source uses it besides (Neo4j `access-mode: READ` and Bolt mode `r`, ClickHouse
+  `readonly`). Give the import's user only the rights to read what it imports in any case.
+- **Secrets by name.** A password, token or private key is the **name** of a secret (see *Secrets* above), never the
+  value; messages show it as `[secret <name>]`, also when a server quotes it in an error.
+- **Hosts.** A server in a private or reserved network (intranet, loopback) is refused unless
+  `[SourceSettings] AllowPrivateHosts=enabled` or the host is listed in the source's own `AllowedHosts[]`
+  (`[Neo4jSourceSettings]`, `[ArangoDbSourceSettings]`, `[ClickHouseSourceSettings]`, `[SnowflakeSourceSettings]`,
+  `[InfluxDbSourceSettings]`). `MaxPages` in the same section limits the requests of one run.
+- **HTTP** goes through PHP's `http` and `https` streams (`allow_url_fopen=On` and the extension `openssl`, in the web
+  server's PHP and in the PHP of the job queue's workers; the catalogue and the source step list them): certificates
+  verified, answers limited to `[PlatformSettings] MaxResponseMegabytes`, the time limit `[ImportSettings]
+  StreamTimeout`, no credentials after a redirect to another host. curl is not needed.
+- **Nested values** (a map, an object, a tuple) become dotted field names (`author.name`); a list of plain values stays
+  a list, a list of objects is numbered (`items.0.sku`).
+- **Test connection** runs the query for its first row and shows the server, its version where it tells it, and the
+  fields, or the error with the server's reason, masked. Nothing is saved.
+
+### Neo4j and Memgraph (`neo4j`)
+
+Group: NoSQL databases. Origin: `remote`. The rows of a Cypher query. A node is its properties with `_labels` (a list)
+and `_element_id`; a relationship its properties with `_type`, `_element_id`, `_start` and `_end`; a path the JSON of
+its nodes and relationships in order; temporal values ISO 8601 (`2026-03-02`, `2026-03-02T10:00:00.5+01:00`,
+`P1M2DT30S`); a point `x,y` (or `x,y,z`); integers larger than PHP's stay text; byte arrays `base64:...`. A query that
+returns a single node or relationship (`RETURN a`) gives its fields directly; with several columns each is under its
+name (`a.title`, `a._labels`, `author`).
+
+| Option | Values | Default |
+|---|---|---|
+| `server` | `neo4j`, `memgraph` (Bolt only) | `neo4j` |
+| `address` | `https://graph.example.org:7473` (HTTP) or `bolt://`, `bolt+s://`, `neo4j://`, `neo4j+s://` with host and port (Bolt); no path, no credentials | required |
+| `api` | `auto` (by the address), `tx` (HTTP transactional endpoint), `query` (Query API), `bolt` | `auto` |
+| `database` | the database; never `system` | HTTP `neo4j`, Bolt the default database |
+| `user`, `password_secret` | the user and the **name** of the secret with the password (empty user: no authentication) | |
+| `query` | a reading Cypher query | required |
+| `parameters` | a JSON object of the query's `$parameters` | |
+| `page_size` | rows per request (HTTP `LIMIT`, Bolt `PULL n`) | `1000` |
+| `paging` | `auto`, `none` | `auto` |
+| `key` | the field that names a row (`id`, `_element_id`) | the position |
+
+The three ways to the server:
+
+- **`tx`**: Neo4j's HTTP transactional endpoint, `POST /db/<database>/tx/commit` with the header
+  `access-mode: READ`, the row format with the graph format for labels and types (Neo4j 4 and 5).
+- **`query`**: the Query API, `POST /db/<database>/query/v2` with `"accessMode": "READ"` and typed JSON (Neo4j 5.19
+  and later, Aura).
+- **`bolt`**: the Bolt protocol, with a small client of the source's own over a socket (Bolt 4.0 to 4.4: `HELLO`,
+  `RUN` with mode `r`, `PULL` with `n`, `DISCARD`, `GOODBYE`; nothing else is ever sent). `neo4j://` is read like
+  `bolt://` (a direct connection, no routing table); `+s` uses TLS with the certificate verified (for a self-signed
+  certificate install it as a trusted CA). **Memgraph has no HTTP API**: it is read only over Bolt
+  (`bolt://memgraph.example.org:7687`), and the source refuses an `http` address for it.
+
+**Read-only.** Outside strings and comments the query may not contain `CREATE`, `MERGE`, `SET`, `DELETE`, `DETACH`,
+`REMOVE`, `DROP`, `FOREACH`, `LOAD` (`LOAD CSV`), `IN TRANSACTIONS` (`CALL { ... } IN TRANSACTIONS`), the
+administration commands (`ALTER`, `GRANT`, `DENY`, `REVOKE`, `RENAME`, `START`, `STOP`, `TERMINATE`, `ENABLE`) and
+Memgraph's (`ANALYZE`, `FREE`, `STORAGE`, `REPLICATION`, `REGISTER`, `IMPORT`), nor a second statement. `USE` is
+allowed with the name of a database, never `system`. Procedures and functions: `dbms.*` is refused, `db.*` only for
+the reading ones (`db.labels`, `db.relationshipTypes`, `db.propertyKeys`, `db.schema.*`, `db.indexes`,
+`db.constraints`, `db.info`, `db.ping`, the full-text and vector queries), and any other name (`apoc.*`, `gds.*`,
+Memgraph modules such as `migrate.*`, `mg.*`) is refused when a part of it writes, loads or runs code: `create`,
+`merge`, `set...`, `delete`, `remove`, `load`, `import`, `export`, `periodic`, `trigger`, `refactor`, `cypher`, `do`,
+`lock`, `atomic`, `write`, `mutate`, `drop`, `project`, `config`, `uuid`, `ttl`, `custom`, `systemdb`, `migrate` and
+the connectors (`bolt`, `jdbc`, `mongo`, `redis`, `es`, `kafka` ...). A quoted name (`` `apoc`.`create`.node ``) is
+checked as the server reads it. Give the import a user with the `reader` role (Neo4j) or read-only privileges.
+
+**Paging.** Over HTTP the query gets `SKIP $sqliimport_skip LIMIT $sqliimport_limit` appended when it ends in a
+`RETURN` without its own `SKIP` or `LIMIT` and has no `UNION`; give it an `ORDER BY` for a stable order. Otherwise
+(or with `paging` `none`) it is sent once as it is. Over Bolt the query runs once and the rows come with `PULL n`, page
+by page, from the same result.
+
+**What the host needs:** for HTTP the streams above; for Bolt `stream_socket_client` (part of PHP) and for `+s` the
+extension `openssl`. No Neo4j driver library is needed. `[Neo4jSourceSettings] Timeout` is the Bolt time limit.
+
+**Example:** `share/examples/neo4j-articles.ndjson` is a snapshot of three article nodes as the source writes it for
+`MATCH (a:Article) RETURN a ORDER BY a.id`. With parameters:
+
+```cypher
+MATCH (a:Article)-[:WRITTEN_BY]->(p:Person)
+WHERE a.status = $status
+RETURN a.id AS id, a.title AS title, p.name AS author
+ORDER BY a.id
+```
+
+### ArangoDB (`arangodb`)
+
+Group: NoSQL databases. Origin: `remote`. The results of an AQL query through the HTTP cursor API. A document is
+flattened with `_key`, `_id` and `_rev` (and `_from`, `_to` of an edge) first; a result that is not an object (a
+number, a string, a list) becomes the field `value`.
+
+| Option | Values | Default |
+|---|---|---|
+| `base_url` | the server or coordinator, `https://arango.example.org:8529` | required |
+| `database` | the database name | `_system` |
+| `auth` | `basic` (user and password), `bearer` (a JWT), `none` | `basic` |
+| `user`, `password_secret` | with `basic`: the user and the **name** of the secret with the password | |
+| `token_secret` | with `bearer`: the **name** of the secret with the JWT | |
+| `query` | a reading AQL query | required |
+| `bind_vars` | a JSON object of the query's `@parameters` | |
+| `page_size` | results per batch (`batchSize`) | `1000` |
+| `stream` | a streaming cursor (`options.stream`), which keeps the server's memory low | yes |
+| `key` | the field that names a result | `_key` |
+
+**Read-only.** Outside strings, quoted names and comments the query may not contain `INSERT`, `UPDATE`, `REPLACE`,
+`REMOVE`, `UPSERT`, the functions that call code or wait (`CALL`, `APPLY`, `SLEEP`, `V8`) or user functions
+(`NAMESPACE::NAME()`), nor a `;`. Names in forward ticks are refused (use backticks). Give the user read-only access to
+the database (`ro`).
+
+**Paging:** `POST /_db/<database>/_api/cursor` with `batchSize`, then the next batch with
+`POST /_api/cursor/<id>` (ArangoDB 3.7 and later; `PUT` for older servers) while `hasMore`. A cursor left open by an
+early stop (the editor's sample) is deleted. **Test connection** also reads the version (`GET /_api/version`).
+
+**Example:** `share/examples/arangodb-articles.ndjson`, for
+
+```aql
+FOR a IN articles
+  FILTER a.status == @status
+  SORT a.published_at DESC
+  RETURN a
+```
+
+### ClickHouse (`clickhouse`)
+
+Group: NoSQL databases. Origin: `remote`. The rows of a `SELECT` through the HTTP interface (port 8123, or 8443 with
+TLS) in the format `JSONEachRow`. Types are as ClickHouse writes them in JSON: `Int64`, `UInt64` and larger integers
+as text (no rounding), other numbers as numbers, `Date` and `DateTime` as `2026-05-01` and `2026-05-01 10:00:00`, a
+named `Tuple`, a `Map` or a `JSON` column flattened to dotted names, an `Array` as a list.
+
+| Option | Values | Default |
+|---|---|---|
+| `base_url` | the HTTP interface, `https://clickhouse.example.org:8443` | required |
+| `database` | the database | `default` |
+| `user`, `password_secret` | the user (sent as `X-ClickHouse-User`) and the **name** of the secret with the password (`X-ClickHouse-Key`); never in the address | `default` |
+| `query` | a single `SELECT` or `WITH ... SELECT`, without `FORMAT` and `SETTINGS` | required |
+| `readonly` | `2` (read-only, the source may send its limits), `1` (read-only, no settings are sent) | `2` |
+| `page_size` | rows per request | `10000` |
+| `paging` | `auto` (`LIMIT` and `OFFSET` around the query), `none` | `auto` |
+| `key` | the column that names a row | the position |
+
+**Read-only.** Every request carries `readonly=2` (or `1`), so the server itself refuses writes, DDL and a change of
+`readonly`. Before, the query must start with `SELECT` or `WITH` and may not contain, outside strings, quoted names
+(both with backslash escapes and doubled quotes) and comments: `INSERT`, `ALTER`, `CREATE`, `DROP`, `TRUNCATE`,
+`OPTIMIZE`, `SYSTEM`, `KILL`, `SET`, `GRANT`, `REVOKE`, `RENAME`, `ATTACH`, `DETACH`, `EXCHANGE`, `DELETE`, `UPDATE`,
+`INTO OUTFILE`, `USE`, `BACKUP`, `RESTORE`, the clauses `FORMAT` and `SETTINGS` (the functions `format()` are fine),
+a second statement, and the table functions that reach outside the server: `url`, `s3`, `gcs`, `azureBlobStorage`,
+`file`, `remote`, `remoteSecure`, `cluster`, `mysql`, `postgresql`, `mongodb`, `redis`, `sqlite`, `hdfs`, `jdbc`,
+`odbc`, `executable`, `input`, `deltaLake`, `hudi`, `iceberg` and their `...Cluster` forms.
+`[ClickHouseSourceSettings] AllowedTableFunctions[]` may allow one (for example `s3` for a data lake the import
+should read). Heredocs (`$tag$...$tag$`) are read as ClickHouse reads them.
+
+**Paging:** `SELECT * FROM ( <query> ) LIMIT <page_size> OFFSET <n>` until a page is short; give the query an
+`ORDER BY` for a stable order. With `readonly=2` each request also sets `max_execution_time`
+(`[ClickHouseSourceSettings] MaxExecutionTime`, 60) and, when `MaxResultRows` is set, `max_result_rows` with
+`result_overflow_mode=throw`. **Test connection** reads `version()` and the first row.
+
+**Example:** `share/examples/clickhouse-page-views.ndjson`, for
+
+```sql
+SELECT path, sum(views) AS views FROM page_views WHERE day >= today() - 7 GROUP BY path ORDER BY views DESC, path
+```
+
+### Snowflake (`snowflake`)
+
+Group: NoSQL databases. Origin: `remote`. The rows of a query through the SQL API v2 (`POST /api/v2/statements`) with
+**key-pair authentication**: the source signs a JWT with the user's RSA private key (RS256, PHP's openssl); its
+issuer is `<ACCOUNT>.<USER>.SHA256:<fingerprint>`, the fingerprint computed from the public key exactly as
+`DESC USER` shows it in `RSA_PUBLIC_KEY_FP`. Register the public key with `ALTER USER ... SET RSA_PUBLIC_KEY=...`.
+
+| Option | Values | Default |
+|---|---|---|
+| `account` | the account identifier: `orgname-accountname`, or a locator with its region (`xy12345.eu-central-1`) | required |
+| `base_url` | another address (a private link) | `https://<account>.snowflakecomputing.com` |
+| `user` | the user | required |
+| `private_key_secret` | the **name** of the secret with the PEM private key (`-----BEGIN PRIVATE KEY-----` or `ENCRYPTED PRIVATE KEY`; a key on one line with `\n` works too) | required |
+| `passphrase_secret` | for an encrypted key: the **name** of the secret with its passphrase | |
+| `warehouse`, `database`, `schema`, `role` | the context of the statement | the user's defaults |
+| `query` | a single `SELECT`, `WITH ... SELECT`, `SHOW` or `DESCRIBE` | required |
+| `key` | the column that names a row (Snowflake names columns in upper case) | the position |
+
+**Read-only as far as the source can see.** Outside strings (`'...'` with backslash escapes and doubled quotes,
+`$$...$$`), quoted names and comments (`--`, `//`, `/* */`) the query may not contain `INSERT`, `UPDATE`, `DELETE`,
+`MERGE`, `CREATE`, `ALTER`, `DROP`, `TRUNCATE`, `GRANT`, `REVOKE`, `COPY`, `PUT`, `REMOVE`, `CALL`, `EXECUTE`
+(`EXECUTE IMMEDIATE`), `USE`, `SET`, `UNSET`, `UNDROP`, `BEGIN`, `COMMIT`, `ROLLBACK`, `INTO`, nor a `SYSTEM$`
+function or a second statement, and the request allows one statement (`MULTI_STATEMENT_COUNT` 1). **Snowflake has no
+read-only session**: give the user a role with `SELECT` on what the import reads and nothing else (no `OWNERSHIP`, no
+`USAGE` on external functions or procedures).
+
+**Type mapping** (by `resultSetMetaData.rowType`; the API sends every value as text): `FIXED` (`NUMBER`, `DECIMAL`)
+stays text, so no number is rounded; `REAL` a float; `BOOLEAN` true or false; `DATE` `2026-03-02`; `TIME`
+`10:00:00.5`; `TIMESTAMP_NTZ` `2026-03-02T10:00:00.123`, `TIMESTAMP_LTZ` in UTC with `Z`, `TIMESTAMP_TZ` with its
+offset (`2026-03-02T11:00:00+01:00`); `VARIANT`, `OBJECT` and `ARRAY` decoded from JSON, an object flattened under
+the column's name (`ADDRESS.city`); `BINARY` hex text; `NULL` null.
+
+**Paging:** the partitions of the result (`resultSetMetaData.partitionInfo`): the first comes with the answer, the
+others with `GET /api/v2/statements/<handle>?partition=<n>`. A statement that is still running (`202`) is asked for
+again every second until it ends or `[SnowflakeSourceSettings] StatementTimeout` (300 s, also sent as the statement's
+`timeout`) passes. **What the host needs:** the `https` stream and the extension `openssl` (it signs the token too).
+
+**Example:** `share/examples/snowflake-orders.ndjson`, three orders as the source writes them.
+
+### InfluxDB (`influxdb`)
+
+Group: NoSQL databases. Origin: `remote`. The rows of a **Flux** query (InfluxDB 2, InfluxDB Cloud; `POST
+/api/v2/query`, the answer in annotated CSV) or of an **InfluxQL** query (InfluxDB 1 and the 1.x compatibility API of
+InfluxDB 2; `GET /query`, the answer in JSON). One record is one row: `_time` in ISO 8601 (RFC 3339), the tags and
+fields as columns, `_measurement`, and with Flux `_start`, `_stop`, and `_field` and `_value` unless the query pivots.
+
+| Option | Values | Default |
+|---|---|---|
+| `base_url` | the server, `https://influx.example.org:8086`, or the InfluxDB Cloud address | required |
+| `language` | `flux`, `influxql` | `flux` |
+| `org` | Flux: the organization name or ID | |
+| `database`, `retention_policy` | InfluxQL: the database (or the bucket mapped to it) and the retention policy | |
+| `auth` | `token` (`Authorization: Token ...`), `basic` (user and password), `none` | `token` |
+| `token_secret` | the **name** of the secret with the token | |
+| `user`, `password_secret` | with `basic` | |
+| `query` | Flux, or a single InfluxQL `SELECT` or `SHOW` | required |
+| `pivot` | Flux: append `pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")`, one row per time with a column per field | no |
+| `page_size` | InfluxQL: points per series and request | `10000` |
+| `key` | the column that names a row | the position |
+
+**Read-only.** Flux: only these packages may be imported: `array`, `strings`, `date`, `math`, `regexp`, `json`,
+`dict`, `types`, `join`, `interpolate`, `timezone`, `runtime`, `system`, `influxdata/influxdb`,
+`influxdata/influxdb/schema`, `influxdata/influxdb/v1`, `influxdata/influxdb/sample`, `sampledata`, `experimental`
+and its reading parts (`aggregate`, `array`, `date/boundaries`, `geo`, `json`, `oee`, `polyline`, `query`, `record`,
+`table`, `dynamic`). So `http`, `sql`, `csv` from a file or address, `influxdata/influxdb/secrets`, `socket`, `mqtt`,
+`kafka`, the notification endpoints (`slack`, `pagerduty`, `opsgenie`, `telegram`, `sensu`, `discord`, `teams`,
+`victorops`, `zenoss`, `servicenow`, `bigpanda`, `alerta`, `pushbullet`, `webexteams`) and every `contrib/...`
+package are refused. Anywhere in the query `to()`, `wideTo()`, any `X.to()` (`experimental.to`, also through an alias
+or a variable) and `sleep()` are refused, and so is string interpolation (`"${...}"`). InfluxQL: a single `SELECT`
+or `SHOW`, without `INTO` and without `DROP`, `DELETE`, `CREATE`, `ALTER`, `GRANT`, `REVOKE`, `KILL` or
+`SET PASSWORD`. Give the token read access to the bucket only (an InfluxDB 2 read authorization).
+
+**Type mapping:** Flux by the `#datatype` annotation: `long` an integer, `unsignedLong` an integer (text when larger
+than PHP's), `double` a float, `boolean` true or false, `dateTime:RFC3339` text as sent, the rest text; an empty
+value null (or the table's `#default`); the columns `result` and `table` are left out; an error table stops the run
+with its message. InfluxQL as the JSON answer gives it (`time` as `_time`, RFC 3339).
+
+**Paging:** InfluxQL `SELECT` without its own `LIMIT`, `OFFSET`, `SLIMIT` or `SOFFSET` gets `LIMIT <page_size>
+OFFSET <n>` appended (per series, as InfluxQL counts them) until no series fills a page. Flux comes in one answer:
+narrow it with `range()` and `filter()` (answers are limited to `[PlatformSettings] MaxResponseMegabytes`); the
+editor's sample appends `limit(n: ...)`. **Test connection** shows the server's version from `X-Influxdb-Version`.
+
+**Example:** `share/examples/influxdb-climate.ndjson`, three pivoted readings, for
+
+```flux
+from(bucket: "sensors")
+  |> range(start: -1d)
+  |> filter(fn: (r) => r._measurement == "climate")
+```
 
 ## LDAP directory (`ldap`)
 

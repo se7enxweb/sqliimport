@@ -50,6 +50,12 @@ Formats[]=Redis
 Formats[]=CouchDB
 Formats[]=Couchbase
 Formats[]=Cosmos DB
+Formats[]=Neo4j
+Formats[]=Memgraph
+Formats[]=ArangoDB
+Formats[]=ClickHouse
+Formats[]=Snowflake
+Formats[]=InfluxDB
 Formats[]=LDAP
 Formats[]=Airtable
 Formats[]=Notion
@@ -332,6 +338,46 @@ Arguments[]=expImportCassandraSource
 Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: rows of a CQL SELECT against Cassandra or ScyllaDB (read-only)
+
+[Service_sqliimport.source.neo4j]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportNeo4jSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: Neo4j or Memgraph graph (read-only Cypher over HTTP or Bolt)
+
+[Service_sqliimport.source.arangodb]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportArangoDbSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: ArangoDB query (read-only AQL through the cursor API)
+
+[Service_sqliimport.source.clickhouse]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportClickHouseSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: ClickHouse query (SELECT over the HTTP interface with readonly)
+
+[Service_sqliimport.source.snowflake]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportSnowflakeSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: Snowflake query (SQL API v2 with key-pair authentication, reading statements only)
+
+[Service_sqliimport.source.influxdb]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportInfluxDbSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: InfluxDB query (read-only Flux or InfluxQL)
 
 [Service_sqliimport.source.ldap]
 Class=expImportSourceEntry

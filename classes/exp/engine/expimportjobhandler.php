@@ -55,7 +55,7 @@ class expImportJobHandler extends expQueueHandlerBase
             switch ( $job->attribute( 'type' ) )
             {
                 case expImportRunner::JOB_RUN:
-                    // what this worker's PHP can read, for the editor of the SQL, MongoDB, Redis and LDAP sources, which may run in another PHP
+                    // what this worker's PHP can read (the drivers of the database sources), for the editor, which may run in another PHP
                     expImportSqlSource::recordWorkerPhp();
                     expImportLdapSource::recordWorkerPhp();
                     return $this->prepare( $run, $import, $job, $log );

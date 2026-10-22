@@ -62,6 +62,11 @@ foreach ( array( 'RunSettings' => array( 'ChunkSize', 'DryRunRows', 'LogLevel', 
                  'DynamoDbSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
                  'GoogleCloudSourceSettings' => array( 'MaxPages', 'MaximumBytesBilled', 'AllowedHosts' ),
                  'CassandraSourceSettings' => array( 'AllowedHosts', 'Client', 'Timeout', 'MaxFrameMegabytes', 'MaxPages' ),
+                 'Neo4jSourceSettings' => array( 'AllowedHosts', 'Timeout', 'MaxPages' ),
+                 'ArangoDbSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
+                 'ClickHouseSourceSettings' => array( 'AllowedHosts', 'AllowedTableFunctions', 'MaxExecutionTime', 'MaxResultRows', 'MaxPages' ),
+                 'SnowflakeSourceSettings' => array( 'AllowedHosts', 'StatementTimeout', 'MaxPages' ),
+                 'InfluxDbSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
                  'ImportSettings' => array( 'DefaultParentNodeID', 'ViewCaching', 'ObjectIndexing', 'StreamTimeout' ),
                  'AdminSettings' => array( 'ListLimit' ) ) as $section => $names )
     foreach ( $names as $name )
