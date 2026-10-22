@@ -183,7 +183,11 @@ class expImportRun extends eZPersistentObject
         $db->query( 'UPDATE sqliimport_run SET ' . implode( ', ', $parts ) . ' WHERE id = ' . (int)$this->attribute( 'id' ) . " AND status NOT IN ($final)" );
         $before = $this->attribute( 'status' );
         $this->reload();
-        return $this->attribute( 'status' ) === $status && $before !== $status;
+        $changed = $this->attribute( 'status' ) === $status && $before !== $status;
+        // the run's row in the history of the import and export tools follows its status
+        if ( $changed && class_exists( 'expImportTransferRuns' ) )
+            expImportTransferRuns::statusChanged( $this );
+        return $changed;
     }
 
     /** @return expImportRunRow[] */

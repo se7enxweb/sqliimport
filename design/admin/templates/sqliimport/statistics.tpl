@@ -67,6 +67,16 @@
 {foreach $stats.options.users as $o}<option value="{$o.value}"{if eq( $o.value, $stats.filter.user )} selected="selected"{/if}>{$o.label|wash} ({$o.runs})</option>{/foreach}
 </select>
 </div>
+{if $stats.tool_options|count|gt( 0 )}
+<div class="a4-field">
+<label for="sq-st-tool">{'Tool'|i18n( 'extension/sqliimport/statistics' )}</label>
+<select id="sq-st-tool" name="tool">
+<option value=""{if or( eq( $stats.filter.tool, '' ), eq( $stats.filter.tool, 'transfer.sqliimport' ) )} selected="selected"{/if}>{'Imports'|i18n( 'extension/sqliimport/statistics' )}</option>
+{foreach $stats.tool_options as $sq_to}<option value="{$sq_to.id|wash}"{if eq( $stats.filter.tool, $sq_to.id )} selected="selected"{/if}>{$sq_to.name|wash}</option>{/foreach}
+<option value="all"{if eq( $stats.filter.tool, 'all' )} selected="selected"{/if}>{'All import and export tools'|i18n( 'extension/sqliimport/statistics' )}</option>
+</select>
+</div>
+{/if}
 <div class="a4-field">
 <label for="sq-st-scope">{'Runs'|i18n( 'extension/sqliimport/statistics' )}</label>
 <select id="sq-st-scope" name="scope">
@@ -157,6 +167,34 @@
 </section>
 </div>
 </section>
+
+{if $stats.tools|count|gt( 0 )}
+<section class="a4-section" aria-labelledby="sq-st-tools">
+<div class="a4-section-head"><h2 class="a4-h2" id="sq-st-tools">{'Per tool'|i18n( 'extension/sqliimport/statistics' )}</h2></div>
+<div class="a4-sqliimport-scroll" tabindex="0" role="region" aria-labelledby="sq-st-tools">
+<table class="a4-table is-compact a4-sqliimport-stattable">
+<thead><tr>
+<th scope="col">{'Tool'|i18n( 'extension/sqliimport/statistics' )}</th>
+<th scope="col" class="a4-num">{'Runs'|i18n( 'extension/sqliimport/statistics' )}</th>
+<th scope="col" class="a4-num">{'Records'|i18n( 'extension/sqliimport/statistics' )}</th>
+<th scope="col" class="a4-num">{'Average'|i18n( 'extension/sqliimport/statistics' )}</th>
+<th scope="col" class="a4-num">{'Failure rate'|i18n( 'extension/sqliimport/statistics' )}</th>
+</tr></thead>
+<tbody>
+{foreach $stats.tools as $sq_tt}
+<tr>
+<th scope="row" class="a4-sqliimport-name"><a href={concat( '/sqliimport/list/(tool)/', $sq_tt.tool )|ezurl}>{$sq_tt.name|wash}</a></th>
+<td class="a4-num">{$sq_tt.summary.runs}</td>
+<td class="a4-num">{$sq_tt.summary.rows_text|wash}</td>
+<td class="a4-num">{$sq_tt.summary.avg_duration_text|wash}</td>
+<td class="a4-num">{$sq_tt.summary.failure_rate_text|wash}</td>
+</tr>
+{/foreach}
+</tbody>
+</table>
+</div>
+</section>
+{/if}
 
 <section class="a4-section" aria-labelledby="sq-st-imports">
 <div class="a4-section-head"><h2 class="a4-h2" id="sq-st-imports">{'Per import'|i18n( 'extension/sqliimport/statistics' )}</h2></div>

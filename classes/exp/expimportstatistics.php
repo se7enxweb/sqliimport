@@ -34,9 +34,9 @@ class expImportStatistics
 
     /** The run kinds of each scope */
     const SCOPES = array(
-        'production' => array( 'import', 'retry' ),
+        'production' => array( 'import', 'retry', 'export' ),
         'dry_run' => array( 'dry_run' ),
-        'all' => array( 'import', 'retry', 'dry_run', 'undo' ),
+        'all' => array( 'import', 'retry', 'dry_run', 'undo', 'export' ),
     );
 
     /** The row outcomes stacked in the record charts, bottom to top */
@@ -273,6 +273,10 @@ class expImportStatistics
             'status' => isset( $row['status'] ) ? (string)$row['status'] : '',
             'started_at' => isset( $row['started_at'] ) ? (int)$row['started_at'] : 0,
             'finished_at' => isset( $row['finished_at'] ) ? (int)$row['finished_at'] : 0,
+            // the tool of the run: Imports, or another tool of the transfer history (its title and link with it)
+            'tool' => isset( $row['tool'] ) && $row['tool'] !== '' ? (string)$row['tool'] : 'transfer.sqliimport',
+            'title' => isset( $row['title'] ) ? (string)$row['title'] : '',
+            'detail_url' => isset( $row['detail_url'] ) ? (string)$row['detail_url'] : '',
         );
         $rows = 0;
         foreach ( self::COUNTERS as $name )
@@ -989,9 +993,62 @@ class expImportStatistics
     }
 
     /**
+     * The runs of a period for a (tool) value: Imports' own runs (sqliimport_run), and the runs of the other tools of
+     * the transfer history the value names (never Imports' rows there, which would count Imports twice). The filters
+     * of an import or a source type apply to Imports only, so they leave the other tools out.
+     *
+     * @param array $filter from, to, scope, import, user, source
+     * @param string $tool '', transfer.sqliimport, all or another registry id
+     * @return array normalized runs, ordered by start
+     */
+    public static function runsFor( array $filter, $tool )
+    {
+        $runs = expImportTransferRuns::includesImports( $tool ) ? self::loadRuns( $filter ) : array();
+        $others = empty( $filter['import'] ) && empty( $filter['source'] ) ? expImportTransferRuns::otherTools( $tool ) : array();
+        if ( $others )
+        {
+            $kinds = self::SCOPES[isset( $filter['scope'] ) && isset( self::SCOPES[$filter['scope']] ) ? $filter['scope'] : 'production'];
+            foreach ( expImportTransferRuns::statisticsRows( $others, $filter['from'], $filter['to'] ) as $row )
+            {
+                $run = self::normalizeRun( $row );
+                if ( !in_array( $run['run_kind'], $kinds, true ) || ( !empty( $filter['user'] ) && $run['user_id'] !== (int)$filter['user'] ) )
+                    continue;
+                $runs[] = $run;
+            }
+            usort( $runs, function ( $a, $b ) { return $a['started_at'] === $b['started_at'] ? $a['id'] - $b['id'] : $a['started_at'] - $b['started_at']; } );
+        }
+        return $runs;
+    }
+
+    /**
+     * The figures of each tool of a set of runs (the table of the other tools on the Statistics page).
+     *
+     * @param array $runs normalized runs
+     * @param array $names tool id => name
+     * @return array list of array( tool, name, summary (summaryForTemplate) ), Imports first
+     */
+    public static function perTool( array $runs, array $names = array() )
+    {
+        $by = array();
+        foreach ( $runs as $run )
+            $by[$run['tool']][] = $run;
+        uksort( $by, function ( $a, $b )
+        {
+            if ( $a === 'transfer.sqliimport' || $b === 'transfer.sqliimport' )
+                return $a === 'transfer.sqliimport' ? -1 : ( $b === 'transfer.sqliimport' ? 1 : 0 );
+            return strcmp( $a, $b );
+        } );
+        $out = array();
+        foreach ( $by as $tool => $list )
+            $out[] = array( 'tool' => $tool, 'name' => isset( $names[$tool] ) ? $names[$tool] : ( $tool === 'transfer.sqliimport' ? 'Imports' : $tool ),
+                            'summary' => self::summaryForTemplate( self::summarize( $list ) ) );
+        return $out;
+    }
+
+    /**
      * Everything the Statistics page shows.
      *
-     * @param array $params days, from, to, compare (previous, custom, none), cfrom, cto, scope, import, source, user
+     * @param array $params days, from, to, import, source, user, scope, compare, cfrom, cto, tool
      * @return array
      */
     public static function page( array $params )
@@ -1005,6 +1062,11 @@ class expImportStatistics
             'user' => isset( $params['user'] ) ? max( 0, (int)$params['user'] ) : 0,
             'source' => isset( $params['source'] ) && preg_match( '/^[a-z0-9_]{1,40}$/', (string)$params['source'] ) ? (string)$params['source'] : '',
         );
+        $toolOptions = expImportTransferRuns::toolOptions();
+        $tool = isset( $params['tool'] ) ? (string)$params['tool'] : '';
+        if ( $tool !== 'all' && $tool !== expImportTransferRuns::TOOL && !in_array( $tool, array_map( function ( $o ) { return (string)$o['id']; }, $toolOptions ), true ) )
+            $tool = '';
+        $filter['tool'] = $tool;
         $compareMode = isset( $params['compare'] ) && in_array( $params['compare'], array( 'previous', 'custom', 'none' ), true ) ? (string)$params['compare'] : 'previous';
         $other = null;
         if ( $compareMode === 'custom' )
@@ -1019,11 +1081,13 @@ class expImportStatistics
 
         $unit = self::unitFor( $period['days'] );
         $buckets = self::buckets( $period['from'], $period['to'], $unit, $tz );
-        $runs = self::loadRuns( $filter );
+        $runs = self::runsFor( $filter, $tool );
+        // the breakdowns of imports (per import, the messages of failed records) are of Imports' own runs
+        $ownRuns = array_values( array_filter( $runs, function ( $r ) { return $r['tool'] === 'transfer.sqliimport'; } ) );
         $imports = self::loadImports();
-        $messages = self::loadMessages( $filter );
+        $messages = expImportTransferRuns::includesImports( $tool ) ? self::loadMessages( $filter ) : array( 'rows' => array(), 'logs' => array() );
         $s = self::summarize( $runs );
-        $per = self::perImport( $runs, $messages, $imports, $buckets, $unit, $tz );
+        $per = self::perImport( $ownRuns, $messages, $imports, $buckets, $unit, $tz );
         $suggestions = array();
         foreach ( self::suggestions( $per ) as $sg )
             $suggestions[] = $sg + array( 'text' => self::suggestionText( $sg, $tz ) );
@@ -1035,12 +1099,15 @@ class expImportStatistics
         $comparison = array();
         if ( $other )
         {
-            $otherRuns = self::loadRuns( array( 'from' => $other['from'], 'to' => $other['to'] ) + $filter );
+            $otherRuns = self::runsFor( array( 'from' => $other['from'], 'to' => $other['to'] ) + $filter, $tool );
             $comparison = self::compare( $s, self::summarize( $otherRuns ) );
         }
         $rows = array();
         foreach ( $per as $i )
             $rows[] = self::importRowForTemplate( $i, $tz );
+        $names = array( expImportTransferRuns::TOOL => 'Imports' );
+        foreach ( $toolOptions as $o )
+            $names[(string)$o['id']] = (string)$o['name'];
         return array(
             'period' => $period,
             'filter' => $filter,
@@ -1052,6 +1119,8 @@ class expImportStatistics
             'trends' => self::trends( $runs, $buckets, $unit, $tz ),
             'imports' => $rows,
             'raw_imports' => $per,
+            'tools' => $tool !== '' && $tool !== expImportTransferRuns::TOOL ? self::perTool( $runs, $names ) : array(),
+            'tool_options' => $toolOptions,
             'errors' => self::topMessages( $allMessages, 5 ),
             'suggestions' => $suggestions,
             'comparison' => $comparison,

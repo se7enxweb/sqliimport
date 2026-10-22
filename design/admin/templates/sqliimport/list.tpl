@@ -98,8 +98,44 @@
 {/foreach}
 {if $filter.import}<li><a class="a4-tag is-accent" href={concat( '/sqliimport/list', cond( ne( $filter.status, '' ), concat( '/(status)/', $filter.status ), '' ) )|ezurl} aria-current="true">{'one import ×'|i18n( 'extension/sqliimport' )}</a></li>{/if}
 </ul>
+{if $tool_links|count|gt( 0 )}
+<ul class="a4-badges a4-sqliimport-filters" aria-label="{'Tool'|i18n( 'extension/sqliimport' )|wash}">
+{foreach $tool_links as $sq_tl}
+<li><a class="a4-tag{if $sq_tl.current} is-accent{/if}" href={$sq_tl.url|ezurl}{if $sq_tl.current} aria-current="true"{/if}>{$sq_tl.name|wash}</a></li>
+{/foreach}
+</ul>
+{/if}
+{if $other_runs|count|gt( 0 )}
+<div class="a4-sqliimport-scroll" tabindex="0" role="region" aria-label="{'Runs of the other import and export tools'|i18n( 'extension/sqliimport' )|wash}">
+<table class="a4-table is-compact">
+<caption class="a4-sr-only">{'Runs of the other import and export tools'|i18n( 'extension/sqliimport' )}</caption>
+<thead><tr>
+<th scope="col">{'Tool'|i18n( 'extension/sqliimport' )}</th>
+<th scope="col">{'Run'|i18n( 'extension/sqliimport' )}</th>
+<th scope="col">{'Status'|i18n( 'extension/sqliimport' )}</th>
+<th scope="col" class="a4-num">{'Records'|i18n( 'extension/sqliimport' )}</th>
+<th scope="col" class="a4-num">{'Failed'|i18n( 'extension/sqliimport' )}</th>
+<th scope="col" class="a4-num">{'Duration'|i18n( 'extension/sqliimport' )}</th>
+<th scope="col">{'Started'|i18n( 'extension/sqliimport' )}</th>
+</tr></thead>
+<tbody>
+{foreach $other_runs as $sq_or}
+<tr>
+<td>{$sq_or.tool_name|wash}</td>
+<td>{if ne( $sq_or.url, '' )}<a href={$sq_or.url|ezurl}>{$sq_or.title|wash}</a>{else}{$sq_or.title|wash}{/if}<br /><span class="a4-meta">{$sq_or.kind|wash}{if ne( $sq_or.user, '' )} · {$sq_or.user|wash}{/if}</span></td>
+<td><span class="a4-badge {$sq_or.outcome_kind}">{$sq_or.outcome_label|wash}</span></td>
+<td class="a4-num">{$sq_or.rows_done}{if gt( $sq_or.rows_total, 0 )} / {$sq_or.rows_total}{/if}</td>
+<td class="a4-num">{$sq_or.rows_failed}</td>
+<td class="a4-num">{$sq_or.duration|wash}</td>
+<td>{if gt( $sq_or.started, 0 )}{$sq_or.started|l10n( 'shortdatetime' )}{/if}</td>
+</tr>
+{/foreach}
+</tbody>
+</table>
+</div>
+{/if}
 {if $runs|count|eq( 0 )}
-<p class="a4-empty">{'No run matches.'|i18n( 'extension/sqliimport' )}</p>
+{if $other_runs|count|eq( 0 )}<p class="a4-empty">{'No run matches.'|i18n( 'extension/sqliimport' )}</p>{/if}
 {else}
 <div class="a4-sqliimport-scroll" tabindex="0" role="region" aria-labelledby="a4-sqliimport-runs-title">
 <table class="a4-table is-compact">

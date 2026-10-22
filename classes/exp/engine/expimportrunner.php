@@ -101,6 +101,8 @@ class expImportRunner
         $run->setAttribute( 'queue_group', (string)$group->attribute( 'uuid' ) );
         $run->setAttribute( 'queue_job', (string)$job->attribute( 'uuid' ) );
         $run->store( array( 'queue_group', 'queue_job' ) );
+        // the run in the history of the import and export tools (kernel 6.0.15 and later; nothing on an older kernel)
+        expImportTransferRuns::started( $run );
         expImport::audit( 'run.start', array( 'id' => $runID, 'import' => $import->attribute( 'identifier' ), 'kind' => $kind, 'trigger' => $trigger ) );
         return $run;
     }

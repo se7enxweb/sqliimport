@@ -15,7 +15,7 @@
 
 /** @var eZModule $Module */
 $Module = $Params['Module'];
-$names = array( 'days', 'from', 'to', 'import', 'source', 'user', 'scope', 'compare', 'cfrom', 'cto', 'format' );
+$names = array( 'days', 'from', 'to', 'import', 'source', 'user', 'scope', 'compare', 'cfrom', 'cto', 'format', 'tool' );
 $params = array();
 $userParameters = is_array( $Module->UserParameters ) ? $Module->UserParameters : array();
 $http = eZHTTPTool::instance();
@@ -51,7 +51,7 @@ $current = array();
 if ( $installed )
 {
     $current = array( 'import' => $page['filter']['import'] ?: '', 'source' => $page['filter']['source'], 'user' => $page['filter']['user'] ?: '',
-                      'scope' => $page['filter']['scope'] !== 'production' ? $page['filter']['scope'] : '' );
+                      'scope' => $page['filter']['scope'] !== 'production' ? $page['filter']['scope'] : '', 'tool' => $page['filter']['tool'] );
     if ( $page['period']['custom'] )
         $current += array( 'from' => $page['period']['from_date'], 'to' => $page['period']['to_date'] );
     else
@@ -65,7 +65,7 @@ $link = function ( array $set ) use ( $current )
 {
     $url = '/sqliimport/statistics';
     foreach ( $set + $current as $name => $value )
-        if ( (string)$value !== '' && preg_match( '/^[a-z0-9_-]{1,40}$/i', (string)$value ) )
+        if ( (string)$value !== '' && preg_match( '/^[a-z0-9_.-]{1,60}$/i', (string)$value ) )
             $url .= '/(' . $name . ')/' . $value;
     return $url;
 };

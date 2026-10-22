@@ -34,7 +34,7 @@ $canManage = array( 'manage or manageimports' );
 $ViewList['list'] = array(
     'script' => 'list.php',
     'params' => array(),
-    'unordered_params' => array( 'status' => 'Status', 'import' => 'Import', 'offset' => 'Offset', 'legacyoffset' => 'LegacyOffset' ),
+    'unordered_params' => array( 'status' => 'Status', 'import' => 'Import', 'offset' => 'Offset', 'legacyoffset' => 'LegacyOffset', 'tool' => 'Tool' ),
     'default_navigation_part' => 'sqliimportnavigationpart',
     'functions' => $canView,
 );
@@ -66,7 +66,8 @@ $ViewList['statistics'] = array(
     'script' => 'statistics.php',
     'params' => array(),
     'unordered_params' => array( 'days' => 'Days', 'from' => 'From', 'to' => 'To', 'import' => 'Import', 'source' => 'Source', 'user' => 'User',
-                                 'scope' => 'Scope', 'compare' => 'Compare', 'cfrom' => 'CompareFrom', 'cto' => 'CompareTo', 'format' => 'Format' ),
+                                 'scope' => 'Scope', 'compare' => 'Compare', 'cfrom' => 'CompareFrom', 'cto' => 'CompareTo', 'format' => 'Format',
+                                 'tool' => 'Tool' ),
     'default_navigation_part' => 'sqliimportnavigationpart',
     'functions' => $canView,
 );

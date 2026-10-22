@@ -32,7 +32,38 @@ if ( $installed )
     foreach ( $runList as $run )
         $runs[] = expImportAdmin::runRow( $run );
 }
-$base = '/sqliimport/list' . ( $filter['import'] ? '/(import)/' . $filter['import'] : '' );
+// (tool): Imports (absent, transfer.sqliimport), another tool of the transfer history, or all of them
+$toolOptions = $installed ? expImportTransferRuns::toolOptions() : array();
+$tool = isset( $Params['Tool'] ) && $Params['Tool'] !== false ? (string)$Params['Tool'] : '';
+if ( $tool !== 'all' && !in_array( $tool, array_map( function ( $o ) { return (string)$o['id']; }, $toolOptions ), true ) )
+    $tool = '';
+if ( !expImportTransferRuns::includesImports( $tool ) )
+{
+    $runs = array();
+    $runCount = 0;
+}
+$otherRuns = array();
+foreach ( expImportTransferRuns::listRuns( expImportTransferRuns::otherTools( $tool ), $filter['status'] === 'failed' ? array( 'state' => 'failed' ) : array(), $limit ) as $r )
+{
+    $user = (int)$r['user_id'] ? eZContentObject::fetch( (int)$r['user_id'] ) : null;
+    $kinds = array( 'completed' => 'is-ok', 'completed_with_errors' => 'is-warn', 'failed' => 'is-bad', 'running' => 'is-accent' );
+    $otherRuns[] = array( 'tool_name' => (string)$r['tool_name'], 'title' => (string)$r['title'], 'url' => (string)$r['detail_url'],
+                          'outcome' => (string)$r['outcome'], 'outcome_kind' => isset( $kinds[$r['outcome']] ) ? $kinds[$r['outcome']] : '',
+                          'outcome_label' => expImportAdmin::label( 'status', (string)$r['outcome'] ), 'kind' => (string)$r['kind'],
+                          'rows_done' => (int)$r['rows_done'], 'rows_total' => (int)$r['rows_total'], 'rows_failed' => (int)$r['rows_failed'],
+                          'duration' => (int)$r['duration'] ? expImportStatistics::formatDuration( (int)$r['duration'] ) : '',
+                          'user' => $user ? (string)$user->attribute( 'name' ) : '', 'started' => (int)$r['started'] );
+}
+$base = '/sqliimport/list' . ( $filter['import'] ? '/(import)/' . $filter['import'] : '' ) . ( $tool !== '' ? '/(tool)/' . $tool : '' );
+$toolLinks = array();
+if ( $toolOptions )
+{
+    $toolBase = '/sqliimport/list' . ( $filter['status'] !== '' ? '/(status)/' . $filter['status'] : '' );
+    $toolLinks[] = array( 'id' => '', 'name' => ezpI18n::tr( 'extension/sqliimport', 'Imports' ), 'url' => $toolBase, 'current' => $tool === '' );
+    foreach ( $toolOptions as $o )
+        $toolLinks[] = array( 'id' => (string)$o['id'], 'name' => (string)$o['name'], 'url' => $toolBase . '/(tool)/' . $o['id'], 'current' => $tool === (string)$o['id'] );
+    $toolLinks[] = array( 'id' => 'all', 'name' => ezpI18n::tr( 'extension/sqliimport', 'All import and export tools' ), 'url' => $toolBase . '/(tool)/all', 'current' => $tool === 'all' );
+}
 $statusLinks = array();
 foreach ( array_merge( array( '' ), array_keys( expImportAdmin::STATUS_FILTERS ) ) as $status )
     $statusLinks[] = array( 'name' => $status, 'label' => $status !== '' ? expImportAdmin::label( 'status', $status ) : '', 'url' => $base . ( $status !== '' ? '/(status)/' . $status : '' ), 'current' => $status === $filter['status'] );
@@ -51,6 +82,9 @@ $tpl->setVariable( 'runs', $runs );
 $tpl->setVariable( 'run_count', $runCount );
 $tpl->setVariable( 'filter', $filter );
 $tpl->setVariable( 'status_links', $statusLinks );
+$tpl->setVariable( 'tool', $tool );
+$tpl->setVariable( 'tool_links', $toolLinks );
+$tpl->setVariable( 'other_runs', $otherRuns );
 $tpl->setVariable( 'offset', $offset );
 $tpl->setVariable( 'limit', $limit );
 $tpl->setVariable( 'here', $here );
