@@ -10,6 +10,57 @@ Class=expImportRegistry
 Scope=worker
 Description=7x SQLI Import: the catalogue of sources, handlers and transforms
 
+# 7x SQLI Import in Exponential's transfer registry (kernel 6.0.15 and later). Older kernels ignore the block.
+[Service_transfer.sqliimport]
+Class=expKernelTransferTool
+Factory=expKernelTransferTool::fromSettings
+Arguments[]=transfer.sqliimport
+Scope=worker
+Tags[]=transfer.tool
+Description=Bring rows of a spreadsheet, CSV, XML, JSON or a feed in as content items: map the columns to a class, preview, run now or on a schedule, undo.
+Name=Imports (7x SQLI Import)
+Direction=import
+Scopes[]=subtree
+Scopes[]=class
+Scopes[]=data
+Formats[]=CSV
+Formats[]=TSV
+Formats[]=XLSX
+Formats[]=ODS
+Formats[]=XML
+Formats[]=JSON
+Formats[]=NDJSON
+Formats[]=YAML
+Formats[]=TOML
+Formats[]=RSS
+Formats[]=OPML
+Formats[]=WXR
+Formats[]=Markdown
+Formats[]=iCalendar
+Formats[]=vCard
+Formats[]=ZIP
+EntryURL=sqliimport/list
+Permission=sqliimport/manage|sqliimport/run|sqliimport/manageimports|sqliimport/listimports
+HelpPage=ext/sqliimport/README.md
+RoundTrip[]=transfer.xrowextract
+RoundTrip[]=transfer.bccie
+RoundTrip[]=transfer.rss_export
+RoundTrip[]=transfer.sqliimport
+Keywords[]=import csv
+Keywords[]=spreadsheet
+Keywords[]=excel
+Keywords[]=from another system
+Keywords[]=shop
+Keywords[]=crm
+Keywords[]=wordpress
+Keywords[]=mapping
+Keywords[]=Tabelle
+Keywords[]=importieren
+Keywords[]=Zuordnung
+Actions[]=container|import|Import into this folder…|sqliimport/edit/new/(parent)/%nodeID%|sqliimport/manage
+Actions[]=class|import|Import objects of this class…|sqliimport/edit/new/(class)/%classIdentifier%|sqliimport/manage
+Weight=15
+
 # The formats of the catalogue. A format is one source class plus one block here:
 #   Factory=expImportSourceEntry::of, Arguments[]=<the source class>[, Arguments[]=<a variant of it>]
 # What the catalogue shows (description, group, example, preset mapping) comes from the class.
@@ -140,6 +191,32 @@ Arguments[]=video_feed
 Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: YouTube and Vimeo channel feeds
+
+# platforms
+[Service_sqliimport.source.xrowextract]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportXrowextractSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: export files of Export (xrowextract)
+
+[Service_sqliimport.source.cie]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportCieSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: form submissions of CIE (bccie)
+
+[Service_sqliimport.source.exponential_rss]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportRssSource
+Arguments[]=exponential_rss
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: RSS export of another Exponential site
 
 [Service_sqliimport.source.media]
 Class=expImportSourceEntry

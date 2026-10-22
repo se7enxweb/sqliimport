@@ -1,5 +1,16 @@
 {* Editor step "source": name, source type, origin (upload, address, server file) and the source's options. *}
 <form class="a4-form is-wide" method="post" action={concat( $base, '/(step)/source' )|ezurl} enctype="multipart/form-data">
+{if $import|not}
+{if gt( $entry_parent, 0 )}<input type="hidden" name="EntryParent" value="{$entry_parent}" />{/if}
+{if ne( $entry_class, '' )}<input type="hidden" name="EntryClass" value="{$entry_class|wash}" />{/if}
+{if or( gt( $entry_parent, 0 ), ne( $entry_class, '' ) )}<p class="a4-notice is-info" role="status">{if gt( $entry_parent, 0 )}{'The objects will be created below node %node.'|i18n( 'extension/sqliimport/edit',, hash( '%node', $entry_parent ) )} {/if}{if ne( $entry_class, '' )}{'The mapping will start with the class %class.'|i18n( 'extension/sqliimport/edit',, hash( '%class', $entry_class ) )|wash}{/if}</p>{/if}
+{if $handover}
+<div class="a4-field a4-field-wide">
+<label class="a4-check"><input type="checkbox" name="UseHandover" value="1" checked="checked" /> {'Use the file %name from %tool (job %job)'|i18n( 'extension/sqliimport/edit',, hash( '%name', $handover.original_name, '%tool', $handover.tool, '%job', $handover.job ) )|wash}</label>
+<span class="a4-help">{if ne( $handover.manifest, '' )}{'Its column manifest comes with it: the mapping is made from it.'|i18n( 'extension/sqliimport/edit' )}{else}{'Choose the format below, or upload another file instead.'|i18n( 'extension/sqliimport/edit' )}{/if}</span>
+</div>
+{/if}
+{/if}
 <div class="a4-field">
 <label for="sq-name">{'Name'|i18n( 'extension/sqliimport/edit' )} <span class="a4-required-mark" aria-hidden="true">*</span></label>
 <input type="text" id="sq-name" name="Name" value="{if $import}{$import.name|wash}{/if}" required="required" maxlength="255"{if is_set( $errors.Name )} aria-invalid="true"{/if} />
@@ -81,5 +92,11 @@
 {/if}
 {undef $sq_src_type}
 
+<div class="a4-field">
+<label for="sq-mapfile-src">{'Load a mapping (optional)'|i18n( 'extension/sqliimport/edit' )}</label>
+<input type="file" id="sq-mapfile-src" name="MappingFile" accept=".json,application/json"{if is_set( $errors.MappingFile )} aria-invalid="true"{/if} />
+<span class="a4-help">{'A mapping file (JSON) of another import or installation: its lines are used instead of those of the format.'|i18n( 'extension/sqliimport/edit' )}</span>
+{if is_set( $errors.MappingFile )}<span class="a4-field-error">{$errors.MappingFile|wash}</span>{/if}
+</div>
 {include uri='design:sqliimport/edit/buttons.tpl' step='source' stay=1}
 </form>

@@ -14,3 +14,5 @@
     'failed',    'Failed runs'|i18n( 'extension/sqliimport/menu' ),
     'queue',     'Job queue'|i18n( 'extension/sqliimport/menu' ),
 )}
+{* the other import and export tools of the transfer registry (Exponential 6.0.15 and later; nothing on an older kernel) *}
+{if ezini_hasvariable( 'Service_transfer.registry', 'Class', 'kernelservices.ini' )}{include uri='design:transfer/left_menu.tpl' current='transfer.sqliimport'}{/if}

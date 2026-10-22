@@ -51,6 +51,14 @@ if ( $isPost && $http->hasPostVariable( 'Step' ) )
             $ok = $editor->saveProcessing();
             break;
         case 'mapping':
+            if ( $http->hasPostVariable( 'LoadMappingButton' ) )
+            {
+                // a mapping file of another import or installation replaces the lines; the page stays to show them
+                if ( $editor->loadMappingUpload() === null )
+                    $editor->errors['MappingFile'] = ezpI18n::tr( 'extension/sqliimport/edit', 'Choose the mapping file (JSON) to load.' );
+                $ok = false;
+                break;
+            }
             $fields = array();
             if ( $http->hasPostVariable( 'AutoMatchButton' ) )
             {
@@ -150,8 +158,52 @@ $tpl->setVariable( 'notice', $editor->notice );
 $sources = $registry->sources();
 $tpl->setVariable( 'sources', $sources );
 $tpl->setVariable( 'sources_by_group', $registry->sourcesByGroup() );
-$preselect = isset( $Params['Source'] ) && isset( $sources[(string)$Params['Source']] ) ? (string)$Params['Source'] : 'csv';
+// a new import opened from elsewhere: a format ((source) or (preset)), a folder ((parent)), a class ((class)), a file
+// another tool hands over ((from)/<tool>/(job)/<id>). Unknown or refused values are ignored: the form opens empty.
+$param = function ( $name ) use ( $Params )
+{
+    return isset( $Params[$name] ) && $Params[$name] !== false ? trim( (string)$Params[$name] ) : '';
+};
+$preselect = 'csv';
+foreach ( array( 'Source', 'Preset' ) as $name )
+    if ( $param( $name ) !== '' && isset( $sources[$param( $name )] ) )
+        $preselect = $param( $name );
+$entryParent = 0;
+$entryClass = '';
+$handover = null;
+if ( !$editor->import )
+{
+    $node = ctype_digit( $param( 'Parent' ) ) ? eZContentObjectTreeNode::fetch( (int)$param( 'Parent' ) ) : null;
+    if ( $node instanceof eZContentObjectTreeNode && $node->canCreate() )
+        $entryParent = (int)$node->attribute( 'node_id' );
+    if ( preg_match( '/^[a-z0-9_]+$/i', $param( 'Class' ) ) && eZContentClass::fetchByIdentifier( $param( 'Class' ) ) )
+        $entryClass = $param( 'Class' );
+    if ( $param( 'From' ) !== '' && $param( 'Job' ) !== '' && !$isPost )
+    {
+        try
+        {
+            $handover = expImportExternalFile::handOver( $param( 'From' ), $param( 'Job' ), $sources[$preselect]['extensions'] );
+        }
+        catch ( expImportSourceException $e )
+        {
+            $handover = null;
+            eZDebug::writeNotice( 'hand-over refused: ' . $e->getMessage(), 'sqliimport/edit' );
+        }
+        if ( !$handover )
+            $tpl->setVariable( 'notice', ezpI18n::tr( 'extension/sqliimport/edit', 'The file of %tool job %job is not available to you; upload the file instead.',
+                                                       null, array( '%tool' => $param( 'From' ), '%job' => $param( 'Job' ) ) ) );
+    }
+    elseif ( $isPost || $param( 'From' ) === '' )
+        $handover = expImportExternalFile::pending();
+    // the format of a tool's files, when the link names none
+    $toolFormats = array( 'xrowextract' => 'xrowextract', 'bccie' => 'cie' );
+    if ( $handover && $param( 'Preset' ) === '' && $param( 'Source' ) === '' && isset( $toolFormats[$handover['tool']], $sources[$toolFormats[$handover['tool']]] ) )
+        $preselect = $toolFormats[$handover['tool']];
+}
 $tpl->setVariable( 'source_type', $editor->import ? (string)$editor->import->attribute( 'source_type' ) : $preselect );
+$tpl->setVariable( 'entry_parent', $entryParent );
+$tpl->setVariable( 'entry_class', $entryClass );
+$tpl->setVariable( 'handover', $handover );
 $tpl->setVariable( 'handlers', $registry->handlers() );
 $tpl->setVariable( 'transforms', expImportTransforms::catalogue() );
 $tpl->setVariable( 'source', $editor->import ? $editor->import->sourceConfig() : array( 'origin' => 'upload' ) );

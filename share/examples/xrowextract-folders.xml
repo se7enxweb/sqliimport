@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<export class="folder" rows="2">
+  <columns>
+    <column name="remote_id" id="ezcontentobject.remote_id" kind="special">Remote ID</column>
+    <column name="name" id="name" kind="attribute" datatype="ezstring">Name</column>
+    <column name="short_name" id="short_name" kind="attribute" datatype="ezstring">Short name</column>
+  </columns>
+  <manifest type="application/json">{"manifest_version":1,"class":{"identifier":"folder"},"columns":[{"key":"remote_id","id":"ezcontentobject.remote_id","kind":"special"},{"key":"name","id":"name","kind":"attribute","attribute":"name"},{"key":"short_name","id":"short_name","kind":"attribute","attribute":"short_name"}]}</manifest>
+  <object>
+    <field name="remote_id">xrx-example-1</field>
+    <field name="name">Teas</field>
+    <field name="short_name">Teas</field>
+  </object>
+  <object>
+    <field name="remote_id">xrx-example-2</field>
+    <field name="name">Accessories &amp; cups</field>
+    <field name="short_name">Accessories</field>
+  </object>
+  <summary rows="2" />
+</export>

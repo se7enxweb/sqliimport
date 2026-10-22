@@ -84,4 +84,11 @@
     <message><source>REST API</source><translation>REST-API</translation></message>
     <message><source>1.x import request</source><translation>Importauftrag (1.x)</translation></message>
 </context>
+<context>
+    <name>kernel/transfer</name>
+    <message><source>Imports (7x SQLI Import)</source><translation>Imports (7x SQLI Import)</translation></message>
+    <message><source>Bring rows of a spreadsheet, CSV, XML, JSON or a feed in as content items: map the columns to a class, preview, run now or on a schedule, undo.</source><translation>Zeilen einer Tabelle, einer CSV-, XML- oder JSON-Datei oder eines Feeds als Inhaltsobjekte übernehmen: die Spalten einer Klasse zuordnen, Vorschau, sofort oder nach Zeitplan ausführen, rückgängig machen.</translation></message>
+    <message><source>Import into this folder…</source><translation>In diesen Ordner importieren …</translation></message>
+    <message><source>Import objects of this class…</source><translation>Objekte dieser Klasse importieren …</translation></message>
+</context>
 </TS>

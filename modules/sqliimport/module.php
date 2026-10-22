@@ -47,6 +47,13 @@ $ViewList['run'] = array(
     'functions' => $canView,
 );
 
+$ViewList['mapping'] = array(
+    'script' => 'mapping.php',
+    'params' => array( 'ImportID' ),
+    'default_navigation_part' => 'sqliimportnavigationpart',
+    'functions' => $canView,
+);
+
 $ViewList['report'] = array(
     'script' => 'report.php',
     'params' => array( 'RunID' ),
@@ -74,7 +81,7 @@ $ViewList['action'] = array(
 $ViewList['edit'] = array(
     'script' => 'edit.php',
     'params' => array( 'ImportID' ),
-    'unordered_params' => array( 'step' => 'Step', 'source' => 'Source' ),
+    'unordered_params' => array( 'step' => 'Step', 'source' => 'Source', 'parent' => 'Parent', 'class' => 'Class', 'preset' => 'Preset', 'from' => 'From', 'job' => 'Job' ),
     'default_navigation_part' => 'sqliimportnavigationpart',
     'functions' => array( 'manage or manageimports' ),
 );

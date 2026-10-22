@@ -62,6 +62,16 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 - Added: YAML and TOML data files (yaml, toml), read by a parser of the extension (the same on every server).
 - Added: Google Sheets by its link (google_sheets), read as the sheet's CSV export at every run.
 
+- Added: Imports in Exponential's transfer registry (kernel 6.0.15 and later): Import into this folder (edit/new
+  with (parent)) and Import objects of this class ((class)), the other tools on the dashboard and in the left menu.
+- Added: Files another tool hands over (edit/new/(from)/<tool>/(job)/<id>): an Export (xrowextract) job with its column
+  manifest, a CIE (bccie) export; only when the user may download that job.
+- Added: The formats Export (xrowextract) files (the mapping from the column manifest; a re-import updates), CIE form
+  submissions (UTF-16 too) and RSS export of another Exponential site.
+- Added: Download mapping (JSON) and Load a mapping…, so a mapping moves between imports and installations; the
+  results download of a run (formerly the CSV report) has the node ID.
+- Added: The transform media_object: an image object for an image address, made once per file, for object relations.
+
 ### Updated
 
 - Updated: The tick also runs within the cron part expqueue, so schedules need no cron line of their own; a lock

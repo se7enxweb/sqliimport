@@ -1,0 +1,8 @@
+{
+"manifest": {"manifest_version":1,"generator":{"name":"xrowextract"},"class":{"identifier":"folder","name":"Folder"},"columns":[{"key":"remote_id","id":"ezcontentobject.remote_id","name":"Remote ID","kind":"special","attribute":null,"datatype":"ezcontentobject"},{"key":"name","id":"name","name":"Name","kind":"attribute","attribute":"name","datatype":"ezstring"},{"key":"short_name","id":"short_name","name":"Short name","kind":"attribute","attribute":"short_name","datatype":"ezstring"},{"key":"short_description","id":"short_description","name":"Summary","kind":"attribute","attribute":"short_description","datatype":"ezxmltext"}],"import":{"match":"remote_id","class":"folder"}},
+"rows": [
+  {"remote_id":"xrx-example-1","name":"Teas","short_name":"Teas","short_description":"<p>All our teas.</p>"},
+  {"remote_id":"xrx-example-2","name":"Accessories","short_name":"Accessories","short_description":"<p>Pots and cups.</p>"}
+],
+"summary": {"rows":2}
+}

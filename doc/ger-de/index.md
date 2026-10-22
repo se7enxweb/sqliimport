@@ -53,6 +53,7 @@ English: [../index.md](../index.md).
 | [handlers.md](handlers.md) | Einen Handler für 2.x schreiben, und wie Handler von 1.x weiterlaufen |
 | [runs.md](runs.md) | Wie ein Lauf abläuft, die Live-Seite eines Laufs, Status, Zeilen und Protokoll, Abbrechen, Wiederholen, Probelauf |
 | [statistics.md](statistics.md) | Die Diagramme des Dashboards und die Seite Statistik: Verläufe, je Import, Vergleich, Vorschläge, CSV |
+| [transfer.md](transfer.md) | Importe unter den Import- und Export-Werkzeugen: In diesen Ordner importieren, Dateien von Export und CIE, Ergebnis- und Zuordnungsdateien |
 | [schedules.md](schedules.md) | Arten von Zeitplänen, Zeitzonen, Sommerzeit, die Seite Schedules, der Cron-Teil |
 | [cli.md](cli.md) | Jeder Befehl `./console ext:sqliimport:*` |
 | [permissions.md](permissions.md) | Die beiden Richtlinien von 2.x und die Richtlinien von 1.x |

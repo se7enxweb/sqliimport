@@ -66,6 +66,14 @@ class expImportRssSource extends expImportXmlSource
     public static function variants()
     {
         return array(
+            'exponential_rss' => array(
+                'label' => 'RSS export of another Exponential site',
+                'description' => 'The RSS export of a subtree of another Exponential site (its address is rss/feed/<name>): every item '
+                               . 'is an article there, with title, link, summary, date and author. The preset brings them in as articles, '
+                               . 'so content moves from one installation to another and keeps following it at every run.',
+                'group' => 'platform',
+                'examples' => array( array( 'label' => 'An RSS feed of two items', 'file' => 'feed.rss' ) ),
+            ),
             'podcast' => array(
                 'label' => 'Podcast feed',
                 'description' => 'The RSS feed of a podcast: every episode is a record with its audio or video file (enclosure, type, length), '

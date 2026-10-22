@@ -42,7 +42,7 @@
 <div class="a4-section-head">
 <h2 class="a4-h2" id="a4-sqliimport-rows-title">{'Records'|i18n( 'extension/sqliimport' )}</h2>
 {if gt( $row_count, 0 )}<span class="a4-meta">{'%from to %to of %count'|i18n( 'extension/sqliimport',, hash( '%from', sum( $offset, 1 ), '%to', sum( $offset, $rows|count ), '%count', $row_count ) )}</span>
-<a class="a4-btn a4-btn-ghost" href={$report_url|ezurl} download><span class="a4-icon a4-bi-download" aria-hidden="true"></span> {'Download CSV report'|i18n( 'extension/sqliimport' )}</a>{/if}
+<a class="a4-btn a4-btn-ghost" href={$report_url|ezurl} download><span class="a4-icon a4-bi-download" aria-hidden="true"></span> {'Download results (CSV)'|i18n( 'extension/sqliimport' )}</a>{/if}
 </div>
 <ul class="a4-badges a4-sqliimport-filters" aria-label="{'Outcome'|i18n( 'extension/sqliimport' )|wash}">
 {foreach $outcome_links as $l}

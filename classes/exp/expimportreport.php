@@ -23,7 +23,7 @@ class expImportReport
     /** @return string[] the columns of the report */
     public static function columns()
     {
-        return array( 'run_id', 'row', 'ref', 'outcome', 'status', 'object_id', 'remote_id', 'version_before', 'version_after',
+        return array( 'run_id', 'row', 'ref', 'outcome', 'status', 'object_id', 'node_id', 'remote_id', 'version_before', 'version_after',
                       'changed_fields', 'message', 'time' );
     }
 
@@ -81,6 +81,7 @@ class expImportReport
             (string)$row['outcome'],
             (string)$row['status'],
             (int)$row['object_id'] ?: '',
+            isset( $nodes['added'][0] ) ? (int)$nodes['added'][0] : ( isset( $row['node_id'] ) && (int)$row['node_id'] ? (int)$row['node_id'] : '' ),
             (string)$row['remote_id'],
             (int)$row['version_before'] ?: '',
             (int)$row['version_after'] ?: '',
@@ -124,6 +125,9 @@ class expImportReport
                 foreach ( array( 'run_id', 'row_index', 'row_ref', 'outcome', 'status', 'object_id', 'remote_id', 'version_before',
                                  'version_after', 'nodes_json', 'message', 'created' ) as $name )
                     $data[$name] = $row->attribute( $name );
+                // the object's main node when the run did not add it (an update)
+                if ( (int)$data['object_id'] && strpos( (string)$data['nodes_json'], '"added"' ) === false && class_exists( 'eZContentObjectTreeNode' ) )
+                    $data['node_id'] = (int)eZContentObjectTreeNode::findMainNode( (int)$data['object_id'] );
                 fwrite( $handle, self::line( self::rowCells( $data ) ) );
                 $count++;
             }

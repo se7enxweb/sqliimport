@@ -107,3 +107,16 @@
 
 {include uri='design:sqliimport/edit/buttons.tpl' step='mapping' stay=1}
 </form>
+
+<section class="a4-section a4-sqliimport-mapfile" aria-labelledby="sq-mapfile-title">
+<div class="a4-section-head"><h3 class="a4-h3" id="sq-mapfile-title">{'Mapping file'|i18n( 'extension/sqliimport/edit' )}</h3></div>
+<p class="a4-meta">{'A mapping moves between imports and installations as a JSON file: download this one, or load one to replace the lines above.'|i18n( 'extension/sqliimport/edit' )}</p>
+<form class="a4-toolbar" method="post" action={concat( $base, '/(step)/mapping' )|ezurl} enctype="multipart/form-data">
+<input type="hidden" name="Step" value="mapping" />
+{if $import.mapping_id}<a class="a4-btn a4-btn-ghost" href={concat( '/sqliimport/mapping/', $import.id )|ezurl} download><span class="a4-icon a4-bi-download" aria-hidden="true"></span> {'Download mapping (JSON)'|i18n( 'extension/sqliimport/edit' )}</a>{/if}
+<label class="a4-sr-only" for="sq-mapfile">{'Mapping file (JSON)'|i18n( 'extension/sqliimport/edit' )}</label>
+<input type="file" id="sq-mapfile" name="MappingFile" accept=".json,application/json"{if is_set( $errors.MappingFile )} aria-invalid="true"{/if} />
+<button type="submit" class="a4-btn" name="LoadMappingButton" value="1"><span class="a4-icon a4-bi-upload" aria-hidden="true"></span> {'Load a mapping…'|i18n( 'extension/sqliimport/edit' )}</button>
+{if is_set( $errors.MappingFile )}<span class="a4-field-error">{$errors.MappingFile|wash}</span>{/if}
+</form>
+</section>

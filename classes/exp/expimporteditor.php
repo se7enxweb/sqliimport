@@ -108,7 +108,7 @@ class expImportEditor
             list( $options, $optionErrors ) = expImportOptionSchema::validate( $sources[$type]['schema'], $this->postArray( 'SourceOptions' ) );
             foreach ( $optionErrors as $key => $message )
                 $this->errors['SourceOptions_' . $key] = $message;
-            $config = array_intersect_key( $config, array_flip( array( 'file', 'original_name' ) ) ) + $options;
+            $config = array_intersect_key( $config, array_flip( array( 'file', 'original_name', 'manifest_file', 'handed_over_by' ) ) ) + $options;
             $config['origin'] = in_array( $origin, array( 'upload', 'url', 'path' ), true ) ? $origin : 'upload';
             if ( $config['origin'] === 'upload' )
             {
@@ -125,6 +125,16 @@ class expImportEditor
                     {
                         $this->errors['SourceFile'] = $e->getMessage();
                     }
+                }
+                elseif ( ( $handover = expImportExternalFile::pending() ) && $this->post( 'UseHandover' ) === '1' )
+                {
+                    // a file another tool handed over (sqliimport/edit/new/(from)/<tool>/(job)/<id>), stored in the uploads
+                    $config['file'] = $handover['file'];
+                    $config['original_name'] = $handover['original_name'];
+                    if ( $handover['manifest'] !== '' )
+                        $config['manifest_file'] = $handover['manifest'];
+                    $config['handed_over_by'] = $handover['tool'] . ':' . $handover['job'];
+                    expImportExternalFile::forget();
                 }
                 elseif ( empty( $config['file'] ) )
                     $this->errors['SourceFile'] = ezpI18n::tr( 'extension/sqliimport/edit', 'Choose the file to upload.' );
@@ -181,8 +191,143 @@ class expImportEditor
         elseif ( $this->import->isLegacy() || $this->import->attribute( 'handler' ) === '' )
             $this->import->setAttribute( 'handler', 'mapping' );
         $this->save( $new );
-        if ( !$legacy && !(int)$this->import->attribute( 'mapping_id' ) && !empty( $sources[$type]['preset'] ) )
-            $this->applyPreset( $sources[$type]['preset'] );
+        if ( $new )
+            $this->applyEntryParent( (int)$this->post( 'EntryParent', 0 ) );
+        if ( !$legacy && !(int)$this->import->attribute( 'mapping_id' ) )
+        {
+            $preset = self::presetFor( $sources[$type], $config );
+            $class = $new ? trim( (string)$this->post( 'EntryClass' ) ) : '';
+            if ( $class !== '' && eZContentClass::fetchByIdentifier( $class ) && ( !$preset || $preset['class'] !== $class ) )
+                $this->applyPreset( array( 'class' => $class, 'fields' => array() ) );
+            elseif ( $preset )
+                $this->applyPreset( $preset );
+        }
+        // "Load a mapping": a mapping file of another import or installation, uploaded with the source
+        if ( !$legacy && $this->loadMappingUpload() === false )
+            return false;
+        return true;
+    }
+
+    /**
+     * The preset of a format for a source: the format's own, or one made from the file itself when the format can
+     * (presetFor(), e.g. an export's column manifest).
+     *
+     * @param array $source the registry entry
+     * @param array $config the source configuration (file is the stored upload name)
+     * @return array
+     */
+    public static function presetFor( array $source, array $config )
+    {
+        $class = $source['class'];
+        if ( method_exists( $class, 'presetFor' ) )
+        {
+            if ( !empty( $config['file'] ) )
+                $config['file'] = expImport::storageDirectory( 'uploads' ) . '/' . basename( (string)$config['file'] );
+            try
+            {
+                $preset = $class::presetFor( $config );
+                if ( $preset )
+                    return $preset;
+            }
+            catch ( expImportException $e )
+            {
+                eZDebug::writeNotice( 'no preset from the file: ' . $e->getMessage(), __METHOD__ );
+            }
+        }
+        return !empty( $source['preset'] ) ? $source['preset'] : array();
+    }
+
+    /**
+     * An import's mapping as the content of a mapping file (sqliimport/mapping/<id>): the class, language, match
+     * rule and lines; the location is left out, it belongs to the installation the mapping is loaded in.
+     *
+     * @param expImportDefinition $import
+     * @return array
+     */
+    public static function mappingFile( expImportDefinition $import )
+    {
+        $mapping = (array)$import->mappingArray();
+        unset( $mapping['location'], $mapping['id'] );
+        return array( 'sqliimport_mapping' => 1, 'source_type' => (string)$import->attribute( 'source_type' ),
+                      'import' => (string)$import->attribute( 'identifier' ), 'exported' => gmdate( 'Y-m-d\TH:i:s\Z', expImport::now() ),
+                      'mapping' => $mapping );
+    }
+
+    /**
+     * Reads a mapping file and checks it against this site (the class and its attributes must exist here).
+     *
+     * @param string $json
+     * @return array the mapping (class, language, match, fields)
+     * @throws expImportValidationException
+     */
+    public static function readMappingFile( $json )
+    {
+        $data = json_decode( (string)$json, true );
+        if ( !is_array( $data ) || empty( $data['sqliimport_mapping'] ) || !isset( $data['mapping']['class'] ) )
+            throw new expImportValidationException( array( 'MappingFile' => 'not a mapping file of 7x SQLI Import' ), 'not a mapping file' );
+        $mapping = array_intersect_key( $data['mapping'], array_flip( array( 'class', 'language', 'match', 'fields' ) ) );
+        $attributes = expImportMappingHandler::classAttributes( (string)$mapping['class'] );
+        if ( $attributes === null )
+            throw new expImportValidationException( array( 'MappingFile' => 'this site has no class ' . $mapping['class'] ), 'unknown class' );
+        $missing = array();
+        foreach ( isset( $mapping['fields'] ) ? (array)$mapping['fields'] : array() as $field )
+            if ( isset( $field['attribute'] ) && !isset( $attributes[$field['attribute']] ) )
+                $missing[] = $field['attribute'];
+        if ( $missing )
+            throw new expImportValidationException( array( 'MappingFile' => 'the class ' . $mapping['class'] . ' of this site has no ' . implode( ', ', $missing ) ),
+                                                    'unknown attributes' );
+        return $mapping + array( 'language' => '', 'match' => array( 'type' => 'remote_id', 'pattern' => '{id}' ), 'fields' => array() );
+    }
+
+    /**
+     * Loads an uploaded mapping file (form field MappingFile) into the import, keeping its location.
+     *
+     * @return bool|null null when no file was uploaded
+     */
+    public function loadMappingUpload()
+    {
+        $file = eZHTTPFile::canFetch( 'MappingFile' ) ? eZHTTPFile::fetch( 'MappingFile' ) : null;
+        if ( !$file instanceof eZHTTPFile )
+            return null;
+        try
+        {
+            $mapping = self::readMappingFile( (string)file_get_contents( $file->attribute( 'filename' ) ) );
+        }
+        catch ( expImportValidationException $e )
+        {
+            $this->errors['MappingFile'] = implode( '; ', $e->errors );
+            return false;
+        }
+        $current = $this->import->mappingArray();
+        $target = $this->import->target();
+        $mapping['location'] = $current && isset( $current['location'] ) ? $current['location']
+                             : array( 'parent_node_id' => (int)$target['parent_node_id'] ?: (int)expImport::setting( 'ImportSettings', 'DefaultParentNodeID', 2 ) );
+        $existing = (int)$this->import->attribute( 'mapping_id' ) ? expImportMapping::fetch( $this->import->attribute( 'mapping_id' ) ) : null;
+        $row = expImportMapping::saveArray( $mapping, $this->import->attribute( 'id' ), $existing ?: null );
+        $this->import->setAttribute( 'mapping_id', $row->attribute( 'id' ) );
+        $this->import->store();
+        expImport::audit( 'import.mapping_loaded', array( 'id' => (int)$this->import->attribute( 'id' ), 'class' => $mapping['class'] ) );
+        $this->notice = ezpI18n::tr( 'extension/sqliimport/edit', 'The mapping file was loaded: %n lines for the class %class.', null,
+                                     array( '%n' => count( $mapping['fields'] ), '%class' => $mapping['class'] ) );
+        return true;
+    }
+
+    /**
+     * The target location of a new import opened from a folder ("Import into this folder…", (parent)/<node id>):
+     * used only when the node exists and the user may create content below it, else ignored.
+     *
+     * @param int $nodeID
+     * @return bool
+     */
+    public function applyEntryParent( $nodeID )
+    {
+        $node = $nodeID > 0 ? eZContentObjectTreeNode::fetch( (int)$nodeID ) : null;
+        if ( !$node instanceof eZContentObjectTreeNode || !$node->canCreate() )
+            return false;
+        $target = $this->import->target();
+        $target['parent_node_id'] = (int)$nodeID;
+        $this->import->setAttribute( 'target_json', expImport::json( $target ) );
+        $this->import->store();
         return true;
     }
 
@@ -241,8 +386,11 @@ class expImportEditor
         $row = expImportMapping::saveArray( $mapping, $this->import->attribute( 'id' ) );
         $this->import->setAttribute( 'mapping_id', $row->attribute( 'id' ) );
         $this->import->store();
-        $this->notice = ezpI18n::tr( 'extension/sqliimport/edit', 'The mapping of the format to %class was filled in (%n fields). Check it in the step Mapping.',
-                                     null, array( '%class' => $identifier, '%n' => count( $fields ) ) );
+        $this->notice = $fields
+            ? ezpI18n::tr( 'extension/sqliimport/edit', 'The mapping of the format to %class was filled in (%n fields). Check it in the step Mapping.',
+                           null, array( '%class' => $identifier, '%n' => count( $fields ) ) )
+            : ezpI18n::tr( 'extension/sqliimport/edit', 'The mapping starts with the class %class: match its fields in the step Mapping (Auto-match helps).',
+                           null, array( '%class' => $identifier ) );
         return true;
     }
 

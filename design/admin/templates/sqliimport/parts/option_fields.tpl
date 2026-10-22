@@ -1,6 +1,7 @@
 {* The fields of an option schema (expImportOptionSchema): one control per option, named <prefix>[<name>], with its
-   label, help and error. Input: $schema, $values, $prefix (SourceOptions, HandlerOptions), $errors, $idprefix. *}
-{foreach $schema as $sq_of_name => $sq_of_def}
+   label, help and error. Input: $schema, $values, $prefix (SourceOptions, HandlerOptions), $errors, $idprefix. An option with "hidden" (set
+   by the engine, e.g. the manifest of a handed-over file) has no control. *}
+{foreach $schema as $sq_of_name => $sq_of_def}{if is_set( $sq_of_def.hidden )|not}
 {def $sq_of_oid = concat( $idprefix, '-', $sq_of_name )
      $sq_of_type = first_set( $sq_of_def.type, 'string' )
      $sq_of_value = cond( is_set( $values[$sq_of_name] ), $values[$sq_of_name], first_set( $sq_of_def.default, '' ) )
@@ -24,4 +25,5 @@
 {if is_set( $errors[$sq_of_ekey] )}<span class="a4-field-error">{$errors[$sq_of_ekey]|wash}</span>{/if}
 </div>
 {undef $sq_of_oid $sq_of_type $sq_of_value $sq_of_ekey}
+{/if}
 {/foreach}
