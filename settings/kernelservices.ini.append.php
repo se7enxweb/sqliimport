@@ -70,6 +70,7 @@ Formats[]=PostgREST
 Formats[]=Baserow
 Formats[]=Salesforce
 Formats[]=HubSpot
+Formats[]=YouTube
 Formats[]=Avro
 Formats[]=Arrow
 Formats[]=Feather
@@ -523,6 +524,22 @@ Arguments[]=expImportHubSpotSource
 Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: objects of the HubSpot CRM (API v3, read-only)
+
+[Service_sqliimport.source.youtube]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportYouTubeSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: videos of a YouTube channel, playlist or search (Data API v3, read-only)
+
+[Service_sqliimport.source.youtube_page]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportYouTubePageSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: videos listed on a youtube.com page (scraper, off unless [YouTubeSettings] AllowPageScraper=enabled)
 
 [Service_sqliimport.source.media]
 Class=expImportSourceEntry

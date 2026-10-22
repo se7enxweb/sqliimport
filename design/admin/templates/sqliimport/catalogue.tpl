@@ -18,6 +18,8 @@
 <span class="a4-badge{if eq( $s.status, 'enabled' )} is-ok{elseif eq( $s.status, 'example' )} is-info{/if}">{$s.status|wash}</span>
 </div>
 {if ne( $s.description, '' )}<p class="a4-sqliimport-format-desc">{$s.description|wash}</p>{/if}
+{if is_set( $s.availability )}{if ne( $s.availability, '' )}<p class="a4-notice is-info" role="note">{$s.availability|wash}</p>{/if}{/if}
+{if is_set( $s.notice )}{if ne( $s.notice, '' )}<p class="a4-notice is-warn" role="note">{$s.notice|wash}</p>{/if}{/if}
 {if is_set( $source_drivers[$id] )}{if $source_drivers[$id]|count|gt( 0 )}
 <details class="a4-fold"><summary>{'What this server can connect with'|i18n( 'extension/sqliimport' )}</summary>
 {include uri='design:sqliimport/parts/source_drivers.tpl' drivers=$source_drivers[$id]}
