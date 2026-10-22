@@ -22,10 +22,30 @@ class expImportTransferRuns
     /** The id of Imports in the transfer registry */
     const TOOL = 'transfer.sqliimport';
 
-    /** @return bool whether the kernel keeps the run history */
+    /** @var bool|null whether the kernel's classes of the history are there (checked once per process) */
+    protected static $kernel = null;
+
+    /**
+     * Whether the kernel keeps the run history. The kernel's files are looked for before the class is asked for: a
+     * kernel whose autoload map names the class before its files are installed would end the request with a fatal
+     * error on the plain class_exists().
+     *
+     * @return bool
+     */
     public static function available()
     {
-        return class_exists( 'expKernelTransferHistory' ) && expKernelTransferHistory::available();
+        if ( self::$kernel === null )
+        {
+            $loaded = class_exists( 'expKernelTransferHistory', false );
+            if ( !$loaded && class_exists( 'eZSys' ) )
+            {
+                $dir = eZSys::rootDir() . '/kernel/classes/transfer';
+                $loaded = is_file( $dir . '/expkerneltransferhistory.php' ) && is_file( $dir . '/expkerneltransferrun.php' )
+                          && class_exists( 'expKernelTransferHistory' );
+            }
+            self::$kernel = $loaded;
+        }
+        return self::$kernel && expKernelTransferHistory::available();
     }
 
     /**
