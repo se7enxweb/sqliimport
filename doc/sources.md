@@ -10,7 +10,7 @@ A source type reads records from a local file. Where the file comes from is the 
 | `upload` | `file`: the stored name of an uploaded file | The upload (kept in the site's storage directory, `sqliimport/uploads/`) is copied into the run's directory |
 | `url` | `url`: an `http` or `https` address | The address is downloaded into the run's directory, with the time limit `[ImportSettings] StreamTimeout` and the size limit `[SourceSettings] MaxSourceMegabytes` |
 | `path` | `path`: a file on the server | The file is read in place, but only if it lies inside one of `[SourceSettings] AllowedPaths[]` |
-| `remote` | the source's own options (a database, a search index, a mailbox, a directory, a service) | The source reads its data itself once per run and writes it into the run's directory as JSON Lines (`sql`, `mongodb`, `redis`, `couchdb`, `couchbase`, `cosmosdb`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion` and the sites of the platforms group) |
+| `remote` | the source's own options (a database, a search index, a mailbox, a directory, a service) | The source reads its data itself once per run and writes it into the run's directory as JSON Lines (`sql`, `mongodb`, `redis`, `couchdb`, `couchbase`, `cosmosdb`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion`, `supabase`, `baserow`, `salesforce`, `hubspot` and the sites of the platforms group) |
 
 Rules:
 
@@ -436,6 +436,58 @@ the extension's own parser: a file reads the same on every server, with or witho
 | `format` | `auto` (by the file name), `yaml`, `toml` | `auto` (`toml` for the format `toml`) |
 | `record_path` | the path of the list | the top |
 | `key` | the key field | empty |
+
+## Apache Avro (`avro`) and Apache Arrow or Feather (`arrow`)
+
+Group: data. Origins `upload`, `url` and `path`, like the other files. Both are read in PHP alone; nothing has to be
+installed for the usual files.
+
+**Avro** (`.avro`): object container files as Kafka connectors, Hadoop and data pipelines write them. The reader checks
+the header (`Obj1`, the schema in `avro.schema`, the sync marker after every block) and decodes every record with the
+schema of the file. **Arrow** (`.arrow`, `.feather`, `.arrows`, `.ipc`): the Arrow IPC file format (also Feather
+version 2, which is the same) and the stream format, as pandas, Polars, R and DuckDB write them; a file is read whole,
+up to `[SourceSettings] MaxSourceMegabytes`. Feather version 1 (before 2020) is refused with a message.
+
+| Option | Meaning | Default |
+|---|---|---|
+| `arrays` | Arrays (lists) as JSON (`["a","b"]`) or as a joined list (`a, b`; lists of records stay JSON) | `json` |
+| `separator` | The list separator | `, ` |
+| `key` | the key field | empty |
+
+One record is one Avro record or one Arrow row; nested records, maps and struct columns are flattened to dotted names
+(`origin.country`) as the MongoDB source does. A chunk of a run goes on at the block (Avro) or the batch (Arrow) of the
+record before it.
+
+| Type | Value |
+|---|---|
+| null, boolean, int, long, float, double | as they are (Arrow: int 8 to 64 bits, signed or not; an unsigned 64-bit number above PHP's range as text; half floats too) |
+| NaN and infinity | the text `NaN`, `INF`, `-INF` |
+| string (Arrow utf8, large utf8) | text |
+| bytes, fixed (Arrow binary, fixed size binary) | base64 |
+| enum (Arrow dictionary-encoded columns) | the symbol or value |
+| union | the value of its branch (Arrow unions are refused) |
+| date | `2026-10-22` |
+| timestamp-millis, -micros (Arrow timestamp with a time zone) | ISO 8601 in UTC with `Z` |
+| local-timestamp-* (Arrow timestamp without a time zone) | ISO 8601 without `Z` |
+| time-millis, -micros (Arrow time) | `10:20:30.500` |
+| decimal (bytes or fixed; Arrow decimal 32 to 256 bits) | a decimal number in text with its scale (`-1234.50`), never a float |
+| uuid | the 8-4-4-4-12 text |
+| Arrow duration | the number of its unit |
+
+**Compression:** Avro codecs `null` and `deflate` (zlib); `snappy` only with the PECL extension snappy (the CRC-32 of
+each block is checked), `zstandard` with the PECL extension zstd, `bzip2` with the extension bz2; any other codec is
+refused with a message. Arrow: uncompressed, LZ4 frames (the default of pyarrow's Feather; read in PHP) and Zstandard
+(only with the PECL extension zstd). The catalogue's driver list shows which this PHP and the job queue's workers have.
+Arrow intervals, unions, run-end encoded and view types are refused with the column's name: cast them to a plain type
+when writing the file.
+
+**Parquet** is read by the DuckDB format (`duckdb`), which needs the `duckdb` program or libduckdb on the server. DuckDB
+reads Arrow files only through its community extension `arrow`, which the DuckDB source does not load (it refuses
+`INSTALL` and `LOAD`), so Arrow files are read here.
+
+**Examples:** `share/examples/teas.avro` (five invented teas with a nested origin, tags, a decimal price, a date and a
+timestamp; deflate, two blocks) and `share/examples/teas.arrow` (the same as an Arrow file with a struct, a list, a
+dictionary column and two record batches).
 
 ## Google Sheets (`google_sheets`)
 
@@ -1303,22 +1355,25 @@ The mapping is made from the first record when the import is saved: its class, e
 text through `richtext`, images through `image`; relations are left to you), matched by the remote ID, so the copy
 follows the original at every run.
 
-## Hosted services read by the source (`airtable`, `notion`)
+## Hosted services read by the source (`airtable`, `notion`, `supabase`, `baserow`, `salesforce`, `hubspot`)
 
 These formats read a hosted service's API with a token: once per run the source requests the records page by page
 and writes them as a snapshot (`source.ndjson`) into the run's directory, which every chunk of the run then reads;
 the editor's dry run reads only as many records as it shows. They share these rules:
 
-- **Read-only.** The sources only read: Airtable through `GET` requests, Notion through its database query and `GET`
-  requests. Give the token as little as it needs (see each format).
+- **Read-only.** The sources only read: Airtable, Supabase and Baserow through `GET` requests, Notion through its
+  database query and `GET` requests, Salesforce through its sign-in and `GET` queries, HubSpot through `GET` lists and
+  its search (a `POST` that reads). Give the token as little as it needs (see each format).
 - **The token is never stored in the import.** The option takes the *name* of a secret: `Secrets[<name>]` of
   `[SecretSettings]` in the site's own settings, or `env:<VARIABLE>` of the PHP process. Messages show
   `[secret <name>]`, never the token, also when the service quotes it in an error.
 - **Rate limits.** The source keeps the least time between two requests the service allows, and when the service
   answers `429 Too Many Requests` it waits (the `Retry-After` of the answer, else the service's own penalty) and tries
   again, up to four times; a gateway error (502, 503, 504) is tried again the same way.
-- `[PlatformSettings] MaxPages` limits the requests of a run (200), `MaxResponseMegabytes` one answer (20) and
-  `[ImportSettings] StreamTimeout` the time of a request.
+- `[PlatformSettings] MaxPages` limits the requests of a run of Airtable and Notion (200); Supabase, Baserow,
+  Salesforce and HubSpot have `MaxPages` in their own sections (`[SupabaseSourceSettings]` ..., 1000).
+  `[PlatformSettings] MaxResponseMegabytes` limits one answer (20) and `[ImportSettings] StreamTimeout` the time of a
+  request.
 - **Test connection** on the source step reads the first record and shows its fields, or the error (masked). Nothing
   is saved; it needs the same permission as saving the import. *What this server can connect with* names what the
   host needs.
@@ -1404,6 +1459,158 @@ list item or a toggle), tables and child databases are not read.
 **Example:** `share/examples/notion-articles.ndjson` is the snapshot of two invented pages with their content as
 Markdown; the catalogue also shows a configuration for the published articles, newest first, with the content as
 HTML.
+
+### Supabase or PostgREST (`supabase`)
+
+Group: platforms. The rows of a table or view of a Supabase project through its REST API, or of any PostgREST server:
+the source requests `GET <base>/<table>?select=...&<filters>&order=...` page by page. For an address on
+`supabase.co` the path `/rest/v1` is added; any other server is used with the path given.
+
+| Option | Meaning | Default |
+|---|---|---|
+| `base_url` | Required. The project address (`https://<ref>.supabase.co`) or the PostgREST server's address | |
+| `table` | Required. The table or view, a name (never `rpc`, functions are not read) | |
+| `schema` | A schema the API exposes besides `public` (header `Accept-Profile`) | empty |
+| `select` | Columns and embedded resources: `id,title,author:authors(name,email)`; aliases, casts (`::text`), JSON paths (`->>`) and aggregates allowed | `*` |
+| `filters` | One per line as a PostgREST parameter: `status=eq.published`, `tags=cs.{tea}`, `or=(stock.gt.0,preorder.is.true)` | none |
+| `order` | `published_at.desc,id` (also `.nullsfirst`, `.nullslast`); an order keeps the pages stable | empty |
+| `paging` | `range` (header `Range: 0-999`, `Range-Unit: items`) or `offset` (`limit` and `offset` parameters) | `range` |
+| `count` | `none`, `exact`, `planned` or `estimated` (header `Prefer: count=...`): the total from `Content-Range` | `none` |
+| `page_size` | Rows per request (Supabase answers at most its *max rows*, 1000 by default) | `1000` |
+| `limit` | The most rows; `0`: all | `0` |
+| `api_key` | The **name** of the secret with the anon key, sent as `apikey` and as the bearer token; empty for a server without authentication | empty |
+| `bearer` | The **name** of a secret with a JWT of a read-only role, sent as the bearer token instead of the key | empty |
+| `arrays`, `separator` | Arrays as JSON or as a joined list | `json`, `, ` |
+| `key` | the key column | `id` |
+
+**Read-only guarantee:** only `GET` requests to the table; `select`, every filter and `order` are checked before
+anything is sent. A filter may use only `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `like`, `ilike`, `is`, `in`, `cs`,
+`cd` (with `not.` and the modifiers `(any)` and `(all)`), also inside `and=(...)`, `or=(...)` and `not.` at any depth;
+full text search, ranges and the parameters `select`, `order`, `limit`, `offset`, `columns` and `on_conflict` are
+refused as filters. **Use the anon key with a read-only role and row level security** (policies that allow `SELECT`
+only on what the import reads); a service role key passes row level security and should not be used. A self-hosted
+server in a private network only from `[SupabaseSourceSettings] AllowedHosts[]`.
+
+**Paging:** a page ends the reading when it is shorter than the page size, when the total of `Content-Range` is
+reached or when the server answers `416` (the range starts after the last row). **Values:** as PostgREST gives them:
+text, numbers, booleans, timestamps in ISO 8601 as PostgreSQL writes them (`2026-09-01T08:00:00+00:00`), `json` and
+`jsonb` columns and embedded resources as dotted fields (`author.name`), arrays and to-many embeddings as JSON or a
+joined list, `bytea` as `\x...` hex text. **Test connection** reads one row and, with a count, the total.
+
+**Example:** `share/examples/supabase-articles.ndjson` (three invented articles with their author).
+
+### Baserow (`baserow`)
+
+Group: platforms. The rows of a Baserow table through its REST API, on baserow.io or self-hosted: the source requests
+`GET <base>/api/database/rows/table/<id>/?user_field_names=true&size=...&page=...` while the answer has a `next`.
+
+| Option | Meaning | Default |
+|---|---|---|
+| `base_url` | `https://api.baserow.io` or the address of a self-hosted Baserow | `https://api.baserow.io` |
+| `table_id` | Required. The ID of the table | |
+| `view_id` | A view whose filters and order apply; `0`: none | `0` |
+| `filters` | One per line as `<field>__<type>=<value>`, sent as `filter__<field>__<type>`: `Status__single_select_equal=3`, `Price__higher_than=10` | none |
+| `filter_type` | `AND` or `OR` | `AND` |
+| `search` | Only rows that contain this text | empty |
+| `order_by` | Fields by name, `-` for descending: `-Date,Name` | empty |
+| `include` | The fields to read, one per line; empty: all | empty |
+| `page_size` | Rows per request (at most 200) | `100` |
+| `separator` | Between the values of link rows, multiple selects and collaborators | `, ` |
+| `token` | Required. The **name** of the secret with a database token | |
+| `key` | the key field | `id` (the row ID) |
+
+Create the database token (Settings, Database tokens) with the permission **read** only, on the workspace and tables
+the import needs; it is sent as `Authorization: Token ...`. The source sends only `GET` requests to the list of rows.
+A self-hosted Baserow in a private network only from `[BaserowSourceSettings] AllowedHosts[]`.
+
+**Values:** link rows as their values joined (`<field>`) and their row IDs (`<field>_ids`, comma separated); files as
+the list of their addresses (`<field>`, the mapping can download them) and of their names (`<field>_names`); a single
+select as its value, multiple selects and collaborators as the names joined; a user (created by, last modified by) as
+the name; dates in ISO 8601 as Baserow gives them; booleans as `true` and `false`; numbers as Baserow gives them
+(decimals as text, so no digit is lost); an empty list as `[]`. Test connection reads one row and the count of rows.
+
+**Example:** `share/examples/baserow-events.ndjson` (three invented events).
+
+### Salesforce (`salesforce`)
+
+Group: platforms. The records of a SOQL query through the Salesforce REST API: the source signs in with a connected
+app, runs `GET <instance>/services/data/<version>/query?q=...` (or `queryAll`, which also gives deleted and archived
+records) and follows `nextRecordsUrl`.
+
+| Option | Meaning | Default |
+|---|---|---|
+| `login_url` | `https://login.salesforce.com`, `https://test.salesforce.com` (sandbox) or the My Domain address | `https://login.salesforce.com` |
+| `auth` | `jwt` (JWT bearer flow) or `refresh_token` | `jwt` |
+| `client_id` | Required. The consumer key of the connected app | |
+| `user` | JWT: the user name of the integration user | |
+| `private_key` | JWT: the **name** of the secret with the PEM of the private key of the connected app's certificate | |
+| `client_secret` | Refresh token: the **name** of the secret with the consumer secret | |
+| `refresh_token` | Refresh token: the **name** of the secret with the refresh token | |
+| `query` | Required. A single SOQL `SELECT` | |
+| `query_all` | Also deleted and archived records (`queryAll`) | no |
+| `api_version` | The REST API version | `v61.0` |
+| `batch_size` | Records per answer (`Sforce-Query-Options: batchSize`, 200 to 2000) | `2000` |
+| `key` | the key field | `Id` |
+
+**Signing in:** the JWT bearer flow signs a token (`iss` the consumer key, `sub` the user, `aud` the login server,
+three minutes) with RS256 (`openssl_sign`) and needs the certificate uploaded to the connected app and the user
+pre-authorized; the refresh token flow needs the consumer secret and a refresh token of the user. The instance address
+comes from the token answer; it and the login address must be `https` addresses on a domain of
+`[SalesforceSourceSettings] AllowedDomains[]` (`salesforce.com`, `force.com`, `cloudforce.com`, `salesforce.mil`) or a
+host of `AllowedHosts[]`, so no token is sent anywhere else; `nextRecordsUrl` must be a query locator.
+
+**Read-only guarantee:** the query must be one statement beginning with `SELECT`; `FOR UPDATE` (it locks records),
+`FOR VIEW` and `FOR REFERENCE` (they write the last viewed dates), `UPDATE TRACKING` and `UPDATE VIEWSTAT` (they write
+statistics) and the words of DML are refused outside strings. Give the integration user a profile or permission set
+with *API Enabled* and read access to the objects the import needs only.
+
+**Values:** relationship fields flattened (`Owner.Name`, `Owner.Manager.Name`), `attributes` dropped at every level;
+address and geolocation fields flattened (`BillingAddress.city`, `Location__c.latitude`); a child relationship (a
+subquery) as the JSON list of its records; dates as given (`2026-10-22`); date-times in ISO 8601 with `Z` for UTC
+(Salesforce writes `+0000`) or `+02:00`; currency, percent and double values (numbers with a fraction) as a number in
+text, never with an exponent; whole numbers as numbers; booleans as `true` and `false`. Records of people (contacts,
+leads, users) are **personal data**. Test connection signs in, reads one record and the `totalSize`.
+
+**Example:** `share/examples/salesforce-accounts.ndjson` (three invented accounts).
+
+### HubSpot (`hubspot`)
+
+Group: platforms. The objects of a HubSpot CRM object type through the CRM API v3 at `https://api.hubapi.com`:
+`contacts`, `companies`, `deals`, `tickets`, `products`, `line_items` or a custom object (`2-1234567`, `p_<name>`).
+
+| Option | Meaning | Default |
+|---|---|---|
+| `object_type` | Required. The object type | |
+| `mode` | `list` (`GET /crm/v3/objects/<type>`, every object) or `search` (`POST /crm/v3/objects/<type>/search`) | `list` |
+| `properties` | The properties to read, one per line (internal names); empty: HubSpot's default properties | empty |
+| `associations` | List: the associated object types whose IDs to read (`companies`, `contacts`) | empty |
+| `filter_groups` | Search: `[{"filters": [{"propertyName": "lifecyclestage", "operator": "EQ", "value": "customer"}]}]` | empty |
+| `search` | Search: the text HubSpot looks for in the default text properties | empty |
+| `sort` | Search: one property and the direction, `createdate DESCENDING` | empty |
+| `archived` | List: read the archived objects instead | no |
+| `date_properties` | Properties whose values in milliseconds become ISO 8601, besides `createdate`, `closedate` and HubSpot's other dates | empty |
+| `page_size` | Objects per request (a list at most 100, a search 200) | `100` |
+| `token` | Required. The **name** of the secret with the access token of a private app | |
+| `key` | the key field | `id` |
+
+Create a private app with the **read** scopes of the objects the import needs only (`crm.objects.contacts.read`,
+`crm.objects.companies.read` ...). **Read-only guarantee:** the only requests are the list (`GET`) and the search
+(a `POST` to `.../search`, which reads); the search body is built by the source from `filter_groups`, which is checked
+first: a list of at most 5 groups (or `{"filterGroups": [...]}`), each `{"filters": [...]}`, each filter only
+`propertyName`, `operator` (`EQ`, `NEQ`, `LT`, `LTE`, `GT`, `GTE`, `BETWEEN`, `IN`, `NOT_IN`, `HAS_PROPERTY`,
+`NOT_HAS_PROPERTY`, `CONTAINS_TOKEN`, `NOT_CONTAINS_TOKEN`), `value`, `highValue` and `values`, at most 18 filters.
+
+**Rate limits and paging:** private apps may make 100 requests in 10 seconds (the source keeps a tenth of a second
+between two requests), the search about 5 a second (a fifth of a second); after a `429` it waits the `Retry-After`. Both
+modes follow `paging.next.after`; a search reads at most 10,000 objects (HubSpot's limit; the source says so).
+
+**Values:** a record has `id`, `created_at`, `updated_at`, `archived`, every property by name (every asked one, `null`
+when empty) and `associations.<type>` as the list of IDs. HubSpot gives every property as text: numbers stay text;
+dates and date-times stay ISO 8601, and a date property given in milliseconds since 1970 becomes ISO 8601 in UTC; the
+values of a multiple checkbox stay joined with `;`. **Contacts hold personal data** (names, e-mail addresses, phone
+numbers): map only what the site needs. Test connection reads one object (and the total of a search).
+
+**Example:** `share/examples/hubspot-companies.ndjson` (three invented companies with their contacts' IDs).
 
 ## Exports of other systems (`joomla`, `ezpkg`)
 

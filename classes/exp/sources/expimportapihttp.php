@@ -8,7 +8,8 @@
  */
 
 /**
- * The JSON requests of the sources that read a hosted service's API with a token (Airtable, Notion): a pause between
+ * The JSON requests of the sources that read a hosted service's API with a token (Airtable, Notion, Supabase,
+ * Baserow, Salesforce, HubSpot): a pause between
  * two requests to the same service (its rate limit), waiting and trying again when the service answers 429 (Too Many
  * Requests, after its Retry-After) or 502/503/504, the error text of the service's answer, and the snapshot written
  * atomically. The requests themselves go through expImportPlatformHttp (address checks, size limit, time limit), so a
@@ -63,10 +64,32 @@ class expImportApiHttp
      * @param string|null $body
      * @param float $interval the least time between two requests to the service, in seconds (Airtable: 0.2, five a second)
      * @param float $backoff the wait after a 429 without Retry-After, in seconds
+     * @param string[] $trusted hosts in a private network an administrator allowed for this source (AllowedHosts[])
      * @return array the decoded answer
      * @throws expImportSourceException
      */
-    public static function json( $service, $method, $url, array $headers, $body, $interval, $backoff )
+    public static function json( $service, $method, $url, array $headers, $body, $interval, $backoff, array $trusted = array() )
+    {
+        $answer = self::answer( $service, $method, $url, $headers, $body, $interval, $backoff, $trusted );
+        return $answer[0];
+    }
+
+    /**
+     * A JSON request to a service, within its rate limit, with the header lines of the answer (Content-Range ...).
+     * An HTTP error throws an expImportSourceException whose code is the HTTP status.
+     *
+     * @param string $service the name of the service in messages
+     * @param string $method GET or POST
+     * @param string $url
+     * @param array $headers name => value
+     * @param string|null $body
+     * @param float $interval the least time between two requests to the service, in seconds
+     * @param float $backoff the wait after a 429 without Retry-After, in seconds
+     * @param string[] $trusted hosts in a private network an administrator allowed for this source
+     * @return array the list ( array the decoded answer, string[] the header lines of the answer, int the status )
+     * @throws expImportSourceException
+     */
+    public static function answer( $service, $method, $url, array $headers, $body, $interval, $backoff, array $trusted = array() )
     {
         $headers += array( 'Accept' => 'application/json' );
         for ( $try = 0; ; $try++ )
@@ -75,11 +98,12 @@ class expImportApiHttp
             if ( $since < $interval )
                 self::sleep( $interval - $since );
             self::$last[$service] = self::now();
-            $answer = expImportPlatformHttp::request( $method, $url, $headers, $body );
+            $answer = expImportPlatformHttp::request( $method, $url, $headers, $body, $trusted );
             $status = (int)$answer['status'];
+            $lines = isset( $answer['headers'] ) ? (array)$answer['headers'] : array();
             if ( ( $status === 429 || in_array( $status, array( 502, 503, 504 ), true ) ) && $try < self::RETRIES )
             {
-                $after = expImportPlatformHttp::header( (array)$answer['headers'], 'Retry-After' );
+                $after = expImportPlatformHttp::header( $lines, 'Retry-After' );
                 $wait = is_numeric( $after ) ? (float)$after : ( $status === 429 ? (float)$backoff : 2.0 * ( $try + 1 ) );
                 self::sleep( min( 120.0, max( 0.0, $wait ) ) );
                 continue;
@@ -89,7 +113,7 @@ class expImportApiHttp
             {
                 if ( !is_array( $data ) )
                     throw new expImportSourceException( "$service: the answer is not JSON" );
-                return $data;
+                return array( $data, $lines, $status );
             }
             $detail = self::errorText( $data );
             $text = "$service answered $status";
@@ -99,7 +123,7 @@ class expImportApiHttp
                 $text .= ': not found (check the IDs, and that the token may read it)';
             elseif ( $status === 429 )
                 $text .= ': too many requests, still after waiting';
-            throw new expImportSourceException( $text . ( $detail !== '' ? ' (' . $detail . ')' : '' ) );
+            throw new expImportSourceException( $text . ( $detail !== '' ? ' (' . $detail . ')' : '' ), $status );
         }
     }
 
@@ -108,6 +132,9 @@ class expImportApiHttp
     {
         if ( !is_array( $data ) )
             return '';
+        // Salesforce: a list of errors with message and errorCode
+        if ( isset( $data[0] ) && is_array( $data[0] ) )
+            $data = $data[0] + ( isset( $data[0]['errorCode'] ) && is_string( $data[0]['errorCode'] ) ? array( 'code' => $data[0]['errorCode'] ) : array() );
         $parts = array();
         if ( isset( $data['error'] ) && is_array( $data['error'] ) )
         {
@@ -122,6 +149,12 @@ class expImportApiHttp
             $parts[] = $data['code'];
         if ( isset( $data['message'] ) && is_string( $data['message'] ) )
             $parts[] = $data['message'];
+        // Baserow and PostgREST: detail
+        if ( isset( $data['detail'] ) && is_string( $data['detail'] ) )
+            $parts[] = $data['detail'];
+        // OAuth 2.0 (Salesforce's token endpoint): error and error_description
+        if ( isset( $data['error_description'] ) && is_string( $data['error_description'] ) )
+            $parts[] = $data['error_description'];
         return substr( implode( ': ', $parts ), 0, 300 );
     }
 

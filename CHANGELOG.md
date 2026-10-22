@@ -7,6 +7,28 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 
 ### Added
 
+- Added: The format Supabase or PostgREST table (supabase): the rows of a table or view through PostgREST, with
+  select (embedded resources flattened to dotted fields), filters and order checked before they are sent (only eq,
+  neq, gt, gte, lt, lte, like, ilike, is, in, cs and cd, also in and/or/not at any depth; never rpc), paged by Range
+  header or limit and offset with the total of Content-Range. GET only; the anon key or a read-only JWT by the name of
+  a secret; self-hosted servers in private networks only from [SupabaseSourceSettings] AllowedHosts[].
+- Added: The format Baserow table (baserow): the rows of a table or view of baserow.io or a self-hosted Baserow with
+  filters, search and order, paged by page and size; link rows as values and IDs, files as addresses, selects and
+  collaborators as names. GET only, the database token by the name of a secret; [BaserowSourceSettings].
+- Added: The format Salesforce SOQL query (salesforce): a single SELECT (FOR UPDATE, FOR VIEW, FOR REFERENCE, UPDATE
+  TRACKING and UPDATE VIEWSTAT refused) through the REST API, also queryAll, paged with nextRecordsUrl; sign-in by the
+  JWT bearer flow (RS256 with the private key as a secret) or a refresh token; login and instance addresses only on
+  [SalesforceSourceSettings] AllowedDomains[]; relationships and addresses flattened, date-times ISO 8601, decimals as
+  text.
+- Added: The format HubSpot CRM objects (hubspot): contacts, companies, deals, tickets, products, line items or custom
+  objects, listed with properties and associations or searched with checked filter groups and a sort, paged with
+  after; the private app token by the name of a secret, 100 requests in 10 seconds and Retry-After; dates in
+  milliseconds as ISO 8601.
+- Added: The formats Apache Avro (avro) and Apache Arrow or Feather (arrow), read in PHP alone: Avro object container
+  files with every type and the logical types (codecs null and deflate, snappy and zstandard with their extensions),
+  Arrow IPC files and streams and Feather v2 (struct, list, dictionary columns, decimals, timestamps; LZ4 in PHP,
+  Zstandard with its extension); with the examples share/examples/teas.avro and teas.arrow. Parquet stays with the
+  DuckDB format.
 - Added: Secrets from the kernel's secret store of Exponential 6.0.15 (Setup, Secrets, scope sqliimport) when it is
   there, with sqliimport.ini [SecretSettings] Secrets[] and env: as before; a value in an address is masked too.
 - Added: The fields of a new data table guessed from an import's sample (column names, types, lengths, required,

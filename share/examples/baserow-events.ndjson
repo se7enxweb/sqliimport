@@ -1,0 +1,3 @@
+{"id":1,"order":"1.00000000000000000000","Name":"Autumn tasting","Date":"2026-10-10","Seats":"40","Status":"Published","Published":true,"Topics":"Green tea, Japan","Poster":["https://files.example.invalid/poster-autumn.jpg"],"Poster_names":["poster-autumn.jpg"],"Venue":"Tea room","Venue_ids":"7"}
+{"id":2,"order":"2.00000000000000000000","Name":"Oolong workshop","Date":"2026-11-05","Seats":"12","Status":"Published","Published":true,"Topics":"Oolong","Poster":[],"Venue":"Tea room, Garden","Venue_ids":"7,8"}
+{"id":3,"order":"3.00000000000000000000","Name":"Winter blends","Date":"2026-12-01","Seats":"25","Status":"Draft","Published":false,"Topics":[],"Poster":[],"Venue":[]}

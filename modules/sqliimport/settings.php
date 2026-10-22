@@ -59,6 +59,10 @@ foreach ( array( 'RunSettings' => array( 'ChunkSize', 'DryRunRows', 'LogLevel', 
                  'CouchDbSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
                  'CouchbaseSourceSettings' => array( 'AllowedHosts', 'QueryTimeout', 'MaxPages' ),
                  'CosmosDbSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
+                 'SupabaseSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
+                 'BaserowSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
+                 'SalesforceSourceSettings' => array( 'AllowedDomains', 'AllowedHosts', 'MaxPages' ),
+                 'HubSpotSourceSettings' => array( 'MaxPages' ),
                  'ImportSettings' => array( 'DefaultParentNodeID', 'ViewCaching', 'ObjectIndexing', 'StreamTimeout' ),
                  'AdminSettings' => array( 'ListLimit' ) ) as $section => $names )
     foreach ( $names as $name )
