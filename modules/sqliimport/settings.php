@@ -71,6 +71,7 @@ foreach ( array( 'RunSettings' => array( 'ChunkSize', 'DryRunRows', 'LogLevel', 
                  'BaserowSourceSettings' => array( 'AllowedHosts', 'MaxPages' ),
                  'SalesforceSourceSettings' => array( 'AllowedDomains', 'AllowedHosts', 'MaxPages' ),
                  'HubSpotSourceSettings' => array( 'MaxPages' ),
+                 'RestApiSourceSettings' => array( 'AllowedHosts', 'AllowedTokenHosts', 'MaxPages', 'MaxWaitSeconds' ),
                  'ImportSettings' => array( 'DefaultParentNodeID', 'ViewCaching', 'ObjectIndexing', 'StreamTimeout' ),
                  'AdminSettings' => array( 'ListLimit' ) ) as $section => $names )
     foreach ( $names as $name )

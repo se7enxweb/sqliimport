@@ -1,0 +1,3 @@
+{"id":"P-1001","name":"Sencha tea, 100 g","sku":"TEA-SEN-100","price.amount":"8.90","price.currency":"EUR","in_stock":true,"tags":"[\"tea\",\"green\"]","category.name":"Green tea","updated_at":"2026-09-02T10:15:00Z"}
+{"id":"P-1002","name":"Oolong tea, 50 g","sku":"TEA-OOL-050","price.amount":"11.50","price.currency":"EUR","in_stock":false,"tags":"[\"tea\",\"oolong\"]","category.name":"Oolong","updated_at":"2026-09-05T14:40:00Z"}
+{"id":"P-1003","name":"Tea strainer","sku":"ACC-STR-001","price.amount":"4.20","price.currency":"EUR","in_stock":true,"tags":"[]","category":null,"updated_at":"2026-09-09T08:05:00Z"}

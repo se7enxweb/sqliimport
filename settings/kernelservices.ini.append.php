@@ -70,6 +70,7 @@ Formats[]=PostgREST
 Formats[]=Baserow
 Formats[]=Salesforce
 Formats[]=HubSpot
+Formats[]=REST API
 Formats[]=Avro
 Formats[]=Arrow
 Formats[]=Feather
@@ -523,6 +524,14 @@ Arguments[]=expImportHubSpotSource
 Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: objects of the HubSpot CRM (API v3, read-only)
+
+[Service_sqliimport.source.rest_api]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportRestApiSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: records of any JSON REST API, paged (read-only)
 
 [Service_sqliimport.source.media]
 Class=expImportSourceEntry
