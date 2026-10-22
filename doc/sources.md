@@ -10,7 +10,7 @@ A source type reads records from a local file. Where the file comes from is the 
 | `upload` | `file`: the stored name of an uploaded file | The upload (kept in the site's storage directory, `sqliimport/uploads/`) is copied into the run's directory |
 | `url` | `url`: an `http` or `https` address | The address is downloaded into the run's directory, with the time limit `[ImportSettings] StreamTimeout` and the size limit `[SourceSettings] MaxSourceMegabytes` |
 | `path` | `path`: a file on the server | The file is read in place, but only if it lies inside one of `[SourceSettings] AllowedPaths[]` |
-| `remote` | the source's own options (a database, a search index, a mailbox, a directory, a service) | The source reads its data itself once per run and writes it into the run's directory as JSON Lines (`sql`, `mongodb`, `redis`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion` and the sites of the platforms group) |
+| `remote` | the source's own options (a database, a search index, a mailbox, a directory, a service) | The source reads its data itself once per run and writes it into the run's directory as JSON Lines (`sql`, `mongodb`, `redis`, `dynamodb`, `firestore`, `bigquery`, `firebase_rtdb`, `cassandra`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion` and the sites of the platforms group) |
 
 Rules:
 
@@ -872,6 +872,288 @@ install redis`; Debian: `php-redis`); without it, a small client of the extensio
 
 **Example:** `share/examples/redis-products.ndjson` is what a run reads from the keys `product:*` (two hashes, a JSON
 string and a set), to try a mapping.
+
+## Amazon DynamoDB table (`dynamodb`)
+
+Group: NoSQL databases. Origin: `remote`. The items of a DynamoDB table or one of its indexes, read with `Scan` or
+`Query` through the DynamoDB HTTPS API: one record is one item. The requests are signed with AWS Signature Version 4
+by a small class of the extension (no AWS SDK). Once per run the source pages through the items and writes them into
+the run's directory, one JSON object per line.
+
+| Option | Values | Default |
+|---|---|---|
+| `region` | the AWS region of the table: `eu-central-1` | required |
+| `endpoint` | empty: `https://dynamodb.<region>.amazonaws.com`; else DynamoDB Local or a compatible service (`http://localhost:8000`) | |
+| `access_key_id` | the access key ID of an IAM user or role (`AKIA...`) | required |
+| `secret_key_secret` | the **name** of the secret with the secret access key (see [Secrets](#secrets)) | required |
+| `session_token_secret` | temporary credentials (STS) only: the name of the secret with the session token | |
+| `table` | the table | required |
+| `operation` | `scan` (every item, or those of the filter) or `query` (the items of a partition key) | `scan` |
+| `index_name` | a global or local secondary index (`IndexName`) | the table |
+| `key_condition` | `query` only, and required there: `KeyConditionExpression`, e.g. `customer_id = :c AND created_at > :d` | |
+| `filter` | `FilterExpression`, e.g. `#s = :p AND price < :max` | |
+| `names` | `ExpressionAttributeNames` as JSON: `{"#s": "status"}` | |
+| `values` | `ExpressionAttributeValues` as JSON in the DynamoDB form: `{":p": {"S": "published"}, ":max": {"N": "20"}}` | |
+| `projection` | `ProjectionExpression`: the attributes to read | all |
+| `consistent_read` | `ConsistentRead` (not on a global secondary index) | no |
+| `scan_forward` | `query` only: ascending sort key (`ScanIndexForward`) | yes |
+| `page_size` | `Limit`: items evaluated per request (an answer is also at most 1 MB) | `100` |
+| `limit` | the most items; `0`: all | `0` |
+| `sets` | string, number and binary sets as a joined list (`join`) or JSON (`json`) | `join` |
+| `separator` | what stands between the values of a joined set | `, ` |
+| `key` | the attribute that names an item (its partition key); empty: the position | |
+
+**Fields.** Every attribute is a field; maps are flattened into dotted names (`dimensions.weight_g`):
+
+| AttributeValue | Field value |
+|---|---|
+| `S` | the text |
+| `N` | its decimal text (`12.50`, also beyond PHP's numbers), never a float |
+| `B` | base64, as DynamoDB sends it |
+| `BOOL`, `NULL` | `true`/`false`, `null` |
+| `M` | flattened to dotted names; an empty map is `{}` |
+| `L` | JSON (`[{"size":"50g"},"7",false]`) |
+| `SS`, `NS`, `BS` | a joined list (`green, japan`) or JSON (option `sets`) |
+
+**Only reading is possible.** The source sends only the operations `Scan` and `Query` (and `DescribeTable` for
+*Test connection*); every other name (`PutItem`, `UpdateItem`, `DeleteItem`, `BatchWriteItem`, `TransactWriteItems`,
+`ExecuteStatement` for PartiQL ...) is refused before a request is built. Expressions only choose and shape items;
+an update or condition expression is never sent. Give the access key an IAM policy that allows only reading:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": ["dynamodb:Scan", "dynamodb:Query", "dynamodb:DescribeTable"],
+    "Resource": ["arn:aws:dynamodb:eu-central-1:123456789012:table/products",
+                 "arn:aws:dynamodb:eu-central-1:123456789012:table/products/index/*"]
+  }]
+}
+```
+
+`dynamodb:DescribeTable` is only used by *Test connection* (status and item count); without it the test still reads
+one item.
+
+**Secrets and hosts.** The secret access key and the session token are names of secrets; the key is never sent (only
+the signature is), and both are masked in every message. A custom endpoint in a private or reserved network is refused
+unless it is listed in `[DynamoDbSourceSettings] AllowedHosts[]`.
+
+**Paging.** `Limit` items per request, and `ExclusiveStartKey` with the `LastEvaluatedKey` of the answer until there
+is none; at most `[DynamoDbSourceSettings] MaxPages` requests per run. Throttling (`ProvisionedThroughputExceededException`,
+`ThrottlingException`) and 5xx answers are tried again after 1, 2, 4 and 8 seconds.
+
+**Test connection.** `DescribeTable` and one page of one item of the scan or query; it shows the fields, or the masked
+error.
+
+**What the host needs.** PHP's https stream with `allow_url_fopen=On` and the extension `openssl` (part of the
+php package on RHEL and Debian), in the web server's PHP and in the job queue's workers.
+
+**Example:** `share/examples/dynamodb-products.ndjson` is what a run reads from a table of products (three items).
+
+## Google Cloud: Firestore (`firestore`) and BigQuery (`bigquery`)
+
+Both read with a **service account**: its JSON key file is the value of a secret, the import names the secret
+(`credentials_secret`). The extension signs a JWT with the key (RS256, `openssl_sign`), exchanges it at
+`https://oauth2.googleapis.com/token` for an access token (the `token_uri` of the key file is not followed) and keeps
+the token for the rest of the run. The key, the JWT and the token are masked in every message. The IAM roles of the
+service account decide what it may do: give it only the read roles named below. `[GoogleCloudSourceSettings] MaxPages`
+limits the requests of a run.
+
+### Firestore collection (`firestore`)
+
+Group: NoSQL databases. Origin: `remote`. The documents of a collection, a subcollection or a collection group of a
+Firestore database (native mode), read through the Firestore REST API v1: one record is one document.
+
+| Option | Values | Default |
+|---|---|---|
+| `project` | the Google Cloud project | required |
+| `database` | the database ID | `(default)` |
+| `credentials_secret` | the **name** of the secret with the service account's JSON key | required |
+| `scope` | `read_only` (`cloud-platform.read-only`) or `datastore` (when the read-only scope is refused; the role keeps it read-only) | `read_only` |
+| `mode` | `query` (a structured query, `documents:runQuery`) or `list` (the list of the collection, no filter) | `query` |
+| `collection` | `articles`, or a subcollection by its path: `customers/c-1001/orders` | required |
+| `all_descendants` | `query` only: every collection of this name below the path (a collection group) | no |
+| `where` | `query` only: the `where` of a structured query, e.g. `{"fieldFilter": {"field": {"fieldPath": "status"}, "op": "EQUAL", "value": {"stringValue": "published"}}}` | all |
+| `order_by` | `published_at:desc,title`; the document name is always the last order | the name |
+| `fields` | the fields to read, one per line (`select`, or `mask.fieldPaths` of a list) | all |
+| `paging` | `cursor` (`startAt` the last document) or `offset` | `cursor` |
+| `page_size` | documents per request | `300` |
+| `limit` | the most documents; `0`: all | `0` |
+| `arrays` | `json` or `join` (an array of maps stays JSON) | `json` |
+| `separator` | what stands between the values of a joined array | `, ` |
+| `key` | `_id` (the document ID) or `_path` (unique also in a collection group) | `_id` |
+
+Every record has `_id`, `_path` (below the database's documents, `articles/a-1`), `_create_time` and `_update_time`.
+The typed values:
+
+| Firestore value | Field value |
+|---|---|
+| `stringValue`, `timestampValue` | the text; a timestamp in ISO 8601 as Firestore gives it (`2026-02-01T09:00:00.250Z`) |
+| `integerValue` | a number, or its text beyond PHP's integers |
+| `doubleValue`, `booleanValue`, `nullValue` | as they are (`NaN` and `Infinity` as text) |
+| `mapValue` | flattened to dotted names (`author.name`); an empty map is `{}` |
+| `arrayValue` | JSON, or a joined list (option `arrays`) |
+| `referenceValue` | the path of the document it points to (`authors/au-1`) |
+| `geoPointValue` | `latitude,longitude` (`48.137,11.575`) |
+| `bytesValue` | base64 |
+
+**Only reading is possible.** The source builds only `documents:runQuery` (POST, a structured query: `from`, `where`,
+`orderBy`, `select`, `limit`, `offset`, `startAt`) and the list of a collection (GET); `commit`, `write`, `batchWrite`,
+`delete` and transactions are never built. The `where` of the import is checked before it is sent: only
+`fieldFilter`, `compositeFilter` (`AND`, `OR`) and `unaryFilter` with their operators and typed values. Give the
+service account the role **`roles/datastore.viewer`** only.
+
+**Paging.** A query pages with a cursor: the import's order plus the document name, and `startAt` the values of the
+last document of a page (or with `offset`, slower for large collections); a list pages with `pageToken`.
+
+**Test connection.** The token and one document; it shows the fields, or the masked error.
+
+**Example:** `share/examples/firestore-articles.ndjson` is what a run reads from a collection of articles.
+
+### BigQuery query (`bigquery`)
+
+Group: NoSQL databases. Origin: `remote`. The rows of a GoogleSQL (standard SQL) query, run through the BigQuery REST
+API v2 (`jobs.query` with `useLegacySql=false`): one record is one row.
+
+| Option | Values | Default |
+|---|---|---|
+| `project` | the project that runs (and pays for) the query job | required |
+| `credentials_secret` | the **name** of the secret with the service account's JSON key | required |
+| `location` | the location of the datasets (`EU`, `US`, `europe-west3`) | BigQuery finds it |
+| `query` | one `SELECT` or `WITH`, e.g. ``SELECT order_id, total FROM `example-project.shop.orders` `` | required |
+| `maximum_bytes_billed` | a query that would scan more fails; `0`: `[GoogleCloudSourceSettings] MaximumBytesBilled` (1 GiB) | `0` |
+| `page_size` | rows per request (`maxResults`) | `1000` |
+| `limit` | the most rows; `0`: all | `0` |
+| `key` | the column that names a row; empty: the position | |
+
+**Fields.** By the schema of the result:
+
+| BigQuery type | Field value |
+|---|---|
+| `INT64`, `NUMERIC`, `BIGNUMERIC` | the text (`9007199254740993`, `12.50`), never a float |
+| `FLOAT64` | a number (`NaN`, `Infinity` as text) |
+| `BOOL` | `true`/`false` |
+| `TIMESTAMP` | ISO 8601 in UTC (`2026-04-02T08:30:00.25Z`) |
+| `DATE`, `DATETIME`, `TIME`, `STRING`, `GEOGRAPHY`, `JSON` | the text BigQuery gives |
+| `BYTES` | base64 |
+| `RECORD` (`STRUCT`) | flattened to dotted names (`customer.name`) |
+| a `REPEATED` column | JSON (`["green","tea"]`, `[{"sku":"tea-1","qty":"2"}]`) |
+
+**Only reading is possible.** The query must be a single `SELECT` or `WITH`. Outside string literals, comments and
+quoted names, the source refuses DML (`INSERT`, `UPDATE`, `DELETE`, `MERGE`, `TRUNCATE`), DDL (`CREATE`, `ALTER`,
+`DROP`, `UNDROP`), scripting (`DECLARE`, `SET`, `BEGIN`, `LOOP`, `WHILE`, `EXECUTE IMMEDIATE`, `COMMIT` ...),
+`EXPORT DATA`, `LOAD DATA`, `CALL`, `GRANT`, `REVOKE`, `ASSERT`, `EXTERNAL_QUERY` and a second statement after a
+semicolon. A raw string with a backslash before a quote is refused rather than guessed. The token's scope is
+`https://www.googleapis.com/auth/bigquery`, because `bigquery.readonly` cannot run a query job: what the account may do
+comes from its roles. Give the service account **`roles/bigquery.jobUser`** on the project that runs the job and
+**`roles/bigquery.dataViewer`** on the datasets it reads, nothing more.
+
+**Costs.** Every query carries `maximumBytesBilled`, so a query that would scan more fails instead of costing more.
+*Test connection* is a **dry run** (free): it shows the columns and the bytes the query would process, and fails when
+they exceed the limit.
+
+**Paging.** When the job is not finished at once the source asks for its result again (`getQueryResults`), then pages
+with `pageToken`.
+
+**Example:** `share/examples/bigquery-orders.ndjson` is what a run reads from a query of orders.
+
+**What the host needs (both).** PHP's https stream with `allow_url_fopen=On` and the extension `openssl`, which also
+signs the token request, in the web server's PHP and in the job queue's workers.
+
+## Firebase Realtime Database (`firebase_rtdb`)
+
+Group: NoSQL databases. Origin: `remote`. The children of a path of a Firebase Realtime Database, read through its REST
+API: one record is one child, `_key` with its value; nested objects are flattened into dotted names (`author.name`),
+arrays are JSON or joined, and a child that is a plain value gives `_key` and `value`. A path that holds a plain value
+is one record.
+
+| Option | Values | Default |
+|---|---|---|
+| `database_url` | `https://<name>.firebaseio.com` or `https://<name>.<region>.firebasedatabase.app` | required |
+| `path` | the node whose children are the records: `articles`, `catalog/products` | the root |
+| `auth` | `service_account` (a Google access token), `database_secret` (legacy) or `none` (public read rules) | `service_account` |
+| `credentials_secret` | with a service account: the **name** of the secret with its JSON key | |
+| `database_secret` | with a database secret: the **name** of the secret that holds it | |
+| `shallow` | read the keys first (`shallow=true`), then the children a page of keys at a time: for a big tree | no |
+| `page_size` | children per request | `500` |
+| `limit` | the most children; `0`: all | `0` |
+| `arrays` | `json` or `join` | `json` |
+| `separator` | what stands between the values of a joined array | `, ` |
+| `key` | the key field | `_key` |
+
+**Only reading is possible.** The source sends only `GET <path>.json` with the parameters `orderBy`, `limitToFirst`,
+`startAt`, `endAt`, `shallow` and the authentication; `PUT`, `PATCH`, `POST` and `DELETE` are never built. A service
+account's token asks for the scopes `firebase.database` and `userinfo.email`; give the account the role
+**`roles/firebasedatabase.viewer`** only. A legacy database secret can read and write everything: prefer a service
+account.
+
+**Hosts.** The address must be a Firebase database; another host (the emulator, `http://localhost:9000/?ns=<name>`)
+only when it is listed in `[GoogleCloudSourceSettings] AllowedHosts[]`.
+
+**Paging.** In key order (`orderBy="$key"`: keys that are 32-bit integers first, by value, then the others by text):
+`limitToFirst`, and `startAt` the last key of the page before. With `shallow`, a first request asks for the keys only,
+then each page reads its keys with `startAt` and `endAt`, so no request downloads the whole tree.
+
+**Test connection.** The number of children (a shallow request) and the first child's fields, or the masked error.
+
+**What the host needs.** PHP's https stream with `allow_url_fopen=On` and `openssl`.
+
+**Example:** `share/examples/firebase-articles.ndjson` is what a run reads from `/articles`.
+
+## Cassandra or ScyllaDB query (`cassandra`)
+
+Group: NoSQL databases. Origin: `remote`. The rows of a CQL `SELECT` against Apache Cassandra or ScyllaDB: one record
+is one row. Once per run the source pages through the result and writes the rows into the run's directory.
+
+| Option | Values | Default |
+|---|---|---|
+| `hosts` | contact points, comma separated, each with an optional `:port`: `cassandra1.example.org, cassandra2.example.org:9142`; the first that answers is used | required |
+| `port` | the port of a contact point without one | `9042` |
+| `tls` | encrypt the connection (the certificate is verified) | no |
+| `user` | the role; empty: no authentication | |
+| `password_secret` | the **name** of a secret, never the password | |
+| `keyspace` | the keyspace; empty: the query names its tables with the keyspace (`shop.products`) | |
+| `query` | one `SELECT`, e.g. `SELECT sku, title, price FROM products WHERE category = 'tea'` | required |
+| `consistency` | `LOCAL_ONE`, `ONE`, `LOCAL_QUORUM`, `QUORUM`, `ALL` | `LOCAL_ONE` |
+| `page_size` | rows per page | `500` |
+| `limit` | the most rows; `0`: all | `0` |
+| `collections` | lists and sets as `json` or a joined list (`join`) | `json` |
+| `separator` | what stands between the values of a joined list | `, ` |
+| `key` | the column that names a row; empty: the position | |
+
+**Fields.** `ascii`, `text`, `varchar` as text; `int`, `bigint`, `smallint`, `tinyint`, `counter` as numbers;
+`boolean`; `double`, `float` as numbers; `decimal` and `varint` as text (`123.45`); `uuid`, `timeuuid` as
+`8-4-4-4-12` hex digits; `timestamp` as ISO 8601 in UTC with milliseconds when it has them; `date` as `YYYY-MM-DD`;
+`time` as `HH:MM:SS.nnnnnnnnn`; `inet` as the address; `blob` (and types the built-in client does not know, such as
+`duration`) as base64; `list`, `set` and `tuple` as JSON or joined; `map` as JSON (`{"room":"Hall 2"}`); a
+user-defined type flattened to dotted names (`venue.city`).
+
+**Only reading is possible.** The query must be a single `SELECT`. Outside string literals (`'...'`, `$$...$$`),
+comments and quoted names, `INSERT`, `UPDATE`, `DELETE`, `BATCH`, `APPLY`, `BEGIN`, `TRUNCATE`, `CREATE`, `ALTER`,
+`DROP`, `GRANT`, `REVOKE`, `USE` and `USING`, and a second statement after a semicolon are refused; each driver refuses
+again whatever does not start with `SELECT`. The keyspace is an option, not a `USE` in the query. Give the import a
+role that may only read: `GRANT SELECT ON KEYSPACE shop TO reader`.
+
+**Secrets and hosts.** The password is the name of a secret and masked in every message. A contact point in a private
+or reserved network is refused unless `AllowPrivateHosts=enabled` or it is listed in `[CassandraSourceSettings]
+AllowedHosts[]`. `[CassandraSourceSettings] Timeout` limits connecting and each answer.
+
+**Paging.** The page size of the import and the paging state of each page, until the server gives none; at most
+`[CassandraSourceSettings] MaxPages` pages per run.
+
+**Test connection.** Connects, reads one row and shows its fields, or the masked error.
+
+**Drivers.** The PHP extension `cassandra` of DataStax where it is installed (it needs the DataStax C/C++ driver;
+there are no packages for current PHP versions); without it, a small client of the extension speaks the CQL native
+protocol v4 over a socket (driver `socket`, with `openssl` for TLS): `STARTUP`, `AUTHENTICATE` with the
+`PasswordAuthenticator`, `QUERY` with page size and paging state, and the decoding of the types above. It refuses a
+frame larger than `[CassandraSourceSettings] MaxFrameMegabytes`. `[CassandraSourceSettings] Client` chooses: `auto`
+(the default), `extension` or `socket`. The built-in client is tested against a scripted server that sends the frames
+of the protocol specification; it has not yet been run against a live Cassandra or ScyllaDB server.
+
+**Example:** `share/examples/cassandra-events.ndjson` is what a run reads from a table of events.
+
 ## LDAP directory (`ldap`)
 
 Group: data. Origin: `remote`. The entries of an LDAP directory (OpenLDAP, Active Directory, 389 Directory Server and

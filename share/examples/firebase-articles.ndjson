@@ -1,0 +1,3 @@
+{"_key":"-Nx1aExampleKey0001","title":"Brewing green tea","status":"published","author.name":"Tea desk","author.email":"desk@example.invalid","tags":"[\"green\",\"brewing\"]","views":1250}
+{"_key":"-Nx1aExampleKey0002","title":"Water temperature","status":"published","author.name":"Tea desk","author.email":"desk@example.invalid","tags":"[\"brewing\"]","views":830}
+{"_key":"-Nx1aExampleKey0003","title":"Storing oolong","status":"draft","author.name":"Shop team","author.email":"shop@example.invalid","tags":"[\"oolong\",\"storage\"]","views":0}

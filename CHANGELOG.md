@@ -172,6 +172,30 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   never read. Bind and search only, the password by the name of a secret, servers in private networks only from
   [LdapSourceSettings] AllowedHosts[]; Test connection and the driver list say whether this PHP and the job queue's
   workers have the extension ldap.
+- Added: The format Amazon DynamoDB table (dynamodb): the items of a table or index through the DynamoDB API, signed
+  with AWS Signature Version 4 by a class of its own (no SDK); Scan or Query with key condition, filter, attribute
+  names and values, projection, index and consistent read, page by page with ExclusiveStartKey. Only Scan and Query
+  (DescribeTable for Test connection) are ever sent; maps flattened, numbers as text, lists as JSON, sets joined or
+  JSON. The secret access key and session token by the name of a secret; custom endpoints (DynamoDB Local) in private
+  networks only from [DynamoDbSourceSettings] AllowedHosts[].
+- Added: Google Cloud service accounts for the sources: the JSON key by the name of a secret, a JWT signed with RS256
+  exchanged for an access token that is kept for the run, the key and the token masked in every message.
+- Added: The format Firestore collection (firestore): the documents of a collection, subcollection or collection group
+  through the Firestore REST API, as a structured query (where checked before it is sent, order, select) paged with a
+  cursor or offset, or the list of a collection paged with pageToken; every typed value mapped, maps flattened.
+  Read-only scope by default and the role roles/datastore.viewer.
+- Added: The format BigQuery query (bigquery): the rows of a single SELECT or WITH in GoogleSQL (DML, DDL, scripts,
+  EXPORT DATA, LOAD DATA and CALL refused), every query with a bytes billed limit ([GoogleCloudSourceSettings]
+  MaximumBytesBilled), polled and paged with pageToken; INT64 and NUMERIC as text, TIMESTAMP ISO, RECORD flattened,
+  REPEATED as JSON. Test connection is a free dry run that shows the bytes the query would process.
+- Added: The format Firebase Realtime Database (firebase_rtdb): the children of a path through the REST API, GET
+  only, in key order with limitToFirst and startAt, or the keys first (shallow) for big trees; a service account or a
+  legacy database secret by the name of a secret.
+- Added: The format Cassandra or ScyllaDB query (cassandra): the rows of a single CQL SELECT, paged with the paging
+  state, through the PHP extension cassandra or a built-in client of the native protocol v4 (password authentication,
+  TLS, the common types); maps as JSON, user-defined types flattened. The password by the name of a secret, contact
+  points in private networks only from [CassandraSourceSettings] AllowedHosts[]; the built-in client is so far tested
+  against a scripted server only.
 
 ### Updated
 

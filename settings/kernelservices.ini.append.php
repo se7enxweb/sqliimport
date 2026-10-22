@@ -50,6 +50,12 @@ Formats[]=Redis
 Formats[]=LDAP
 Formats[]=Airtable
 Formats[]=Notion
+Formats[]=DynamoDB
+Formats[]=Firestore
+Formats[]=BigQuery
+Formats[]=Firebase
+Formats[]=Cassandra
+Formats[]=ScyllaDB
 EntryURL=sqliimport/list
 Permission=sqliimport/manage|sqliimport/run|sqliimport/manageimports|sqliimport/listimports
 HelpPage=ext/sqliimport/README.md
@@ -259,6 +265,46 @@ Arguments[]=expImportRedisSource
 Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: Redis keys (SCAN by pattern, read-only commands)
+
+[Service_sqliimport.source.dynamodb]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportDynamoDbSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: items of an Amazon DynamoDB table (Scan or Query only, Signature Version 4)
+
+[Service_sqliimport.source.firestore]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportFirestoreSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: documents of a Google Cloud Firestore collection (runQuery or list, read-only)
+
+[Service_sqliimport.source.bigquery]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportBigQuerySource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: rows of a Google BigQuery query (a single SELECT, bytes billed limit)
+
+[Service_sqliimport.source.firebase_rtdb]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportFirebaseSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: children of a Firebase Realtime Database path (REST GET only)
+
+[Service_sqliimport.source.cassandra]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportCassandraSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: rows of a CQL SELECT against Cassandra or ScyllaDB (read-only)
 
 [Service_sqliimport.source.ldap]
 Class=expImportSourceEntry

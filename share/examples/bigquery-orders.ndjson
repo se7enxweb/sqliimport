@@ -1,0 +1,3 @@
+{"order_id":"9000001","customer.name":"Example Customer A","customer.country":"DE","total":"42.30","created_at":"2026-04-02T08:30:00Z","items":"[{\"sku\":\"tea-1001\",\"qty\":\"2\"},{\"sku\":\"tea-1002\",\"qty\":\"1\"}]","paid":true}
+{"order_id":"9000002","customer.name":"Example Customer B","customer.country":"AT","total":"18.00","created_at":"2026-04-02T11:05:12.25Z","items":"[{\"sku\":\"tea-1003\",\"qty\":\"1\"}]","paid":true}
+{"order_id":"9000003","customer.name":"Example Customer C","customer.country":"CH","total":"9.80","created_at":"2026-04-03T16:40:00Z","items":"[{\"sku\":\"tea-1002\",\"qty\":\"1\"}]","paid":false}

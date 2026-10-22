@@ -11,7 +11,7 @@ Laufs dieselben Daten liest.
 | `upload` | `file`: der gespeicherte Name einer hochgeladenen Datei | Der Upload (im Speicherverzeichnis der Website unter `sqliimport/uploads/`) wird in das Verzeichnis des Laufs kopiert |
 | `url` | `url`: eine Adresse mit `http` oder `https` | Die Adresse wird in das Verzeichnis des Laufs heruntergeladen, mit dem Zeitlimit `[ImportSettings] StreamTimeout` und dem Größenlimit `[SourceSettings] MaxSourceMegabytes` |
 | `path` | `path`: eine Datei auf dem Server | Die Datei wird an Ort und Stelle gelesen, aber nur, wenn sie in einem der Verzeichnisse von `[SourceSettings] AllowedPaths[]` liegt |
-| `remote` | die eigenen Optionen der Quelle (eine Datenbank, ein Suchindex, ein Postfach, ein Verzeichnisdienst, ein Dienst) | Die Quelle liest ihre Daten einmal pro Lauf selbst und schreibt sie als JSON Lines in das Verzeichnis des Laufs (`sql`, `mongodb`, `redis`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion` und die Websites der Gruppe Plattformen) |
+| `remote` | die eigenen Optionen der Quelle (eine Datenbank, ein Suchindex, ein Postfach, ein Verzeichnisdienst, ein Dienst) | Die Quelle liest ihre Daten einmal pro Lauf selbst und schreibt sie als JSON Lines in das Verzeichnis des Laufs (`sql`, `mongodb`, `redis`, `dynamodb`, `firestore`, `bigquery`, `firebase_rtdb`, `cassandra`, `elasticsearch`, `duckdb`, `imap`, `ldap`, `airtable`, `notion` und die Websites der Gruppe Plattformen) |
 
 Regeln:
 
@@ -909,6 +909,298 @@ einen Wert ab, der größer als `MaxValueMegabytes` ist.
 
 **Beispiel:** `share/examples/redis-products.ndjson` ist, was ein Lauf aus den Schlüsseln `product:*` liest (zwei
 Hashes, eine JSON-Zeichenkette und eine Menge), um eine Zuordnung auszuprobieren.
+
+## Amazon-DynamoDB-Tabelle (`dynamodb`)
+
+Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Items einer DynamoDB-Tabelle oder eines ihrer Indizes, gelesen mit
+`Scan` oder `Query` über die HTTPS-API von DynamoDB: Ein Datensatz ist ein Item. Die Anfragen werden mit AWS Signature
+Version 4 von einer kleinen Klasse der Erweiterung signiert (kein AWS-SDK). Einmal pro Lauf blättert die Quelle durch
+die Items und schreibt sie in das Verzeichnis des Laufs, ein JSON-Objekt pro Zeile.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `region` | die AWS-Region der Tabelle: `eu-central-1` | erforderlich |
+| `endpoint` | leer: `https://dynamodb.<region>.amazonaws.com`; sonst DynamoDB Local oder ein kompatibler Dienst (`http://localhost:8000`) | |
+| `access_key_id` | die Zugriffsschlüssel-ID eines IAM-Benutzers oder einer Rolle (`AKIA...`) | erforderlich |
+| `secret_key_secret` | der **Name** des Geheimnisses mit dem geheimen Zugriffsschlüssel (siehe [Geheimnisse](#geheimnisse)) | erforderlich |
+| `session_token_secret` | nur bei temporären Zugangsdaten (STS): der Name des Geheimnisses mit dem Session-Token | |
+| `table` | die Tabelle | erforderlich |
+| `operation` | `scan` (jedes Item, oder die des Filters) oder `query` (die Items eines Partitionsschlüssels) | `scan` |
+| `index_name` | ein globaler oder lokaler Sekundärindex (`IndexName`) | die Tabelle |
+| `key_condition` | nur bei `query`, dort erforderlich: `KeyConditionExpression`, z. B. `customer_id = :c AND created_at > :d` | |
+| `filter` | `FilterExpression`, z. B. `#s = :p AND price < :max` | |
+| `names` | `ExpressionAttributeNames` als JSON: `{"#s": "status"}` | |
+| `values` | `ExpressionAttributeValues` als JSON in der DynamoDB-Form: `{":p": {"S": "published"}, ":max": {"N": "20"}}` | |
+| `projection` | `ProjectionExpression`: die zu lesenden Attribute | alle |
+| `consistent_read` | `ConsistentRead` (nicht bei einem globalen Sekundärindex) | nein |
+| `scan_forward` | nur bei `query`: aufsteigender Sortierschlüssel (`ScanIndexForward`) | ja |
+| `page_size` | `Limit`: pro Anfrage geprüfte Items (eine Antwort ist außerdem höchstens 1 MB groß) | `100` |
+| `limit` | höchstens so viele Items; `0`: alle | `0` |
+| `sets` | Mengen aus Texten, Zahlen und Binärwerten als verbundene Liste (`join`) oder JSON (`json`) | `join` |
+| `separator` | was zwischen den Werten einer verbundenen Menge steht | `, ` |
+| `key` | das Attribut, das ein Item benennt (sein Partitionsschlüssel); leer: die Position | |
+
+**Felder.** Jedes Attribut ist ein Feld; Maps werden zu Namen mit Punkten aufgelöst (`dimensions.weight_g`):
+
+| AttributeValue | Feldwert |
+|---|---|
+| `S` | der Text |
+| `N` | sein Dezimaltext (`12.50`, auch jenseits der Zahlen von PHP), nie eine Gleitkommazahl |
+| `B` | Base64, wie DynamoDB es sendet |
+| `BOOL`, `NULL` | `true`/`false`, `null` |
+| `M` | zu Namen mit Punkten aufgelöst; eine leere Map ist `{}` |
+| `L` | JSON (`[{"size":"50g"},"7",false]`) |
+| `SS`, `NS`, `BS` | eine verbundene Liste (`green, japan`) oder JSON (Option `sets`) |
+
+**Nur Lesen ist möglich.** Die Quelle sendet nur die Operationen `Scan` und `Query` (und `DescribeTable` für
+*Verbindung testen*); jeder andere Name (`PutItem`, `UpdateItem`, `DeleteItem`, `BatchWriteItem`,
+`TransactWriteItems`, `ExecuteStatement` für PartiQL ...) wird abgelehnt, bevor eine Anfrage entsteht. Ausdrücke
+wählen und formen nur Items; ein Update- oder Bedingungsausdruck wird nie gesendet. Geben Sie dem Zugriffsschlüssel
+eine IAM-Richtlinie, die nur Lesen erlaubt:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": ["dynamodb:Scan", "dynamodb:Query", "dynamodb:DescribeTable"],
+    "Resource": ["arn:aws:dynamodb:eu-central-1:123456789012:table/products",
+                 "arn:aws:dynamodb:eu-central-1:123456789012:table/products/index/*"]
+  }]
+}
+```
+
+`dynamodb:DescribeTable` braucht nur *Verbindung testen* (Status und Anzahl der Items); ohne das Recht liest der Test
+trotzdem ein Item.
+
+**Geheimnisse und Hosts.** Der geheime Zugriffsschlüssel und das Session-Token sind Namen von Geheimnissen; der
+Schlüssel wird nie gesendet (nur die Signatur), und beide werden in jeder Meldung maskiert. Ein eigener Endpunkt in
+einem privaten oder reservierten Netz wird abgelehnt, außer er steht in `[DynamoDbSourceSettings] AllowedHosts[]`.
+
+**Blättern.** `Limit` Items pro Anfrage und `ExclusiveStartKey` mit dem `LastEvaluatedKey` der Antwort, bis keiner
+mehr kommt; höchstens `[DynamoDbSourceSettings] MaxPages` Anfragen pro Lauf. Drosselungen
+(`ProvisionedThroughputExceededException`, `ThrottlingException`) und 5xx-Antworten werden nach 1, 2, 4 und 8 Sekunden
+wiederholt.
+
+**Verbindung testen.** `DescribeTable` und eine Seite mit einem Item des Scans oder der Abfrage; zeigt die Felder oder
+den maskierten Fehler.
+
+**Was der Host braucht.** Den https-Stream von PHP mit `allow_url_fopen=On` und die Erweiterung `openssl` (auf RHEL und
+Debian Teil des php-Pakets), im PHP des Webservers und der Worker der Job-Warteschlange.
+
+**Beispiel:** `share/examples/dynamodb-products.ndjson` ist, was ein Lauf aus einer Produkttabelle liest (drei Items).
+
+## Google Cloud: Firestore (`firestore`) und BigQuery (`bigquery`)
+
+Beide lesen mit einem **Dienstkonto**: Seine JSON-Schlüsseldatei ist der Wert eines Geheimnisses, der Import nennt das
+Geheimnis (`credentials_secret`). Die Erweiterung signiert mit dem Schlüssel ein JWT (RS256, `openssl_sign`), tauscht
+es bei `https://oauth2.googleapis.com/token` gegen ein Zugriffstoken (der `token_uri` der Schlüsseldatei wird nicht
+befolgt) und behält das Token für den Rest des Laufs. Schlüssel, JWT und Token werden in jeder Meldung maskiert. Was
+das Dienstkonto darf, entscheiden seine IAM-Rollen: Geben Sie ihm nur die unten genannten Leserollen.
+`[GoogleCloudSourceSettings] MaxPages` begrenzt die Anfragen eines Laufs.
+
+### Firestore-Collection (`firestore`)
+
+Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Dokumente einer Collection, einer Subcollection oder einer
+Collection-Gruppe einer Firestore-Datenbank (nativer Modus), gelesen über die Firestore-REST-API v1: Ein Datensatz ist
+ein Dokument.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `project` | das Google-Cloud-Projekt | erforderlich |
+| `database` | die Datenbank-ID | `(default)` |
+| `credentials_secret` | der **Name** des Geheimnisses mit dem JSON-Schlüssel des Dienstkontos | erforderlich |
+| `scope` | `read_only` (`cloud-platform.read-only`) oder `datastore` (wenn der Nur-Lese-Scope abgelehnt wird; die Rolle hält es lesend) | `read_only` |
+| `mode` | `query` (eine strukturierte Abfrage, `documents:runQuery`) oder `list` (die Liste der Collection, ohne Filter) | `query` |
+| `collection` | `articles`, oder eine Subcollection über ihren Pfad: `customers/c-1001/orders` | erforderlich |
+| `all_descendants` | nur `query`: jede Collection dieses Namens unterhalb des Pfads (eine Collection-Gruppe) | nein |
+| `where` | nur `query`: das `where` einer strukturierten Abfrage, z. B. `{"fieldFilter": {"field": {"fieldPath": "status"}, "op": "EQUAL", "value": {"stringValue": "published"}}}` | alle |
+| `order_by` | `published_at:desc,title`; der Dokumentname ist immer die letzte Ordnung | der Name |
+| `fields` | die zu lesenden Felder, eines pro Zeile (`select`, bzw. `mask.fieldPaths` einer Liste) | alle |
+| `paging` | `cursor` (`startAt` das letzte Dokument) oder `offset` | `cursor` |
+| `page_size` | Dokumente pro Anfrage | `300` |
+| `limit` | höchstens so viele Dokumente; `0`: alle | `0` |
+| `arrays` | `json` oder `join` (ein Array aus Maps bleibt JSON) | `json` |
+| `separator` | was zwischen den Werten eines verbundenen Arrays steht | `, ` |
+| `key` | `_id` (die Dokument-ID) oder `_path` (auch in einer Collection-Gruppe eindeutig) | `_id` |
+
+Jeder Datensatz hat `_id`, `_path` (unterhalb der Dokumente der Datenbank, `articles/a-1`), `_create_time` und
+`_update_time`. Die typisierten Werte:
+
+| Firestore-Wert | Feldwert |
+|---|---|
+| `stringValue`, `timestampValue` | der Text; ein Zeitstempel in ISO 8601, wie Firestore ihn liefert (`2026-02-01T09:00:00.250Z`) |
+| `integerValue` | eine Zahl, oder ihr Text jenseits der Ganzzahlen von PHP |
+| `doubleValue`, `booleanValue`, `nullValue` | wie sie sind (`NaN` und `Infinity` als Text) |
+| `mapValue` | zu Namen mit Punkten aufgelöst (`author.name`); eine leere Map ist `{}` |
+| `arrayValue` | JSON, oder eine verbundene Liste (Option `arrays`) |
+| `referenceValue` | der Pfad des Dokuments, auf das er zeigt (`authors/au-1`) |
+| `geoPointValue` | `Breite,Länge` (`48.137,11.575`) |
+| `bytesValue` | Base64 |
+
+**Nur Lesen ist möglich.** Die Quelle baut nur `documents:runQuery` (POST, eine strukturierte Abfrage: `from`,
+`where`, `orderBy`, `select`, `limit`, `offset`, `startAt`) und die Liste einer Collection (GET); `commit`, `write`,
+`batchWrite`, `delete` und Transaktionen entstehen nie. Das `where` des Imports wird vor dem Senden geprüft: nur
+`fieldFilter`, `compositeFilter` (`AND`, `OR`) und `unaryFilter` mit ihren Operatoren und typisierten Werten. Geben Sie
+dem Dienstkonto nur die Rolle **`roles/datastore.viewer`**.
+
+**Blättern.** Eine Abfrage blättert mit einem Cursor: die Ordnung des Imports plus der Dokumentname, und `startAt` die
+Werte des letzten Dokuments einer Seite (oder mit `offset`, langsamer bei großen Collections); eine Liste blättert mit
+`pageToken`.
+
+**Verbindung testen.** Das Token und ein Dokument; zeigt die Felder oder den maskierten Fehler.
+
+**Beispiel:** `share/examples/firestore-articles.ndjson` ist, was ein Lauf aus einer Collection von Artikeln liest.
+
+### BigQuery-Abfrage (`bigquery`)
+
+Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Zeilen einer GoogleSQL-Abfrage (Standard-SQL), ausgeführt über die
+BigQuery-REST-API v2 (`jobs.query` mit `useLegacySql=false`): Ein Datensatz ist eine Zeile.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `project` | das Projekt, das den Abfragejob ausführt (und bezahlt) | erforderlich |
+| `credentials_secret` | der **Name** des Geheimnisses mit dem JSON-Schlüssel des Dienstkontos | erforderlich |
+| `location` | der Standort der Datasets (`EU`, `US`, `europe-west3`) | BigQuery ermittelt ihn |
+| `query` | ein `SELECT` oder `WITH`, z. B. ``SELECT order_id, total FROM `example-project.shop.orders` `` | erforderlich |
+| `maximum_bytes_billed` | eine Abfrage, die mehr scannen würde, schlägt fehl; `0`: `[GoogleCloudSourceSettings] MaximumBytesBilled` (1 GiB) | `0` |
+| `page_size` | Zeilen pro Anfrage (`maxResults`) | `1000` |
+| `limit` | höchstens so viele Zeilen; `0`: alle | `0` |
+| `key` | die Spalte, die eine Zeile benennt; leer: die Position | |
+
+**Felder.** Nach dem Schema des Ergebnisses:
+
+| BigQuery-Typ | Feldwert |
+|---|---|
+| `INT64`, `NUMERIC`, `BIGNUMERIC` | der Text (`9007199254740993`, `12.50`), nie eine Gleitkommazahl |
+| `FLOAT64` | eine Zahl (`NaN`, `Infinity` als Text) |
+| `BOOL` | `true`/`false` |
+| `TIMESTAMP` | ISO 8601 in UTC (`2026-04-02T08:30:00.25Z`) |
+| `DATE`, `DATETIME`, `TIME`, `STRING`, `GEOGRAPHY`, `JSON` | der Text, den BigQuery liefert |
+| `BYTES` | Base64 |
+| `RECORD` (`STRUCT`) | zu Namen mit Punkten aufgelöst (`customer.name`) |
+| eine `REPEATED`-Spalte | JSON (`["green","tea"]`, `[{"sku":"tea-1","qty":"2"}]`) |
+
+**Nur Lesen ist möglich.** Die Abfrage muss ein einzelnes `SELECT` oder `WITH` sein. Außerhalb von
+Zeichenkettenliteralen, Kommentaren und quotierten Namen lehnt die Quelle DML (`INSERT`, `UPDATE`, `DELETE`, `MERGE`,
+`TRUNCATE`), DDL (`CREATE`, `ALTER`, `DROP`, `UNDROP`), Skripte (`DECLARE`, `SET`, `BEGIN`, `LOOP`, `WHILE`,
+`EXECUTE IMMEDIATE`, `COMMIT` ...), `EXPORT DATA`, `LOAD DATA`, `CALL`, `GRANT`, `REVOKE`, `ASSERT`, `EXTERNAL_QUERY`
+und eine zweite Anweisung nach einem Semikolon ab. Eine Raw-Zeichenkette mit einem Backslash vor einem
+Anführungszeichen wird abgelehnt statt geraten. Der Scope des Tokens ist `https://www.googleapis.com/auth/bigquery`,
+weil `bigquery.readonly` keinen Abfragejob ausführen darf: Was das Konto darf, ergibt sich aus seinen Rollen. Geben
+Sie dem Dienstkonto **`roles/bigquery.jobUser`** auf dem Projekt, das den Job ausführt, und
+**`roles/bigquery.dataViewer`** auf den Datasets, die es liest, sonst nichts.
+
+**Kosten.** Jede Abfrage trägt `maximumBytesBilled`, sodass eine Abfrage, die mehr scannen würde, fehlschlägt, statt
+mehr zu kosten. *Verbindung testen* ist ein **Probelauf** (Dry Run, kostenlos): Er zeigt die Spalten und die Bytes, die
+die Abfrage verarbeiten würde, und schlägt fehl, wenn sie das Limit überschreiten.
+
+**Blättern.** Ist der Job nicht sofort fertig, fragt die Quelle sein Ergebnis erneut ab (`getQueryResults`) und
+blättert dann mit `pageToken`.
+
+**Beispiel:** `share/examples/bigquery-orders.ndjson` ist, was ein Lauf aus einer Abfrage von Bestellungen liest.
+
+**Was der Host braucht (beide).** Den https-Stream von PHP mit `allow_url_fopen=On` und die Erweiterung `openssl`, die
+auch die Token-Anfrage signiert, im PHP des Webservers und der Worker der Job-Warteschlange.
+
+## Firebase Realtime Database (`firebase_rtdb`)
+
+Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Kinder eines Pfads einer Firebase Realtime Database, gelesen über
+ihre REST-API: Ein Datensatz ist ein Kind, `_key` mit seinem Wert; verschachtelte Objekte werden zu Namen mit Punkten
+aufgelöst (`author.name`), Arrays sind JSON oder verbunden, und ein Kind, das ein einfacher Wert ist, ergibt `_key` und
+`value`. Ein Pfad, der einen einfachen Wert enthält, ist ein Datensatz.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `database_url` | `https://<name>.firebaseio.com` oder `https://<name>.<region>.firebasedatabase.app` | erforderlich |
+| `path` | der Knoten, dessen Kinder die Datensätze sind: `articles`, `catalog/products` | die Wurzel |
+| `auth` | `service_account` (ein Google-Zugriffstoken), `database_secret` (veraltet) oder `none` (öffentliche Leseregeln) | `service_account` |
+| `credentials_secret` | mit Dienstkonto: der **Name** des Geheimnisses mit seinem JSON-Schlüssel | |
+| `database_secret` | mit Datenbank-Secret: der **Name** des Geheimnisses, das es enthält | |
+| `shallow` | erst die Schlüssel lesen (`shallow=true`), dann die Kinder seitenweise: für einen großen Baum | nein |
+| `page_size` | Kinder pro Anfrage | `500` |
+| `limit` | höchstens so viele Kinder; `0`: alle | `0` |
+| `arrays` | `json` oder `join` | `json` |
+| `separator` | was zwischen den Werten eines verbundenen Arrays steht | `, ` |
+| `key` | das Schlüsselfeld | `_key` |
+
+**Nur Lesen ist möglich.** Die Quelle sendet nur `GET <pfad>.json` mit den Parametern `orderBy`, `limitToFirst`,
+`startAt`, `endAt`, `shallow` und der Anmeldung; `PUT`, `PATCH`, `POST` und `DELETE` entstehen nie. Das Token eines
+Dienstkontos fragt nach den Scopes `firebase.database` und `userinfo.email`; geben Sie dem Konto nur die Rolle
+**`roles/firebasedatabase.viewer`**. Ein veraltetes Datenbank-Secret darf alles lesen und schreiben: Nehmen Sie lieber
+ein Dienstkonto.
+
+**Hosts.** Die Adresse muss eine Firebase-Datenbank sein; ein anderer Host (der Emulator,
+`http://localhost:9000/?ns=<name>`) nur, wenn er in `[GoogleCloudSourceSettings] AllowedHosts[]` steht.
+
+**Blättern.** In Schlüsselreihenfolge (`orderBy="$key"`: Schlüssel, die 32-Bit-Ganzzahlen sind, zuerst nach Wert,
+dann die übrigen nach Text): `limitToFirst`, und `startAt` der letzte Schlüssel der vorigen Seite. Mit `shallow` fragt
+eine erste Anfrage nur die Schlüssel ab, dann liest jede Seite ihre Schlüssel mit `startAt` und `endAt`, sodass keine
+Anfrage den ganzen Baum lädt.
+
+**Verbindung testen.** Die Anzahl der Kinder (eine Shallow-Anfrage) und die Felder des ersten Kindes, oder der
+maskierte Fehler.
+
+**Was der Host braucht.** Den https-Stream von PHP mit `allow_url_fopen=On` und `openssl`.
+
+**Beispiel:** `share/examples/firebase-articles.ndjson` ist, was ein Lauf aus `/articles` liest.
+
+## Cassandra- oder ScyllaDB-Abfrage (`cassandra`)
+
+Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Zeilen eines CQL-`SELECT` gegen Apache Cassandra oder ScyllaDB: Ein
+Datensatz ist eine Zeile. Einmal pro Lauf blättert die Quelle durch das Ergebnis und schreibt die Zeilen in das
+Verzeichnis des Laufs.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `hosts` | Kontaktpunkte, durch Kommas getrennt, jeweils mit optionalem `:port`: `cassandra1.example.org, cassandra2.example.org:9142`; der erste, der antwortet, wird verwendet | erforderlich |
+| `port` | der Port eines Kontaktpunkts ohne eigenen | `9042` |
+| `tls` | die Verbindung verschlüsseln (das Zertifikat wird geprüft) | nein |
+| `user` | die Rolle; leer: keine Anmeldung | |
+| `password_secret` | der **Name** eines Geheimnisses, nie das Passwort | |
+| `keyspace` | der Keyspace; leer: die Abfrage nennt ihre Tabellen mit Keyspace (`shop.products`) | |
+| `query` | ein `SELECT`, z. B. `SELECT sku, title, price FROM products WHERE category = 'tea'` | erforderlich |
+| `consistency` | `LOCAL_ONE`, `ONE`, `LOCAL_QUORUM`, `QUORUM`, `ALL` | `LOCAL_ONE` |
+| `page_size` | Zeilen pro Seite | `500` |
+| `limit` | höchstens so viele Zeilen; `0`: alle | `0` |
+| `collections` | Listen und Mengen als `json` oder verbundene Liste (`join`) | `json` |
+| `separator` | was zwischen den Werten einer verbundenen Liste steht | `, ` |
+| `key` | die Spalte, die eine Zeile benennt; leer: die Position | |
+
+**Felder.** `ascii`, `text`, `varchar` als Text; `int`, `bigint`, `smallint`, `tinyint`, `counter` als Zahlen;
+`boolean`; `double`, `float` als Zahlen; `decimal` und `varint` als Text (`123.45`); `uuid`, `timeuuid` als
+`8-4-4-4-12` Hexziffern; `timestamp` als ISO 8601 in UTC, mit Millisekunden, wenn er welche hat; `date` als
+`JJJJ-MM-TT`; `time` als `HH:MM:SS.nnnnnnnnn`; `inet` als Adresse; `blob` (und Typen, die der eingebaute Client nicht
+kennt, etwa `duration`) als Base64; `list`, `set` und `tuple` als JSON oder verbunden; `map` als JSON
+(`{"room":"Hall 2"}`); ein benutzerdefinierter Typ zu Namen mit Punkten aufgelöst (`venue.city`).
+
+**Nur Lesen ist möglich.** Die Abfrage muss ein einzelnes `SELECT` sein. Außerhalb von Zeichenkettenliteralen
+(`'...'`, `$$...$$`), Kommentaren und quotierten Namen werden `INSERT`, `UPDATE`, `DELETE`, `BATCH`, `APPLY`, `BEGIN`,
+`TRUNCATE`, `CREATE`, `ALTER`, `DROP`, `GRANT`, `REVOKE`, `USE` und `USING` sowie eine zweite Anweisung nach einem
+Semikolon abgelehnt; jeder Treiber lehnt erneut ab, was nicht mit `SELECT` beginnt. Der Keyspace ist eine Option, kein
+`USE` in der Abfrage. Geben Sie dem Import eine Rolle, die nur lesen darf: `GRANT SELECT ON KEYSPACE shop TO reader`.
+
+**Geheimnisse und Hosts.** Das Passwort ist der Name eines Geheimnisses und wird in jeder Meldung maskiert. Ein
+Kontaktpunkt in einem privaten oder reservierten Netz wird abgelehnt, außer bei `AllowPrivateHosts=enabled` oder wenn
+er in `[CassandraSourceSettings] AllowedHosts[]` steht. `[CassandraSourceSettings] Timeout` begrenzt den
+Verbindungsaufbau und jede Antwort.
+
+**Blättern.** Die Seitengröße des Imports und der Paging-State jeder Seite, bis der Server keinen mehr liefert;
+höchstens `[CassandraSourceSettings] MaxPages` Seiten pro Lauf.
+
+**Verbindung testen.** Verbindet, liest eine Zeile und zeigt ihre Felder oder den maskierten Fehler.
+
+**Treiber.** Die PHP-Erweiterung `cassandra` von DataStax, wo sie installiert ist (sie braucht den DataStax-C/C++-
+Treiber; für aktuelle PHP-Versionen gibt es keine Pakete); ohne sie spricht ein kleiner Client der Erweiterung das
+native CQL-Protokoll v4 über einen Socket (Treiber `socket`, mit `openssl` für TLS): `STARTUP`, `AUTHENTICATE` mit dem
+`PasswordAuthenticator`, `QUERY` mit Seitengröße und Paging-State und das Dekodieren der oben genannten Typen. Er lehnt
+einen Frame ab, der größer als `[CassandraSourceSettings] MaxFrameMegabytes` ist. `[CassandraSourceSettings] Client`
+wählt: `auto` (die Vorgabe), `extension` oder `socket`. Der eingebaute Client ist gegen einen geskripteten Server
+getestet, der die Frames der Protokollspezifikation sendet; gegen einen echten Cassandra- oder ScyllaDB-Server ist er
+noch nicht gelaufen.
+
+**Beispiel:** `share/examples/cassandra-events.ndjson` ist, was ein Lauf aus einer Tabelle von Veranstaltungen liest.
+
 ## LDAP-Verzeichnis (`ldap`)
 
 Gruppe: Daten. Herkunft: `remote`. Die Einträge eines LDAP-Verzeichnisses (OpenLDAP, Active Directory, 389 Directory
