@@ -45,7 +45,7 @@ class expImportMapper
         if ( $type === 'remote_id' )
         {
             if ( !isset( $match['pattern'] ) || !preg_match( '/\{[^}]+\}/', (string)$match['pattern'] ) )
-                $errors[] = 'the remote ID pattern needs at least one {field} of the record, e.g. news-{id}';
+                $errors[] = 'the remote ID pattern needs at least one {field} of the record, e.g. news-{id}, or {_ref} for the reference of the record';
         }
         elseif ( $type === 'attribute' )
         {
@@ -110,7 +110,8 @@ class expImportMapper
             $missing = array();
             $remoteID = preg_replace_callback( '/\{([^}]+)\}/', function ( $m ) use ( $record, &$missing )
             {
-                $v = $record->get( $m[1], '' );
+                // {_ref}: the record's own reference (its key field, else its position in the source)
+                $v = $m[1] === '_ref' ? $record->ref : $record->get( $m[1], '' );
                 $v = is_array( $v ) ? '' : trim( (string)$v );
                 if ( $v === '' )
                     $missing[] = $m[1];

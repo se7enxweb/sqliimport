@@ -47,6 +47,26 @@ class MappingTest extends TestCase
         $this->assertSame( 'Ada Lovelace', expImportTransforms::applyChain( 'Ada', array( array( 'name' => 'concat', 'args' => array( 'paths' => array( 'last' ) ) ) ), $record ) );
         $this->assertSame( 'Lovelace (1815)', expImportTransforms::applyChain( '', array( array( 'name' => 'template', 'args' => array( 'text' => '{last} ({year})' ) ) ), $record ) );
     }
+    public function testADownloadThatCannotBeHadLeavesTheFieldEmpty(): void
+    {
+        expImportTransforms::$download = function ( $url, $kind ) { throw new expImportTransformException( "$kind: the host is not reachable" ); };
+        expImportTransforms::$notices = array();
+        $this->assertSame( '', expImportTransforms::applyChain( 'https://example.org/a.jpg', array( array( 'name' => 'image' ) ) ) );
+        $this->assertSame( array( 'image: the host is not reachable (https://example.org/a.jpg)' ), expImportTransforms::$notices );
+        $failed = false;
+        try
+        {
+            expImportTransforms::applyChain( 'https://example.org/a.jpg', array( array( 'name' => 'image', 'args' => array( 'required' => true ) ) ) );
+        }
+        catch ( expImportTransformException $e )
+        {
+            $failed = true;
+        }
+        $this->assertTrue( $failed, 'a required image fails the record' );
+        expImportTransforms::$download = null;
+        expImportTransforms::$notices = array();
+    }
+
 
     public function testNumbersBooleansAndDates(): void
     {
@@ -120,10 +140,17 @@ class MappingTest extends TestCase
         $errors = expImportMapper::validate( array( 'class' => '', 'match' => array( 'type' => 'remote_id', 'pattern' => 'fixed' ),
                                                     'fields' => array( array( 'attribute' => 'a' ), array( 'source' => 'x', 'attribute' => 'a' ) ) ) );
         $this->assertContains( 'choose the content class', $errors );
-        $this->assertContains( 'the remote ID pattern needs at least one {field} of the record, e.g. news-{id}', $errors );
+        $this->assertContains( 'the remote ID pattern needs at least one {field} of the record, e.g. news-{id}, or {_ref} for the reference of the record', $errors );
         $this->assertContains( "line 1: give a source field or a default value for 'a'", $errors );
         $this->assertContains( "line 2: the attribute 'a' is mapped twice", $errors );
         $this->assertNotEmpty( preg_grep( '/where new objects are placed/', $errors ) );
+    }
+
+    public function testTheReferenceOfTheRecordInAPattern(): void
+    {
+        $m = self::mapping();
+        $m['match'] = array( 'type' => 'remote_id', 'pattern' => 'imp-{_ref}' );
+        $this->assertSame( 'imp-r1', expImportMapper::apply( $m, self::record( array( 'title' => 'x' ) ) )['remote_id'] );
     }
 
     public function testApplyTurnsARecordIntoFieldsRemoteIdAndParents(): void

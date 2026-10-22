@@ -29,6 +29,9 @@ class expImportTransforms
     /** @var callable|null fn( string $url, array $args ): int the ID of the media object of a file; set by the engine */
     public static $mediaObject = null;
 
+    /** @var string[] what a record lost without failing (a download that could not be had); read and emptied by the handler */
+    public static $notices = array();
+
     /**
      * The built-in transforms: name => array( label, argument schema ).
      * @return array
@@ -67,13 +70,14 @@ class expImportTransforms
             'slug' => array( 'A URL-friendly identifier', array() ),
             'richtext' => array( 'HTML to the rich text (ezxmltext) of the attribute', array() ),
             'lookup' => array( 'The ID of the object with this remote ID (object relations)', array( 'prefix' => array( 'type' => 'string', 'help' => 'put before the value to make the remote ID' ) ) ),
-            'image' => array( 'Downloads an image from a URL (ezimage)', array() ),
-            'file' => array( 'Downloads a file from a URL (ezbinaryfile, ezmedia)', array() ),
+            'image' => array( 'Downloads an image from a URL (ezimage)', array( 'required' => array( 'type' => 'bool', 'help' => 'the record fails when the image cannot be had (default: it is imported without it, with a note)' ) ) ),
+            'file' => array( 'Downloads a file from a URL (ezbinaryfile, ezmedia)', array( 'required' => array( 'type' => 'bool', 'help' => 'the record fails when the file cannot be had (default: it is imported without it, with a note)' ) ) ),
             'media_object' => array( 'An image or file object for a URL, made once per file (object relations)', array(
                 'parent' => array( 'type' => 'int', 'help' => 'the node the media objects are created below (default: the import\'s parent node)' ),
                 'class' => array( 'type' => 'string', 'help' => 'the class of a media object (default image)' ),
                 'attribute' => array( 'type' => 'string', 'help' => 'its file attribute (default image)' ),
-                'name' => array( 'type' => 'string', 'help' => 'a field of the record for its name (default: the file name)' ) ) ),
+                'name' => array( 'type' => 'string', 'help' => 'a field of the record for its name (default: the file name)' ),
+                'required' => array( 'type' => 'bool', 'help' => 'the record fails when the file cannot be had (default: it is imported without it, with a note)' ) ) ),
         );
     }
 
@@ -320,7 +324,7 @@ class expImportTransforms
                 if ( !$fn )
                     throw new expImportTransformException( "$name needs a running installation" );
                 $url = trim( $text( is_array( $value ) ? reset( $value ) : $value ) );
-                return $url === '' ? '' : (string)$fn( $url, $name );
+                return $url === '' ? '' : self::optionalDownload( function () use ( $fn, $url, $name ) { return (string)$fn( $url, $name ); }, $name, $url, $args );
             case 'media_object':
                 $fn = self::$mediaObject;
                 if ( !$fn )
@@ -330,9 +334,35 @@ class expImportTransforms
                     return '';
                 if ( isset( $args['name'] ) && $args['name'] !== '' && $record )
                     $args['name_value'] = (string)$record->get( (string)$args['name'], '' );
-                return (string)(int)$fn( $url, $args );
+                return self::optionalDownload( function () use ( $fn, $url, $args ) { return (string)(int)$fn( $url, $args ); }, $name, $url, $args );
         }
         throw new expImportTransformException( "unknown transform '$name'" );
+    }
+
+    /**
+     * A download of the transforms image, file and media_object: when it cannot be had, the record goes on without it
+     * (an empty value, and a note in $notices for the record's row), unless the transform says required.
+     *
+     * @param callable $download
+     * @param string $name the transform
+     * @param string $url
+     * @param array $args
+     * @return string
+     * @throws expImportTransformException when the file is required
+     */
+    protected static function optionalDownload( callable $download, $name, $url, array $args )
+    {
+        try
+        {
+            return $download();
+        }
+        catch ( expImportTransformException $e )
+        {
+            if ( !empty( $args['required'] ) )
+                throw $e;
+            self::$notices[] = "$name: " . preg_replace( '/^' . preg_quote( $name, '/' ) . ':\s*/', '', $e->getMessage() ) . ' (' . mb_substr( $url, 0, 120 ) . ')';
+            return '';
+        }
     }
 
     /**

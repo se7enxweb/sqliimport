@@ -475,7 +475,7 @@ class expImportEditor
         $mapping = array(
             'class' => $identifier,
             'language' => '',
-            'match' => isset( $preset['match'] ) ? $preset['match'] : array( 'type' => 'remote_id', 'pattern' => (string)$this->import->attribute( 'identifier' ) . '-{id}' ),
+            'match' => isset( $preset['match'] ) ? $preset['match'] : array( 'type' => 'remote_id', 'pattern' => (string)$this->import->attribute( 'identifier' ) . '-{_ref}' ),
             'fields' => $fields,
             'location' => array( 'parent_node_id' => !empty( $target['parent_node_id'] ) ? (int)$target['parent_node_id']
                                                                                       : (int)expImport::setting( 'ImportSettings', 'DefaultParentNodeID', 2 ) ),
@@ -590,7 +590,7 @@ class expImportEditor
         $mapping = $this->import ? $this->import->mappingArray() : null;
         $target = $this->import ? $this->import->target() : array( 'parent_node_id' => 0, 'language' => '' );
         if ( !$mapping )
-            $mapping = array( 'class' => '', 'language' => '', 'match' => array( 'type' => 'remote_id', 'pattern' => '' ), 'fields' => array(),
+            $mapping = array( 'class' => '', 'language' => '', 'match' => array( 'type' => 'remote_id', 'pattern' => $this->import ? (string)$this->import->attribute( 'identifier' ) . '-{_ref}' : '' ), 'fields' => array(),
                               'location' => array( 'parent_node_id' => (int)$target['parent_node_id'], 'parent_from' => '', 'parent_prefix' => '' ) );
         return $mapping;
     }

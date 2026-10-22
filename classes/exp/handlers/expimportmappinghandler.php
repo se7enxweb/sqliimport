@@ -147,6 +147,18 @@ class expImportMappingHandler implements expImportHandlerInterface
 
     public function process( expImportRecord $record, expImportContext $context )
     {
+        // what the record lost without failing (a download that could not be had) goes into its row's message
+        expImportTransforms::$notices = array();
+        $result = $this->processRecord( $record, $context );
+        if ( expImportTransforms::$notices && $result instanceof expImportRowResult && $result->outcome !== expImportRowResult::FAILED )
+            $result->message = trim( $result->message . ( $result->message !== '' ? '; ' : '' ) . 'without ' . implode( '; ', expImportTransforms::$notices ) );
+        expImportTransforms::$notices = array();
+        return $result;
+    }
+
+    /** @return expImportRowResult what was done with one record */
+    protected function processRecord( expImportRecord $record, expImportContext $context )
+    {
         $plan = expImportMapper::apply( $this->mapping, $record );
         $language = $this->mapping['language'] !== '' ? $this->mapping['language']
                   : ( $context->target['language'] !== '' ? $context->target['language'] : eZContentObject::defaultLanguage() );
