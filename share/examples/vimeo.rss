@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Example Tea on Vimeo</title>
+    <link>https://vimeo.com/exampletea</link>
+    <item>
+      <title>Tea harvest</title>
+      <link>https://vimeo.com/123456789</link>
+      <guid isPermaLink="false">tag:vimeo,2026-05-10:clip123456789</guid>
+      <pubDate>Sun, 10 May 2026 07:00:00 GMT</pubDate>
+      <description>Picking tea leaves in the morning.</description>
+      <dc:creator>Example Tea</dc:creator>
+      <media:content>
+        <media:player url="https://player.vimeo.com/video/123456789"/>
+        <media:thumbnail url="https://i.vimeocdn.com/video/example_640.jpg"/>
+      </media:content>
+    </item>
+  </channel>
+</rss>

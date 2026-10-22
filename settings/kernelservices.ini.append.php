@@ -98,6 +98,24 @@ Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: Markdown files with front matter
 
+[Service_sqliimport.source.podcast]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportRssSource
+Arguments[]=podcast
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: podcast feeds
+
+[Service_sqliimport.source.video_feed]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportRssSource
+Arguments[]=video_feed
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: YouTube and Vimeo channel feeds
+
 [Service_sqliimport.source.media]
 Class=expImportSourceEntry
 Factory=expImportSourceEntry::of

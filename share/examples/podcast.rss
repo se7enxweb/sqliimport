@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Example Tea Talk</title>
+    <link>https://podcast.example.org/</link>
+    <description>An example podcast about tea</description>
+    <itunes:author>Example Tea Shop</itunes:author>
+    <itunes:image href="https://podcast.example.org/cover.jpg"/>
+    <item>
+      <guid isPermaLink="false">tea-talk-2</guid>
+      <title>Episode 2: Green teas</title>
+      <description>Sencha, gyokuro and how to brew them.</description>
+      <pubDate>Thu, 02 Apr 2026 06:00:00 GMT</pubDate>
+      <enclosure url="https://podcast.example.org/audio/episode-2.mp3" length="18734012" type="audio/mpeg"/>
+      <itunes:duration>38:21</itunes:duration>
+      <itunes:episode>2</itunes:episode>
+      <itunes:season>1</itunes:season>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:image href="https://podcast.example.org/episode-2.jpg"/>
+    </item>
+    <item>
+      <guid isPermaLink="false">tea-talk-1</guid>
+      <title>Episode 1: Why tea</title>
+      <description>The first episode.</description>
+      <pubDate>Thu, 19 Mar 2026 06:00:00 GMT</pubDate>
+      <enclosure url="https://podcast.example.org/audio/episode-1.mp3" length="12034567" type="audio/mpeg"/>
+      <itunes:duration>1:02:03</itunes:duration>
+      <itunes:episode>1</itunes:episode>
+      <itunes:season>1</itunes:season>
+    </item>
+  </channel>
+</rss>

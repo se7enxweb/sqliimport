@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+ <title>Example Tea Channel</title>
+ <yt:channelId>UCexample0000000000000000</yt:channelId>
+ <entry>
+  <id>yt:video:EXAMPLE0001</id>
+  <yt:videoId>EXAMPLE0001</yt:videoId>
+  <yt:channelId>UCexample0000000000000000</yt:channelId>
+  <title>How to brew sencha</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=EXAMPLE0001"/>
+  <author><name>Example Tea Channel</name></author>
+  <published>2026-04-02T12:00:00+00:00</published>
+  <updated>2026-04-03T08:00:00+00:00</updated>
+  <media:group>
+   <media:title>How to brew sencha</media:title>
+   <media:content url="https://www.youtube.com/v/EXAMPLE0001?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i.ytimg.com/vi/EXAMPLE0001/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Water at 70 degrees, one minute.</media:description>
+   <media:community>
+    <media:starRating count="120" average="5.00" min="1" max="5"/>
+    <media:statistics views="4321"/>
+   </media:community>
+  </media:group>
+ </entry>
+</feed>

@@ -63,6 +63,49 @@ class expImportRssSource extends expImportXmlSource
         );
     }
 
+    public static function variants()
+    {
+        return array(
+            'podcast' => array(
+                'label' => 'Podcast feed',
+                'description' => 'The RSS feed of a podcast: every episode is a record with its audio or video file (enclosure, type, length), '
+                               . 'duration in seconds, episode and season, cover image and the iTunes fields. The preset imports the episode '
+                               . 'file into a file object.',
+                'group' => 'media',
+                'extensions' => array( 'xml', 'rss' ),
+                'examples' => array( array( 'label' => 'A podcast feed of two episodes', 'file' => 'podcast.rss' ) ),
+                'preset' => array(
+                    'class' => 'file',
+                    'match' => array( 'type' => 'remote_id', 'pattern' => 'podcast-{id}' ),
+                    'fields' => array(
+                        array( 'source' => 'title', 'attribute' => 'name' ),
+                        array( 'source' => 'summary', 'attribute' => 'description', 'transforms' => array( array( 'name' => 'richtext' ) ) ),
+                        array( 'source' => 'enclosure', 'attribute' => 'file', 'transforms' => array( array( 'name' => 'file' ) ), 'datatypes' => array( 'ezbinaryfile', 'ezmedia' ) ),
+                    ),
+                ),
+            ),
+            'video_feed' => array(
+                'label' => 'YouTube or Vimeo channel feed',
+                'description' => 'The feed of a YouTube channel or playlist (youtube.com/feeds/videos.xml?channel_id=...) or of a Vimeo user '
+                               . '(vimeo.com/<user>/videos/rss): every video is a record with its ID, embed address, thumbnail, '
+                               . 'description and, on YouTube, the view count. The preset stores a video as a link.',
+                'group' => 'media',
+                'extensions' => array( 'xml', 'rss', 'atom' ),
+                'examples' => array( array( 'label' => 'A YouTube channel feed (Atom)', 'file' => 'youtube.xml' ),
+                                     array( 'label' => 'A Vimeo user feed (RSS)', 'file' => 'vimeo.rss' ) ),
+                'preset' => array(
+                    'class' => 'link',
+                    'match' => array( 'type' => 'remote_id', 'pattern' => 'video-{video_id}' ),
+                    'fields' => array(
+                        array( 'source' => 'title', 'attribute' => 'name' ),
+                        array( 'source' => 'summary', 'attribute' => 'description', 'transforms' => array( array( 'name' => 'richtext' ) ) ),
+                        array( 'source' => 'link', 'attribute' => 'location', 'datatypes' => array( 'ezurl' ) ),
+                    ),
+                ),
+            ),
+        );
+    }
+
     public static function schema()
     {
         return array(
@@ -157,17 +200,80 @@ class expImportRssSource extends expImportXmlSource
             }
         }
         $id = $first( array( 'guid', 'id' ) );
+        $one = function ( $v )
+        {
+            return is_array( $v ) && array_key_exists( 0, $v ) ? $v[0] : $v;
+        };
+        // podcasts: the enclosure's type and length, and the iTunes tags
+        $enclosureType = $enclosureLength = '';
+        $e = isset( $raw['enclosure'] ) ? $one( $raw['enclosure'] ) : null;
+        if ( is_array( $e ) )
+        {
+            $enclosureType = isset( $e['@type'] ) ? (string)$e['@type'] : '';
+            $enclosureLength = isset( $e['@length'] ) ? (string)$e['@length'] : '';
+        }
+        // YouTube (Atom with yt: and media:group) and Vimeo (RSS with media:content)
+        $group = isset( $raw['media:group'] ) && is_array( $raw['media:group'] ) ? $one( $raw['media:group'] ) : array();
+        $image = '';
+        foreach ( array( isset( $raw['itunes:image'] ) ? $one( $raw['itunes:image'] ) : null, isset( $raw['media:thumbnail'] ) ? $one( $raw['media:thumbnail'] ) : null,
+                         isset( $group['media:thumbnail'] ) ? $one( $group['media:thumbnail'] ) : null ) as $candidate )
+        {
+            if ( is_array( $candidate ) && ( isset( $candidate['@href'] ) || isset( $candidate['@url'] ) ) )
+            {
+                $image = isset( $candidate['@href'] ) ? $candidate['@href'] : $candidate['@url'];
+                break;
+            }
+        }
+        $videoID = $first( array( 'yt:videoId' ) );
+        $embed = '';
+        if ( $videoID !== '' )
+            $embed = 'https://www.youtube.com/embed/' . rawurlencode( $videoID );
+        elseif ( preg_match( '#^https?://(?:www\.)?vimeo\.com/(?:.*/)?(\d+)(?:[/?\#]|$)#', $link, $v ) )
+        {
+            $videoID = $v[1];
+            $embed = 'https://player.vimeo.com/video/' . $v[1];
+        }
+        $views = '';
+        if ( isset( $group['media:community']['media:statistics']['@views'] ) )
+            $views = (string)$group['media:community']['media:statistics']['@views'];
+        $mediaDescription = isset( $group['media:description'] ) ? trim( $text( $one( $group['media:description'] ) ) ) : $first( array( 'media:description' ) );
+        $summary = $first( array( 'description', 'summary', 'itunes:summary' ) );
         return array(
             'id' => $id !== '' ? $id : $link,
             'title' => $first( array( 'title' ) ),
             'link' => $link,
-            'summary' => $first( array( 'description', 'summary' ) ),
+            'summary' => $summary !== '' ? $summary : $mediaDescription,
             'content' => $first( array( 'content:encoded', 'content' ) ),
             'date' => $first( array( 'pubDate', 'updated', 'published', 'dc:date' ) ),
-            'author' => $author,
+            'author' => $author !== '' ? $author : $first( array( 'itunes:author' ) ),
             'categories' => $categories,
             'enclosure' => $enclosure,
+            'enclosure_type' => $enclosureType,
+            'enclosure_length' => $enclosureLength,
+            'duration' => self::seconds( $first( array( 'itunes:duration' ) ) ),
+            'episode' => $first( array( 'itunes:episode' ) ),
+            'season' => $first( array( 'itunes:season' ) ),
+            'explicit' => in_array( strtolower( $first( array( 'itunes:explicit' ) ) ), array( 'yes', 'true', 'explicit' ), true ),
+            'image' => $image,
+            'video_id' => $videoID,
+            'channel_id' => $first( array( 'yt:channelId' ) ),
+            'embed_url' => $embed,
+            'views' => $views,
+            'media_description' => $mediaDescription,
             'raw' => $raw,
         );
+    }
+
+    /** @return string a duration (3600, 1:02:03, 62:03) in seconds, '' for none */
+    public static function seconds( $duration )
+    {
+        $duration = trim( (string)$duration );
+        if ( $duration === '' )
+            return '';
+        if ( ctype_digit( $duration ) )
+            return $duration;
+        if ( !preg_match( '/^(?:(\d+):)?(\d{1,2}):(\d{1,2})$/', $duration, $m ) )
+            return '';
+        return (string)( (int)$m[1] * 3600 + (int)$m[2] * 60 + (int)$m[3] );
     }
 }
