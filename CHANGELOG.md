@@ -71,6 +71,17 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 - Added: Download mapping (JSON) and Load a mapping…, so a mapping moves between imports and installations; the
   results download of a run (formerly the CSV report) has the node ID.
 - Added: The transform media_object: an image object for an image address, made once per file, for object relations.
+- Added: The format SQL database or query (sql): the rows of a single SELECT against MySQL or MariaDB, PostgreSQL,
+  SQLite or, with [SqlSourceSettings] SiteDatabase=enabled, this site's database. The query is checked in the
+  dialect of its driver (comments and strings taken out, one statement, no writing word or function), the connection
+  is read-only with a time limit, the password is the name of a secret, and a server in a private network needs
+  [SqlSourceSettings] AllowedHosts[]. With the example database share/examples/sql-teas.sqlite.
+- Added: The format E-mail inbox via IMAP (imap): one record per message with sender, recipients, subject, date,
+  text and HTML body and the names and sizes of the attachments, decoded to UTF-8. The mailbox is read without
+  changing it unless the import marks the messages as seen; the extension imap is used where it is installed, else
+  a small IMAP client over TLS. The preset makes articles found again by mail-{message_id}.
+- Added: The names of the secrets on the Settings page (never their values), and the settings of the SQL and IMAP
+  sources there.
 
 ### Updated
 

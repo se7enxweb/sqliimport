@@ -1,0 +1,50 @@
+Return-Path: <press@example.org>
+Received: from mail.example.org (mail.example.org [192.0.2.10])
+	by imap.example.org; Tue, 13 Oct 2026 09:15:02 +0200
+Message-ID: <20261013091500.4711@example.org>
+In-Reply-To: <20261012080000.1000@example.net>
+Date: Tue, 13 Oct 2026 09:15:00 +0200 (CEST)
+From: =?ISO-8859-1?Q?J=FCrgen_M=FCller?= <press@example.org>
+To: "Tea Team, Sales" <sales@example.net>, info@example.net (Info desk)
+Cc: Readers: anna@example.com, ben@example.com;
+Subject: =?UTF-8?B?VGVlLcOcYmVyc2ljaHQgMjAyNg==?=
+ =?UTF-8?Q?_und_Preise?=
+MIME-Version: 1.0
+Content-Type: multipart/mixed;
+ boundary="outer-boundary-42"
+
+This is a multi-part message in MIME format.
+
+--outer-boundary-42
+Content-Type: multipart/alternative; boundary="inner-boundary-7"
+
+--inner-boundary-7
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: quoted-printable
+
+Gr=FC=DFe aus dem Teehaus. Die neue Sorte ist da und sehr =
+beliebt.
+Zweite Zeile des ersten Absatzes.
+
+Ein zweiter Absatz mit Preisen.
+--inner-boundary-7
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: base64
+
+PGh0bWw+PGJvZHk+PHA+R3LDvMOfZSBhdXMgZGVtIDxiPlRlZWhhdXM8L2I+LjwvcD48cD5OZXVl
+IFNvcnRlOiBPb2xvbmcgJmFtcDsgU2VuY2hhLjwvcD48L2JvZHk+PC9odG1sPg==
+--inner-boundary-7--
+
+--outer-boundary-42
+Content-Type: application/pdf
+Content-Disposition: attachment;
+ filename*=iso-8859-1''Preisliste%20Gr%FCntee.pdf
+Content-Transfer-Encoding: base64
+
+JVBERi0xLjQK
+--outer-boundary-42
+Content-Type: image/png; name="=?UTF-8?Q?Tee=C3=A9_logo.png?="
+Content-Transfer-Encoding: base64
+
+iVBORw0KGgo=
+--outer-boundary-42--

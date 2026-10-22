@@ -38,3 +38,45 @@ if ( !class_exists( 'eZPersistentObject' ) )
         }
     }
 }
+
+// Without a kernel: settings a test sets itself (eZINI::instance( 'sqliimport.ini' )->setVariable( ... )), so the parts
+// that read sqliimport.ini (allowed paths and hosts, secrets) can be tested; nothing is read from a file.
+if ( !class_exists( 'eZINI' ) )
+{
+    class eZINI
+    {
+        /** @var eZINI[] */
+        protected static $instances = array();
+
+        /** @var array section => name => value */
+        protected $values = array();
+
+        public static function instance( $fileName = 'site.ini' )
+        {
+            if ( !isset( self::$instances[$fileName] ) )
+                self::$instances[$fileName] = new self();
+            return self::$instances[$fileName];
+        }
+
+        public function hasVariable( $section, $name )
+        {
+            return isset( $this->values[$section] ) && array_key_exists( $name, $this->values[$section] );
+        }
+
+        public function variable( $section, $name )
+        {
+            return $this->hasVariable( $section, $name ) ? $this->values[$section][$name] : false;
+        }
+
+        public function setVariable( $section, $name, $value )
+        {
+            $this->values[$section][$name] = $value;
+        }
+
+        /** Forgets a setting again (tests clean up after themselves). */
+        public function removeSetting( $section, $name )
+        {
+            unset( $this->values[$section][$name] );
+        }
+    }
+}

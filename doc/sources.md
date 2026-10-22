@@ -10,6 +10,7 @@ A source type reads records from a local file. Where the file comes from is the 
 | `upload` | `file`: the stored name of an uploaded file | The upload (kept in the site's storage directory, `sqliimport/uploads/`) is copied into the run's directory |
 | `url` | `url`: an `http` or `https` address | The address is downloaded into the run's directory, with the time limit `[ImportSettings] StreamTimeout` and the size limit `[SourceSettings] MaxSourceMegabytes` |
 | `path` | `path`: a file on the server | The file is read in place, but only if it lies inside one of `[SourceSettings] AllowedPaths[]` |
+| `remote` | the source's own options (a database, a mailbox) | The source reads its data itself once per run and writes it into the run's directory as JSON Lines (`sql`, `imap`) |
 
 Rules:
 
@@ -441,6 +442,125 @@ the extension's own parser: a file reads the same on every server, with or witho
 Group: data. A spreadsheet read at every run from its link: share it so that anyone with the link can view it (or
 publish it to the web) and give the link as the address. The link is turned into the sheet's CSV export, keeping the
 tab of the link (`#gid=`); the first row names the columns. The options are those of CSV, with a comma and UTF-8.
+
+## SQL database or query (`sql`)
+
+Group: platforms. Origin: `remote`. The rows of an SQL query against a MySQL or MariaDB, PostgreSQL or SQLite
+database (an intranet database, the database of another application): one record is one row, its fields the
+columns of the query (name them with `AS` to get the field names you want). Once per run the source runs the query
+and writes the rows into the run's directory, one JSON object per line; binary values that are not UTF-8 are written
+as `base64:...`. The editor's sample and preview read the first `[RunSettings] DryRunRows` rows only.
+
+| Option | Values | Default |
+|---|---|---|
+| `driver` | `mysql` (MySQL or MariaDB), `pgsql` (PostgreSQL), `sqlite` (a file on the server), `site` (this site's database) | `mysql` |
+| `host`, `port` | the database server; port `0` is the default port (3306, 5432) | |
+| `database` | the database name; SQLite: the path of the file | |
+| `user` | the database user | |
+| `password` | the **name** of a secret (see below), never the password | |
+| `query` | a single `SELECT` (or `WITH ... SELECT`) | required |
+| `key` | the column that names a row | the position |
+
+Only reading is possible, checked three times:
+
+- **The query must be a single `SELECT`** (or `WITH ... SELECT`, also in brackets). Before the check, string
+  literals, quoted names and comments are taken out in the dialect of the driver (backslash escapes and `#` comments
+  of MySQL, dollar quoting, `E'...'` strings and nested comments of PostgreSQL), so a keyword inside a text does not
+  count and a statement hidden behind a comment or a quote is found. Refused are a `;` followed by more, an unclosed
+  string or comment, MySQL's executable comments `/*! ... */` and hints `/*+ ... */`, variables (`@name`, `:=`), and
+  anywhere outside a string the words `INSERT`, `UPDATE`, `DELETE`, `DROP`, `ALTER`, `CREATE`, `GRANT`, `REVOKE`,
+  `TRUNCATE`, `MERGE`, `CALL`, `EXEC`, `INTO` (also `INTO OUTFILE` and PostgreSQL's `SELECT ... INTO`), `LOAD`,
+  `LOAD_FILE`, `COPY`, `ATTACH`, `PRAGMA`, `LOCK` (also `FOR UPDATE`) and functions with side effects
+  (`pg_read_file`, `lo_import`, `dblink`, `set_config`, `nextval`, `sleep`, `load_extension`, `writefile` ...).
+  `REPLACE` is allowed only as the function `REPLACE( ... )`. A column with such a name can be quoted
+  (`` `update` ``, `"update"`). A refused query stops the run with the reason.
+- **The connection is read-only:** MySQL and MariaDB `SET SESSION TRANSACTION READ ONLY`, PostgreSQL
+  `SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY`, SQLite opened read-only with `PRAGMA query_only`. Multiple
+  statements and emulated prepares are off, MySQL's `LOCAL INFILE` too.
+- **A time limit** of `[SqlSourceSettings] QueryTimeout` seconds is set on the server where it has one (MySQL
+  `MAX_EXECUTION_TIME`, MariaDB `max_statement_time`, PostgreSQL `statement_timeout`); reading the rows stops after
+  ten times as long.
+
+Where it may connect:
+
+- A database server in a private or reserved network is refused like an address, unless
+  `[SourceSettings] AllowPrivateHosts=enabled` or the administrator lists it in `[SqlSourceSettings] AllowedHosts[]`
+  (the usual case: an intranet database).
+- An SQLite file must lie inside one of `[SourceSettings] AllowedPaths[]`.
+- This site's own database (`site`) only with `[SqlSourceSettings] SiteDatabase=enabled`, over a read-only
+  connection of its own. Its tables hold user accounts and password hashes: enable it only if the people who edit
+  imports may see all of it.
+
+**Example:** `share/examples/sql-teas.sqlite` is a small SQLite database with a table `teas` (`id`, `name`, `origin`,
+`kind`, `price`, `description`, `updated`). Copy it into a directory of `AllowedPaths[]` (for example `var/import`)
+and create an import with the driver `sqlite`, the path of the file as database, the key `id` and the query
+
+```sql
+SELECT id, name, origin, kind, price, description FROM teas WHERE kind <> 'herbal' ORDER BY id
+```
+
+### Secrets
+
+A source never stores a password. Its option of the type `secret` holds the **name** of a secret, and the value is
+read when a run needs it:
+
+- `<name>`: `sqliimport.ini [SecretSettings] Secrets[<name>]=<value>`, set in the site's own settings
+  (`settings/override/sqliimport.ini.append.php` or a siteaccess), which are not part of a repository;
+- `env:<VARIABLE>`: an environment variable of the PHP process (the PHP-FPM pool, the worker).
+
+**Imports, Settings** lists the names of the secrets that are set, never a value. Messages and logs show a secret
+as `[secret <name>]`, also when a server quotes it in an error.
+
+## E-mail inbox via IMAP (`imap`)
+
+Group: content. Origin: `remote`. The messages of an IMAP mailbox (a press inbox, a submissions address): one record
+is one message. Once per run the source reads the matching messages into the run's directory, one per line; the
+editor's sample reads the newest ones.
+
+| Field | What it holds |
+|---|---|
+| `message_id` | the Message-ID without `<>` (the key); a message without one gets `sha1-...` of its content |
+| `uid`, `mailbox` | the message's UID in the mailbox, and the mailbox |
+| `from` | `name`, `address` of the sender (`from.address`) |
+| `to`, `cc`, `reply_to` | lists of `name`, `address` (`to.0.address`) |
+| `subject` | the subject, decoded to UTF-8 |
+| `date` | the date in ISO 8601 with its offset (`2026-10-13T09:15:00+02:00`) |
+| `text` | the text body (`text/plain`; else the HTML body as text) |
+| `html` | the HTML body, if there is one |
+| `summary` | the first paragraph of the text |
+| `body` | the HTML body, else the text as HTML paragraphs |
+| `attachments` | list of `name`, `mime`, `size` (bytes) of the attachments, never their content; `attachment_count` |
+| `in_reply_to`, `size`, `truncated` | the message it answers, its size, and whether it was read with its headers only |
+
+Headers are decoded from RFC 2047 encoded words and RFC 2231 parameters, bodies from quoted-printable and base64 and
+from their charset; 8-bit text that is not UTF-8 is taken as Windows-1252.
+
+| Option | Values | Default |
+|---|---|---|
+| `host`, `port` | the IMAP server | port `993` |
+| `encryption` | `ssl` (TLS from the start, port 993), `tls` (STARTTLS, port 143), `none` (not recommended: the password is sent in clear) | `ssl` |
+| `user` | the login | |
+| `password` | the **name** of a secret, never the password | |
+| `mailbox` | the folder | `INBOX` |
+| `search` | IMAP search criteria: `ALL`, `UNSEEN`, `FROM "news@example.org"`, `SUBJECT "Press"` ... | `ALL` |
+| `days` | only the messages of the last days (adds `SINCE`); `0`: all | `0` |
+| `mark_seen` | mark the messages read as seen | no |
+| `attachments` | list the attachments (names, types and sizes) | yes |
+| `key` | the key field | `message_id` |
+
+**The import does not change the mailbox** unless `mark_seen` is ticked: the mailbox is opened read-only
+(`EXAMINE`, `OP_READONLY`) and messages are read without setting `\Seen`. Certificates are verified. A mail server in
+a private network is refused unless `AllowPrivateHosts=enabled` or it is listed in
+`[ImapSourceSettings] AllowedHosts[]`. A message larger than `[ImapSourceSettings] MaxMessageMegabytes` is read with
+its headers only and marked `truncated`; `[ImapSourceSettings] Timeout` limits connecting and each answer.
+
+The PHP extension `imap` is used where it is installed; without it (it left the core of PHP 8.4) the source speaks
+IMAP itself over a TLS socket (`LOGIN`, `EXAMINE`/`SELECT`, `UID SEARCH`, `UID FETCH BODY.PEEK[]`, `LOGOUT`). That
+client needs user and password in printable ASCII.
+
+The preset maps a message to an article, found again by the remote ID `mail-{message_id}` (shortened with a hash
+when it is long): title from `subject`, intro from `summary`, body from `body` (both as rich text), publish date from
+`date`.
 
 ## The catalogue of formats
 
