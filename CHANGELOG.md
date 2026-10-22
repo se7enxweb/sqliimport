@@ -57,7 +57,6 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   one, suggestions ("fails on the field price in 12 % of its records", "slow since <date>") and the table as CSV.
 - Added: expImportStatistics, the aggregation of the run history as pure functions (tested without a database)
   and loaders with generic SQL for MySQL, PostgreSQL, SQLite and Oracle.
-
 - Added: Podcast feeds (podcast) and YouTube or Vimeo channel feeds (video_feed): enclosure type and length,
   duration, episode, season, image, video ID, embed address and views on every RSS and Atom record.
 - Added: YAML and TOML data files (yaml, toml), read by a parser of the extension (the same on every server).
