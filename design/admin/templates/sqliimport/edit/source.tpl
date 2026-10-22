@@ -28,8 +28,8 @@
 </div>
 {/foreach}
 <div class="a4-radios">
-{def $legacy_handlers = array()}{foreach $handlers as $hid => $h}{if and( $h.legacy, eq( $h.status, 'enabled' ) )}{set $legacy_handlers = $legacy_handlers|append( hash( 'id', $hid, 'label', $h.label ) )}{/if}{/foreach}
-{if $legacy_handlers|count|gt( 0 )}
+{def $sq_src_legacy = array()}{foreach $handlers as $hid => $h}{if and( $h.legacy, eq( $h.status, 'enabled' ) )}{set $sq_src_legacy = $sq_src_legacy|append( hash( 'id', $hid, 'label', $h.label ) )}{/if}{/foreach}
+{if $sq_src_legacy|count|gt( 0 )}
 <label><input type="radio" name="SourceType" value="legacy"{if and( $import, $import.is_legacy )} checked="checked"{/if} /> {'A 1.x handler that reads its own source'|i18n( 'extension/sqliimport/edit' )}</label>
 {/if}
 </div>
@@ -59,27 +59,27 @@
 <span class="a4-help">{'Inside: %paths'|i18n( 'extension/sqliimport/edit',, hash( '%paths', $allowed_paths|implode( ', ' ) ) )|wash}</span>
 </div>
 {/if}
-{if $legacy_handlers|count|gt( 0 )}
+{if $sq_src_legacy|count|gt( 0 )}
 <div class="a4-field">
 <label for="sq-legacy">{'1.x handler'|i18n( 'extension/sqliimport/edit' )}</label>
 <select id="sq-legacy" name="LegacyHandler">
-{foreach $legacy_handlers as $lh}<option value="{$lh.id|wash}"{if and( $import, eq( $import.handler, $lh.id ) )} selected="selected"{/if}>{$lh.label|wash}</option>{/foreach}
+{foreach $sq_src_legacy as $lh}<option value="{$lh.id|wash}"{if and( $import, eq( $import.handler, $lh.id ) )} selected="selected"{/if}>{$lh.label|wash}</option>{/foreach}
 </select>
 </div>
 {/if}
-{undef $legacy_handlers}
+{undef $sq_src_legacy}
 
-{def $type = $source_type}
-{if is_set( $sources[$type] )}
+{def $sq_src_type = $source_type}
+{if is_set( $sources[$sq_src_type] )}
 <fieldset class="a4-field a4-field-wide">
-<legend>{'Options of the source (%type)'|i18n( 'extension/sqliimport/edit',, hash( '%type', $sources[$type].label ) )|wash}</legend>
+<legend>{'Options of the source (%type)'|i18n( 'extension/sqliimport/edit',, hash( '%type', $sources[$sq_src_type].label ) )|wash}</legend>
 <div class="a4-form is-wide a4-sqliimport-options">
-{include uri='design:sqliimport/parts/option_fields.tpl' schema=$sources[$type].schema values=$source prefix='SourceOptions' errors=$errors idprefix='sq-so'}
+{include uri='design:sqliimport/parts/option_fields.tpl' schema=$sources[$sq_src_type].schema values=$source prefix='SourceOptions' errors=$errors idprefix='sq-so'}
 </div>
 <span class="a4-help">{'The options of another source type are shown after it is saved.'|i18n( 'extension/sqliimport/edit' )}</span>
 </fieldset>
 {/if}
-{undef $type}
+{undef $sq_src_type}
 
 {include uri='design:sqliimport/edit/buttons.tpl' step='source' stay=1}
 </form>

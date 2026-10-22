@@ -33,7 +33,13 @@ if ( $legacyRef !== '' )
             return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
     }
     elseif ( !expImportLegacy::handlers( 'manage' ) )
-        return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
+    {
+        // no 1.x handler is set up (or none this user may manage): say so instead of refusing the page
+        if ( !expImportAdmin::can( 'manage' ) )
+            return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
+        expImportLegacy::flash( 'info', ezpI18n::tr( 'extension/sqliimport', 'There is no 1.x handler to schedule: the site lists none in sqliimport.ini [ImportSettings] AvailableSourceHandlers[]. Schedule a 2.x import in its editor instead.' ) );
+        return $Module->redirectTo( '/sqliimport/schedules' );
+    }
     $posted = null;
     if ( strtoupper( (string)eZSys::serverVariable( 'REQUEST_METHOD', true ) ) === 'POST' && $http->hasPostVariable( 'LegacyScheduleSaveButton' ) )
     {

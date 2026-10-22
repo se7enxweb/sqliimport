@@ -3,7 +3,7 @@
 <fieldset class="a4-field a4-field-wide">
 <legend>{'Runs by itself'|i18n( 'extension/sqliimport/edit' )}</legend>
 <div class="a4-radios">
-{def $kinds = hash( 'none', 'Never (only by hand or from the command line)'|i18n( 'extension/sqliimport/edit' ),
+{def $sq_sch_kinds = hash( 'none', 'Never (only by hand or from the command line)'|i18n( 'extension/sqliimport/edit' ),
                     'once', 'Once, at the date and time below'|i18n( 'extension/sqliimport/edit' ),
                     'interval', 'Every N minutes, from the date and time below'|i18n( 'extension/sqliimport/edit' ),
                     'hourly', 'Every hour, at the minute of the time below'|i18n( 'extension/sqliimport/edit' ),
@@ -11,8 +11,8 @@
                     'weekly', 'Every week, on the weekday and at the time below'|i18n( 'extension/sqliimport/edit' ),
                     'monthly', 'Every month, on the day and at the time below'|i18n( 'extension/sqliimport/edit' ),
                     'cron', 'A cron expression'|i18n( 'extension/sqliimport/edit' ) )}
-{foreach $kinds as $k => $label}<label><input type="radio" name="ScheduleKind" value="{$k}"{if eq( $schedule.kind, $k )} checked="checked"{/if} /> {$label|wash}</label>{/foreach}
-{undef $kinds}
+{foreach $sq_sch_kinds as $k => $label}<label><input type="radio" name="ScheduleKind" value="{$k}"{if eq( $schedule.kind, $k )} checked="checked"{/if} /> {$label|wash}</label>{/foreach}
+{undef $sq_sch_kinds}
 </div>
 </fieldset>
 <div class="a4-field">
