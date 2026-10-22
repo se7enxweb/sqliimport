@@ -57,7 +57,7 @@ class expImportTransforms
             'number' => array( 'A number (decimal comma or point)', array( 'decimals' => array( 'type' => 'int', 'default' => -1 ) ) ),
             'int' => array( 'A whole number', array() ),
             'bool' => array( 'Yes or no as 1 or 0', array() ),
-            'date' => array( 'A date or time as a timestamp (ezdate, ezdatetime)', array( 'format' => array( 'type' => 'string', 'help' => 'PHP date format of the source, empty: any form strtotime() reads' ),
+            'date' => array( 'A date or time as a timestamp (ezdate, ezdatetime)', array( 'format' => array( 'type' => 'string', 'help' => 'PHP date format of the source; excel: a spreadsheet date (days since 1899); empty: any form strtotime() reads' ),
                                                                                          'timezone' => array( 'type' => 'string', 'default' => 'UTC' ) ) ),
             'date_format' => array( 'A date as a text in a format', array( 'format' => array( 'type' => 'string', 'required' => true ),
                                                                            'timezone' => array( 'type' => 'string', 'default' => 'UTC' ) ) ),
@@ -340,6 +340,126 @@ class expImportTransforms
         return strtr( $s, array_combine( preg_split( '//u', $from, -1, PREG_SPLIT_NO_EMPTY ), str_split( $to ) ) );
     }
 
+    /**
+     * A chain as the one-line text of the mapping editor: "trim | date(format=d.m.Y, timezone=Europe/Berlin) |
+     * map(table={"D":"Germany"})". An argument whose value has a comma, a parenthesis or a "|" is written as JSON.
+     *
+     * @param array $chain
+     * @return string
+     */
+    public static function formatChain( array $chain )
+    {
+        $parts = array();
+        foreach ( $chain as $step )
+        {
+            $name = is_array( $step ) && isset( $step['name'] ) ? (string)$step['name'] : (string)$step;
+            $args = is_array( $step ) && isset( $step['args'] ) && is_array( $step['args'] ) ? $step['args'] : array();
+            if ( !$args )
+            {
+                $parts[] = $name;
+                continue;
+            }
+            $list = array();
+            foreach ( $args as $key => $value )
+            {
+                if ( is_array( $value ) || ( is_string( $value ) && ( preg_match( '/[,()|"{}\[\]]/', $value ) || trim( $value ) !== $value || $value === '' ) ) )
+                    $value = json_encode( $value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+                elseif ( is_bool( $value ) )
+                    $value = $value ? 'true' : 'false';
+                $list[] = $key . '=' . $value;
+            }
+            $parts[] = $name . '(' . implode( ', ', $list ) . ')';
+        }
+        return implode( ' | ', $parts );
+    }
+
+    /**
+     * Reads the one-line text of a chain (formatChain()).
+     *
+     * @param string $text
+     * @return array the chain
+     * @throws expImportValidationException the text cannot be read
+     */
+    public static function parseChain( $text )
+    {
+        $text = trim( (string)$text );
+        if ( $text === '' )
+            return array();
+        $chain = array();
+        foreach ( self::splitTop( $text, '|' ) as $part )
+        {
+            $part = trim( $part );
+            if ( $part === '' )
+                continue;
+            if ( !preg_match( '/^([a-z][a-z0-9_]*)\s*(?:\((.*)\))?$/s', $part, $m ) )
+                throw new expImportValidationException( array( 'transforms' => "cannot read the transform '$part'" ) );
+            $step = array( 'name' => $m[1] );
+            if ( isset( $m[2] ) && trim( $m[2] ) !== '' )
+            {
+                $args = array();
+                foreach ( self::splitTop( $m[2], ',' ) as $pair )
+                {
+                    $pair = trim( $pair );
+                    if ( $pair === '' )
+                        continue;
+                    if ( !preg_match( '/^([a-z][a-z0-9_]*)\s*=\s*(.*)$/s', $pair, $p ) )
+                        throw new expImportValidationException( array( 'transforms' => "cannot read the argument '$pair' of {$m[1]}" ) );
+                    $value = trim( $p[2] );
+                    if ( $value !== '' && ( $value[0] === '{' || $value[0] === '[' || $value[0] === '"' ) )
+                    {
+                        $decoded = json_decode( $value, true );
+                        if ( $decoded === null && $value !== 'null' )
+                            throw new expImportValidationException( array( 'transforms' => "the value of {$p[1]} in {$m[1]} is not valid JSON" ) );
+                        $value = $decoded;
+                    }
+                    $args[$p[1]] = $value;
+                }
+                if ( $args )
+                    $step['args'] = $args;
+            }
+            $chain[] = $step;
+        }
+        return $chain;
+    }
+
+    /** @return string[] the text split at $separator outside parentheses, braces, brackets and quotes */
+    protected static function splitTop( $text, $separator )
+    {
+        $out = array();
+        $depth = 0;
+        $quote = false;
+        $current = '';
+        $length = strlen( $text );
+        for ( $i = 0; $i < $length; $i++ )
+        {
+            $c = $text[$i];
+            if ( $quote )
+            {
+                $current .= $c;
+                if ( $c === '\\' && $i + 1 < $length )
+                    $current .= $text[++$i];
+                elseif ( $c === '"' )
+                    $quote = false;
+                continue;
+            }
+            if ( $c === '"' )
+                $quote = true;
+            elseif ( $c === '(' || $c === '{' || $c === '[' )
+                $depth++;
+            elseif ( $c === ')' || $c === '}' || $c === ']' )
+                $depth--;
+            elseif ( $c === $separator && $depth === 0 )
+            {
+                $out[] = $current;
+                $current = '';
+                continue;
+            }
+            $current .= $c;
+        }
+        $out[] = $current;
+        return $out;
+    }
+
     /** @return DateTimeZone */
     protected static function zone( $name )
     {
@@ -367,6 +487,16 @@ class expImportTransforms
             return $s;
         $zone = self::zone( isset( $args['timezone'] ) ? $args['timezone'] : 'UTC' );
         $format = isset( $args['format'] ) ? (string)$args['format'] : '';
+        // a date of a spreadsheet: days since 1899-12-30, the fraction is the time of day (in the given zone)
+        if ( $format === 'excel' )
+        {
+            if ( !is_numeric( $s ) )
+                throw new expImportTransformException( "date: '$s' is not a spreadsheet date" );
+            $days = (float)$s;
+            $base = new DateTime( '1899-12-30 00:00:00', $zone );
+            $base->modify( '+' . (int)floor( $days ) . ' days' );
+            return (string)( $base->getTimestamp() + (int)round( ( $days - floor( $days ) ) * 86400 ) );
+        }
         if ( $format !== '' )
         {
             $date = DateTime::createFromFormat( '!' . $format, $s, $zone );

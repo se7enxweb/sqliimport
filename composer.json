@@ -44,7 +44,8 @@
         "se7enxweb/expai": "Suggests mappings and explains failed rows (7x SQLI Import 2.1)",
         "openspout/openspout": "XLSX and ODS sources (a later 2.x release)",
         "ext-pcntl": "Lets the 1.x command line script sqlidoimport.php stop safely on SIGTERM or SIGINT",
-        "ext-iconv": "Better slugs and name matching (transliteration)"
+        "ext-intl": "Slugs and name matching take accents off with Normalizer (a fixed table otherwise)",
+        "ext-zip": "Spreadsheet sources (XLSX and ODS)"
     },
     "replace": {
         "lolautruche/sqliimport": "self.version"
