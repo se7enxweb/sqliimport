@@ -144,7 +144,8 @@ if ( $editor->import && $step === 'preview' && !$editor->import->isLegacy() )
 $mapping = $editor->mappingForForm();
 // a step that could not be saved shows what was entered (every field; files stay on the server, secrets are names)
 $failed = $isPost && $editor->errors;
-if ( $failed && $step === 'mapping' )
+// (Auto-match and Load a mapping change the stored lines on purpose: the form shows those)
+if ( $failed && $step === 'mapping' && !$http->hasPostVariable( 'AutoMatchButton' ) && !$http->hasPostVariable( 'LoadMappingButton' ) )
     $mapping = $editor->mappingFromPost();
 $classes = array();
 foreach ( eZContentClass::fetchList( eZContentClass::VERSION_STATUS_DEFINED, true, false, array( 'name' => 'asc' ) ) as $class )
