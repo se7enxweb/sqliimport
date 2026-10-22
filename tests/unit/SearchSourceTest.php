@@ -119,7 +119,7 @@ class SearchSourceTest extends TestCase
     public function testSchemaExamplesAndTheExampleSnapshot(): void
     {
         $this->assertSame( array(), expImportOptionSchema::check( expImportSearchSource::schema() ) );
-        $this->assertSame( 'data', expImportSearchSource::group() );
+        $this->assertSame( 'nosql', expImportSearchSource::group() );
         $this->assertSame( array( 'remote' ), expImportSearchSource::origins() );
         foreach ( expImportSearchSource::examples() as $example )
         {

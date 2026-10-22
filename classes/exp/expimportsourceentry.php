@@ -33,7 +33,7 @@
  */
 class expImportSourceEntry
 {
-    const GROUPS = array( 'data', 'content', 'platform', 'commerce', 'media', 'other' );
+    const GROUPS = array( 'data', 'nosql', 'content', 'platform', 'commerce', 'media', 'other' );
 
     /** @var string */
     protected $class;

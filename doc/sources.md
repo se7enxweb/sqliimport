@@ -580,7 +580,7 @@ as `[secret <name>]`, also when a server quotes it in an error.
 
 ## Elasticsearch or OpenSearch index (`elasticsearch`)
 
-Group: data. Origin: `remote`. The documents of an Elasticsearch or OpenSearch index, alias or index pattern, read
+Group: NoSQL databases. Origin: `remote`. The documents of an Elasticsearch or OpenSearch index, alias or index pattern, read
 through the search API over HTTP. One record is one document: its `_source` with nested objects flattened to dotted
 field names (`author.name`, `author.address.city`), a list of plain values kept as a list (`tags`), a list of objects
 numbered (`images.0.url`), and `_id` and `_index` besides. Once per run the source pages through the search and writes
@@ -638,7 +638,7 @@ for the published articles, newest first:
 
 ## DuckDB query over files (`duckdb`)
 
-Group: data. Origin: `remote`. The rows of a DuckDB query over files on the server: Parquet, CSV or JSON files (one,
+Group: NoSQL databases. Origin: `remote`. The rows of a DuckDB query over files on the server: Parquet, CSV or JSON files (one,
 several, or a pattern such as `var/import/exports/*.parquet`), or a DuckDB database file. One record is one row, its
 fields the columns of the query. The files are the view `data` of the query (`SELECT * FROM data WHERE ...`); a
 database file is opened read-only and the query names its tables. Once per run the source runs the query page by page
@@ -753,7 +753,7 @@ when it is long): title from `subject`, intro from `summary`, body from `body` (
 
 ## MongoDB collection (`mongodb`)
 
-Group: data. Origin: `remote`. The documents of a MongoDB collection (the database of another application, a product
+Group: NoSQL databases. Origin: `remote`. The documents of a MongoDB collection (the database of another application, a product
 or event store): one record is one document. Once per run the source reads the matching documents page by page and
 writes them into the run's directory, one JSON object per line; the editor's sample reads the first ones.
 
@@ -818,7 +818,7 @@ documents, flattened), to try a mapping; the catalogue's other examples are conf
 
 ## Redis keys (`redis`)
 
-Group: data. Origin: `remote`. The keys of a Redis database that match a pattern (a cache of product data, the store
+Group: NoSQL databases. Origin: `remote`. The keys of a Redis database that match a pattern (a cache of product data, the store
 of another application): one record is one key. Once per run the source walks the keys with `SCAN` and writes them
 into the run's directory, one JSON object per line.
 
@@ -1265,7 +1265,7 @@ package again updates the objects instead of creating new ones.
 
 ## The catalogue of formats
 
-**Imports, Catalogue** lists the formats by group (data, content, platforms, commerce, media, other). Each card says
+**Imports, Catalogue** lists the formats by group (data, NoSQL databases, content, platforms, commerce, media, other). Each card says
 what the format reads, its file name extensions and options, offers example files to download and, where the format
 comes with one, the mapping it starts from. **New import** opens the editor with that format chosen; when the import
 is saved, the format's preset mapping is filled in with the fields this site's class has (a preset line may name the

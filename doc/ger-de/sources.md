@@ -598,7 +598,7 @@ zeigen ein Geheimnis als `[secret <Name>]`, auch wenn ein Server es in einem Feh
 
 ## Elasticsearch- oder OpenSearch-Index (`elasticsearch`)
 
-Gruppe: Daten. Herkunft: `remote`. Die Dokumente eines Elasticsearch- oder OpenSearch-Index, eines Alias oder eines
+Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Dokumente eines Elasticsearch- oder OpenSearch-Index, eines Alias oder eines
 Index-Musters, gelesen über die Such-API per HTTP. Ein Datensatz ist ein Dokument: sein `_source`, verschachtelte
 Objekte zu Feldnamen mit Punkt aufgelöst (`author.name`, `author.address.city`), eine Liste einfacher Werte bleibt eine
 Liste (`tags`), eine Liste von Objekten wird nummeriert (`images.0.url`), dazu `_id` und `_index`. Einmal pro Lauf
@@ -659,7 +659,7 @@ schreibt. Eine Abfrage der veröffentlichten Artikel, die neuesten zuerst:
 
 ## DuckDB-Abfrage über Dateien (`duckdb`)
 
-Gruppe: Daten. Herkunft: `remote`. Die Zeilen einer DuckDB-Abfrage über Dateien auf dem Server: Parquet-, CSV- oder
+Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Zeilen einer DuckDB-Abfrage über Dateien auf dem Server: Parquet-, CSV- oder
 JSON-Dateien (eine, mehrere oder ein Muster wie `var/import/exports/*.parquet`) oder eine DuckDB-Datenbankdatei. Ein
 Datensatz ist eine Zeile, seine Felder sind die Spalten der Abfrage. Die Dateien sind die View `data` der Abfrage
 (`SELECT * FROM data WHERE ...`); eine Datenbankdatei wird schreibgeschützt geöffnet, und die Abfrage nennt ihre
@@ -781,7 +781,7 @@ als Rich Text), Veröffentlichungsdatum aus `date`.
 
 ## MongoDB-Collection (`mongodb`)
 
-Gruppe: Daten. Herkunft: `remote`. Die Dokumente einer MongoDB-Collection (die Datenbank einer anderen Anwendung,
+Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Dokumente einer MongoDB-Collection (die Datenbank einer anderen Anwendung,
 ein Produkt- oder Ereignisspeicher): Ein Datensatz ist ein Dokument. Einmal pro Lauf liest die Quelle die passenden
 Dokumente seitenweise und schreibt sie in das Verzeichnis des Laufs, ein JSON-Objekt pro Zeile; die Stichprobe des
 Editors liest die ersten.
@@ -850,7 +850,7 @@ Konfigurationen.
 
 ## Redis-Schlüssel (`redis`)
 
-Gruppe: Daten. Herkunft: `remote`. Die Schlüssel einer Redis-Datenbank, die zu einem Muster passen (ein Cache mit
+Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Schlüssel einer Redis-Datenbank, die zu einem Muster passen (ein Cache mit
 Produktdaten, der Speicher einer anderen Anwendung): Ein Datensatz ist ein Schlüssel. Einmal pro Lauf durchläuft die
 Quelle die Schlüssel mit `SCAN` und schreibt sie in das Verzeichnis des Laufs, ein JSON-Objekt pro Zeile.
 
@@ -1318,7 +1318,7 @@ Remote-ID als Abgleich, sodass ein erneuter Import des Pakets die Objekte aktual
 
 ## Der Katalog der Formate
 
-**Importe, Katalog** zeigt die Formate nach Gruppen (Daten, Inhalte, Plattformen, Handel, Medien, Sonstiges). Jede
+**Importe, Katalog** zeigt die Formate nach Gruppen (Daten, NoSQL-Datenbanken, Inhalte, Plattformen, Handel, Medien, Sonstiges). Jede
 Karte sagt, was das Format liest, nennt Dateiendungen und Optionen, bietet Beispieldateien zum Herunterladen und,
 wo das Format eine mitbringt, die Zuordnung, mit der es beginnt. **Neuer Import** öffnet den Editor mit diesem
 Format; beim Speichern wird die Vorlage mit den Feldern ausgefüllt, die die Klasse dieser Site hat (eine Zeile der

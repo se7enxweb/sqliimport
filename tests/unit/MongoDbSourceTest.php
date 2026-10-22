@@ -83,7 +83,7 @@ class MongoDbSourceTest extends TestCase
         $this->assertSame( 'id', $schema['paging']['default'] );
         $this->assertSame( '_id', $schema['key']['default'] );
         $this->assertSame( array( 'json', 'join' ), array_keys( $schema['arrays']['values'] ) );
-        $this->assertSame( 'data', expImportMongoDbSource::group() );
+        $this->assertSame( 'nosql', expImportMongoDbSource::group() );
         $this->assertSame( array( 'remote' ), expImportMongoDbSource::origins() );
         $examples = expImportMongoDbSource::examples();
         $this->assertFileExists( dirname( __DIR__, 2 ) . '/share/examples/' . $examples[0]['file'] );

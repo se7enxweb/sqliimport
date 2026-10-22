@@ -89,7 +89,7 @@ class DuckDbSourceTest extends TestCase
     public function testSchemaAndExamples(): void
     {
         $this->assertSame( array(), expImportOptionSchema::check( expImportDuckDbSource::schema() ) );
-        $this->assertSame( 'data', expImportDuckDbSource::group() );
+        $this->assertSame( 'nosql', expImportDuckDbSource::group() );
         $this->assertSame( array( 'remote' ), expImportDuckDbSource::origins() );
         foreach ( expImportDuckDbSource::examples() as $example )
         {

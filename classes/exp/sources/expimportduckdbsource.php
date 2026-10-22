@@ -83,7 +83,7 @@ class expImportDuckDbSource extends expImportJsonSource
 
     public static function group()
     {
-        return 'data';
+        return 'nosql';
     }
 
     public static function origins()

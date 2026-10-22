@@ -90,7 +90,7 @@ class RedisSourceTest extends TestCase
         $this->assertSame( 'secret', $schema['password']['type'] );
         $this->assertSame( '*', $schema['pattern']['default'] );
         $this->assertSame( '_key', $schema['key']['default'] );
-        $this->assertSame( 'data', expImportRedisSource::group() );
+        $this->assertSame( 'nosql', expImportRedisSource::group() );
         $this->assertSame( array( 'remote' ), expImportRedisSource::origins() );
         $examples = expImportRedisSource::examples();
         $source = new expImportRedisSource( array( 'file' => dirname( __DIR__, 2 ) . '/share/examples/' . $examples[0]['file'], 'key' => '_key' ) );
