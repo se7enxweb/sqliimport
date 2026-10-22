@@ -34,10 +34,11 @@ class LegacyTest extends TestCase
         );
     }
 
-    /** @dataProvider redirects */
-    public function testEveryAddressOfA1xViewGoesToA2xPage( string $view, array $params, array $userParams, int $migrated, string $expected ): void
+    public function testEveryAddressOfA1xViewGoesToA2xPage(): void
     {
-        $this->assertSame( $expected, expImportLegacy::redirectFor( $view, $params, $userParams, $migrated ) );
+        // a loop, not a data provider: PHPUnit 9 to 12 read the same test (12 has no @dataProvider annotations)
+        foreach ( self::redirects() as $case => $c )
+            $this->assertSame( $c[4], expImportLegacy::redirectFor( $c[0], $c[1], $c[2], $c[3] ), $case );
     }
 
     public function testEvery1xViewOfTheModuleIsMapped(): void
