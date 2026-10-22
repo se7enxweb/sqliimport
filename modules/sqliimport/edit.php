@@ -38,6 +38,7 @@ $sample = null;
 $sampleError = '';
 $preview = null;
 $previewError = '';
+$sqlTest = null;
 if ( $isPost && $http->hasPostVariable( 'Step' ) )
 {
     $step = in_array( $http->postVariable( 'Step' ), expImportEditor::STEPS, true ) ? (string)$http->postVariable( 'Step' ) : $step;
@@ -45,6 +46,12 @@ if ( $isPost && $http->hasPostVariable( 'Step' ) )
     switch ( $step )
     {
         case 'source':
+            if ( $http->hasPostVariable( 'TestConnectionButton' ) )
+            {
+                // the SQL source's "Test connection": connects and reads one row with the options of the form; nothing is saved
+                $sqlTest = $editor->testSqlConnection();
+                break;
+            }
             $ok = $editor->saveSource();
             break;
         case 'processing':
@@ -209,14 +216,19 @@ if ( !$editor->import )
     if ( $handover && $param( 'Preset' ) === '' && $param( 'Source' ) === '' && isset( $toolFormats[$handover['tool']], $sources[$toolFormats[$handover['tool']]] ) )
         $preselect = $toolFormats[$handover['tool']];
 }
-$tpl->setVariable( 'source_type', $editor->import ? (string)$editor->import->attribute( 'source_type' ) : $preselect );
+$tpl->setVariable( 'source_type', $sqlTest ? 'sql' : ( $editor->import ? (string)$editor->import->attribute( 'source_type' ) : $preselect ) );
 $tpl->setVariable( 'entry_parent', $entryParent );
 $tpl->setVariable( 'entry_parent_name', $entryParentName );
 $tpl->setVariable( 'entry_class', $entryClass );
 $tpl->setVariable( 'handover', $handover );
 $tpl->setVariable( 'handlers', $registry->handlers() );
 $tpl->setVariable( 'transforms', expImportTransforms::catalogue() );
-$tpl->setVariable( 'source', $editor->import ? $editor->import->sourceConfig() : array( 'origin' => 'upload' ) );
+$sourceForForm = $editor->import ? $editor->import->sourceConfig() : array( 'origin' => 'upload' );
+if ( $sqlTest )
+    $sourceForForm = array_merge( $sourceForForm, $sqlTest['options'], array( 'origin' => 'remote' ) );
+$tpl->setVariable( 'source', $sourceForForm );
+$tpl->setVariable( 'sql_test', $sqlTest ? $sqlTest : false );
+$tpl->setVariable( 'sql_drivers', $step === 'source' ? expImportSqlSource::drivers() : array() );
 // the option fields of every format (the chosen one shown): what was posted, else the stored options of the import's own format
 $postedOptions = $isPost && $http->hasPostVariable( 'SourceOptions' ) && is_array( $http->postVariable( 'SourceOptions' ) ) ? $http->postVariable( 'SourceOptions' ) : array();
 $savedType = $editor->import ? (string)$editor->import->attribute( 'source_type' ) : '';
@@ -255,7 +267,7 @@ $tpl->setVariable( 'can_settings', expImportAdmin::can( 'settings' ) );
 $tpl->setVariable( 'undo_days_default', (int)expImport::setting( 'RunSettings', 'UndoDays', 30 ) );
 $tpl->setVariable( 'max_megabytes', (int)expImport::setting( 'SourceSettings', 'MaxSourceMegabytes', 200 ) );
 $tpl->setVariable( 'allowed_paths', (array)expImport::setting( 'SourceSettings', 'AllowedPaths', array() ) );
-if ( $failed )
+if ( $failed || $sqlTest )
 {
     if ( $step === 'processing' )
     {
@@ -272,7 +284,7 @@ if ( $failed )
 }
 // the fields of the source step as posted (the template prefers them over the stored ones)
 $posted = array();
-if ( $failed )
+if ( $failed || $sqlTest )
     foreach ( array( 'Name', 'Identifier', 'Description', 'Origin', 'SourceURL', 'SourcePath', 'LegacyHandler' ) as $name )
         if ( $http->hasPostVariable( $name ) && is_scalar( $http->postVariable( $name ) ) )
             $posted[$name] = (string)$http->postVariable( $name );

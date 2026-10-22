@@ -43,6 +43,8 @@ $tpl->setVariable( 'sources_by_group', $registry->sourcesByGroup() );
 $tpl->setVariable( 'handlers', $registry->handlers() );
 $tpl->setVariable( 'transforms', expImportTransforms::catalogue() );
 $tpl->setVariable( 'can_manage', expImportAdmin::can( 'edit' ) );
+// the databases the SQL source can read here and in the job queue's workers
+$tpl->setVariable( 'sql_drivers', isset( $sources['sql'] ) ? expImportSqlSource::drivers() : array() );
 $Result = array();
 $Result['content'] = $tpl->fetch( 'design:sqliimport/catalogue.tpl' );
 $Result['path'] = array( array( 'url' => 'sqliimport/list', 'text' => ezpI18n::tr( 'extension/sqliimport', 'Imports' ) ),

@@ -453,8 +453,8 @@ sind die von CSV, mit Komma und UTF-8.
 
 ## SQL-Datenbank oder -Abfrage (`sql`)
 
-Gruppe: Plattformen. Herkunft: `remote`. Die Zeilen einer SQL-Abfrage an eine MySQL- oder MariaDB-, PostgreSQL- oder
-SQLite-Datenbank (eine Datenbank im Intranet, die Datenbank einer anderen Anwendung): Ein Datensatz ist eine Zeile,
+Gruppe: Plattformen. Herkunft: `remote`. Die Zeilen einer SQL-Abfrage an eine MySQL- oder MariaDB-, PostgreSQL-,
+SQLite-, Oracle- oder Microsoft-SQL-Server-Datenbank (eine Datenbank im Intranet, die Datenbank einer anderen Anwendung): Ein Datensatz ist eine Zeile,
 seine Felder sind die Spalten der Abfrage (mit `AS` bekommen sie die gewünschten Namen). Einmal pro Lauf führt die
 Quelle die Abfrage aus und schreibt die Zeilen in das Verzeichnis des Laufs, ein JSON-Objekt pro Zeile; binäre Werte,
 die kein UTF-8 sind, werden als `base64:...` geschrieben. Stichprobe und Vorschau des Editors lesen nur die ersten
@@ -462,9 +462,9 @@ die kein UTF-8 sind, werden als `base64:...` geschrieben. Stichprobe und Vorscha
 
 | Option | Werte | Vorgabe |
 |---|---|---|
-| `driver` | `mysql` (MySQL oder MariaDB), `pgsql` (PostgreSQL), `sqlite` (eine Datei auf dem Server), `site` (die Datenbank dieser Website) | `mysql` |
-| `host`, `port` | der Datenbankserver; Port `0` ist der Standardport (3306, 5432) | |
-| `database` | der Name der Datenbank; bei SQLite der Pfad der Datei | |
+| `driver` | `mysql` (MySQL oder MariaDB), `pgsql` (PostgreSQL), `sqlite` (eine Datei auf dem Server), `oracle` (Oracle), `sqlsrv` (Microsoft SQL Server), `site` (die Datenbank dieser Website) | `mysql` |
+| `host`, `port` | der Datenbankserver; Port `0` ist der Standardport (3306, 5432, Oracle 1521, SQL Server 1433) | |
+| `database` | der Name der Datenbank; bei SQLite der Pfad der Datei; bei Oracle der Dienstname (siehe unten) | |
 | `user` | der Datenbankbenutzer | |
 | `password` | der **Name** eines Geheimnisses (siehe unten), nie das Passwort | |
 | `query` | ein einzelnes `SELECT` (oder `WITH ... SELECT`) | Pflicht |
@@ -485,12 +485,85 @@ Nur Lesen ist möglich, dreifach geprüft:
   `sleep`, `load_extension`, `writefile` ...). `REPLACE` ist nur als Funktion `REPLACE( ... )` erlaubt. Eine Spalte
   mit einem solchen Namen lässt sich in Anführungszeichen setzen (`` `update` ``, `"update"`). Eine abgelehnte
   Abfrage beendet den Lauf mit dem Grund.
+  - **T-SQL (SQL Server)** zusätzlich: `[Namen in eckigen Klammern]` (mit `]]` darin), `N'...'`-Zeichenketten und
+    verschachtelte Kommentare werden so gelesen, wie SQL Server sie liest; `TOP` und `OFFSET ... FETCH` blättern durch
+    die Zeilen. Abgelehnt werden `EXEC`/`EXECUTE`, Systemprozeduren (`sp_...`, `xp_...`, auch in eckigen Klammern),
+    `SELECT ... INTO` (es legt eine Tabelle an), `MERGE`, `OPENROWSET`, `OPENQUERY`, `OPENDATASOURCE`,
+    `WITH ... DELETE`/`UPDATE`/`MERGE`/`INSERT`, eine zweite Anweisung ohne `;` (`BEGIN`, `DECLARE`, `SET`, `USE`,
+    `WAITFOR`, `DBCC`, `BULK`, `COMMIT` ...), Sperrhinweise (`UPDLOCK`, `XLOCK`, `HOLDLOCK`, `TABLOCK`, `TABLOCKX`,
+    `PAGLOCK`) und `NEXT VALUE FOR`.
+  - **Oracle** zusätzlich: `q'[...]'`-Zeichenketten (mit jedem Begrenzer, auch `nq'...'`) werden so gelesen, wie
+    Oracle sie liest. Abgelehnt werden PL/SQL-Blöcke (`BEGIN`, `DECLARE`, auch `WITH FUNCTION`), `FOR UPDATE` (es
+    sperrt Zeilen), Aufrufe der Pakete `DBMS_...`, `UTL_...`, `OWA_...`, `HTP`, `HTF` und von `HTTPURITYPE` (auch als
+    Namen in Anführungszeichen wie `"DBMS_PIPE"."SEND_MESSAGE"`), Datenbank-Links (`tabelle@link`),
+    `sequenz.NEXTVAL`, `COMMIT` und `ROLLBACK`. Oracle liefert Spaltennamen ohne Anführungszeichen in Großbuchstaben:
+    Geben Sie die Schlüsselspalte so an, oder benennen Sie sie mit `AS "id"`.
 - **Die Verbindung ist schreibgeschützt:** MySQL und MariaDB `SET SESSION TRANSACTION READ ONLY`, PostgreSQL
-  `SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY`, SQLite schreibgeschützt geöffnet mit `PRAGMA query_only`.
-  Mehrfachanweisungen und emulierte Prepared Statements sind abgeschaltet, `LOCAL INFILE` von MySQL ebenso.
+  `SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY`, SQLite schreibgeschützt geöffnet mit `PRAGMA query_only`,
+  Oracle eine eigene Verbindung mit `SET TRANSACTION READ ONLY`, die nie bestätigt (committet) wird (ein Schreibversuch
+  darin scheitert mit ORA-01456). SQL Server kennt keine schreibgeschützte Sitzung: Die Verbindung fragt
+  `ApplicationIntent=ReadOnly` an (das sie zu einem lesbaren Sekundärreplikat einer Verfügbarkeitsgruppe leitet, wo es
+  eines gibt), führt `SET NOCOUNT ON`, `SET IMPLICIT_TRANSACTIONS OFF` und `SET LOCK_TIMEOUT` aus und verlässt sich
+  sonst auf die Prüfung der Abfrage. **Geben Sie dem Import einen Datenbankbenutzer, der nur lesen darf** (bei SQL
+  Server die Rolle `db_datareader`, bei Oracle `CREATE SESSION` und `SELECT` auf die nötigen Tabellen, bei den anderen
+  einen Benutzer nur mit `SELECT`-Rechten). Mehrfachanweisungen und emulierte Prepared Statements sind abgeschaltet,
+  `LOCAL INFILE` von MySQL ebenso.
 - **Ein Zeitlimit** von `[SqlSourceSettings] QueryTimeout` Sekunden wird auf dem Server gesetzt, wo er eines kennt
-  (MySQL `MAX_EXECUTION_TIME`, MariaDB `max_statement_time`, PostgreSQL `statement_timeout`); das Lesen der Zeilen
-  bricht nach der zehnfachen Zeit ab.
+  (MySQL `MAX_EXECUTION_TIME`, MariaDB `max_statement_time`, PostgreSQL `statement_timeout`, Oracle das Aufruf-Zeitlimit
+  von oci8, SQL Server das Abfrage-Zeitlimit von pdo_sqlsrv oder pdo_dblib); das Lesen der Zeilen bricht nach der
+  zehnfachen Zeit ab.
+
+**Treiber.** Oracle und SQL Server brauchen eine PHP-Erweiterung, die nicht jeder Server hat:
+
+| Datenbank | Treiber, in dieser Reihenfolge | Zeichensatz |
+|---|---|---|
+| Oracle | `oci8`, sonst `pdo_oci` (`[SqlSourceSettings] OracleDriver`) | AL32UTF8 (UTF-8) |
+| SQL Server | `pdo_sqlsrv`, sonst `pdo_dblib` (FreeTDS), sonst `PDO_ODBC` mit einem ODBC-Treiber für SQL Server (`[SqlSourceSettings] SqlServerDriver`, `OdbcDriver`) | UTF-8 (die UTF-8-Kodierung von pdo_sqlsrv, `charset=UTF-8` von dblib, `ClientCharset=UTF-8` des FreeTDS-ODBC-Treibers) |
+
+Was der Server für einen fehlenden Treiber braucht (Pakete des Systems oder der PHP-Distribution; Plesk und andere
+Verwaltungsoberflächen haben eigene):
+
+- **Oracle:** den Oracle Instant Client (RHEL: `oracle-instantclient-basic`; Debian: den Instant Client von Oracle)
+  und die PECL-Erweiterung `oci8` (RHEL: `php-oci8` von Remi; Debian: mit PECL gebaut), oder `pdo_oci`.
+- **SQL Server:** den Microsoft ODBC Driver 18 (`msodbcsql18` aus dem Repository von Microsoft, RHEL und Debian) und
+  die PECL-Erweiterung `pdo_sqlsrv` (RHEL: `php-sqlsrv` von Remi; Debian: `php-sqlsrv` oder PECL); oder `pdo_dblib`
+  mit FreeTDS (RHEL: `php-pdo-dblib`, `freetds`; Debian: `php-sybase`, `freetds-common`); oder `PDO_ODBC` mit einem
+  ODBC-Treiber (RHEL: `php-odbc`, `unixODBC` und `msodbcsql18` oder `freetds`; Debian: `php-odbc`, `unixodbc` und
+  `msodbcsql18` oder `tdsodbc`).
+
+Der **Katalog** (die Karte des Formats) und der Schritt „Quelle“ des Editors zeigen, welche Datenbanken dieser Server
+lesen kann: grün mit dem verwendeten Treiber, grau mit dem, was der Server braucht. Läufe lesen die **Worker der
+Job-Warteschlange**, und deren PHP ist nicht immer das PHP des Webservers (die Administration kann von einem anderen
+PHP ausgeliefert werden als dem, das der Cronjob der Warteschlange startet). Die Worker vermerken bei jedem Lauf ihr
+PHP und dessen Treiber; die Liste zeigt dann auch „in den Workern“ für eine Datenbank, die das PHP des Webservers
+nicht lesen kann, und ein Test oder eine Stichprobe im Editor meldet, dass Läufe trotzdem funktionieren.
+Verschlüsselung der SQL-Server-Verbindungen: `[SqlSourceSettings] SqlServerEncrypt` (enabled) und
+`SqlServerTrustServerCertificate` (disabled). Der ODBC-Treiber von Microsoft liefert Text in der Locale des
+PHP-Prozesses: Geben Sie den Workern eine UTF-8-Locale (`LANG=C.UTF-8`), oder nennen Sie den Zeichensatz in
+`[SqlSourceSettings] OdbcCharset`, damit er umgewandelt wird.
+
+**Oracle-Verbindungen**, in einer von drei Formen:
+
+- Host, Port und der **Dienstname** als Datenbank: `ora.example.org`, `1521`, `ORCLPDB1`;
+- kein Host und **Easy Connect** als Datenbank: `//ora.example.org:1521/ORCLPDB1` (der Host wird genauso geprüft);
+- kein Host und ein **TNS-Name** als Datenbank: nur einer, den die Administration in `[SqlSourceSettings]
+  AllowedTnsNames[]` einträgt, denn die `tnsnames.ora` des Servers bestimmt, wohin er führt.
+
+Verbindungsbeschreibungen (`(DESCRIPTION=...)`) werden nicht angenommen. Datums- und Zeitwerte kommen in ISO 8601
+(`2026-10-22T10:11:12`, `...T10:11:12.500000`: `NLS_DATE_FORMAT` und `NLS_TIMESTAMP_FORMAT` der Sitzung), Zahlen so,
+wie Oracle sie schreibt, mit Dezimalpunkt (`3.5`, `.25`; für eine andere Form `TO_CHAR` in der Abfrage), `CLOB` und
+`NCLOB` als Text, `BLOB` und `RAW` als `base64:...`.
+
+**Beispiel für SQL Server:**
+
+```sql
+SELECT TOP 100 [Id], [Name], [Description] FROM [dbo].[Products] ORDER BY [Changed] DESC
+```
+
+**Verbindung testen.** Im Schritt „Quelle“ eines Imports dieses Formats verbindet *Verbindung testen* mit den Optionen
+des Formulars, führt die Abfrage für ihre erste Zeile aus und zeigt deren Spalten oder den Fehler (ein Passwort
+erscheint nie, es wird maskiert). Nichts wird gespeichert; es braucht dieselbe Berechtigung wie das Speichern des
+Imports.
 
 Wohin verbunden werden darf:
 

@@ -97,6 +97,7 @@
 <div class="a4-form is-wide a4-sqliimport-options">
 {include uri='design:sqliimport/parts/option_fields.tpl' schema=$sq_s.schema values=$source_option_values[$sq_sid] prefix=concat( 'SourceOptions[', $sq_sid, ']' ) errors=$errors idprefix=concat( 'sq-so-', $sq_sid )}
 </div>
+{if eq( $sq_sid, 'sql' )}{include uri='design:sqliimport/edit/sql_test.tpl'}{/if}
 </fieldset>
 {/if}
 {/foreach}

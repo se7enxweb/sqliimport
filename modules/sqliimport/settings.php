@@ -51,7 +51,7 @@ $ini = expImport::ini();
 $settings = array();
 foreach ( array( 'RunSettings' => array( 'ChunkSize', 'DryRunRows', 'LogLevel', 'KeepDays' ),
                  'SourceSettings' => array( 'MaxSourceMegabytes', 'AllowPrivateHosts', 'AllowedPaths' ),
-                 'SqlSourceSettings' => array( 'AllowedHosts', 'SiteDatabase', 'QueryTimeout' ),
+                 'SqlSourceSettings' => array( 'AllowedHosts', 'SiteDatabase', 'QueryTimeout', 'OracleDriver', 'AllowedTnsNames', 'SqlServerDriver', 'OdbcDriver', 'OdbcCharset', 'SqlServerEncrypt', 'SqlServerTrustServerCertificate' ),
                  'ImapSourceSettings' => array( 'AllowedHosts', 'Timeout', 'MaxMessageMegabytes' ),
                  'ImportSettings' => array( 'DefaultParentNodeID', 'ViewCaching', 'ObjectIndexing', 'StreamTimeout' ),
                  'AdminSettings' => array( 'ListLimit' ) ) as $section => $names )

@@ -110,6 +110,21 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   read with PharData without extracting the archive; the mapping comes from the package and matches the remote IDs,
   so importing a package again updates its objects. Images and files of a package are taken from the run's copy.
 - Added: [PlatformSettings] MaxPages, MaxItems and MaxResponseMegabytes for the sources that read a site themselves.
+- Added: Oracle (oracle) for the SQL source: oci8, else pdo_oci; host, port and service name, Easy Connect or a TNS
+  name of [SqlSourceSettings] AllowedTnsNames[]; a read-only transaction that is never committed, AL32UTF8, dates and
+  timestamps in ISO 8601, a decimal point in numbers, LOBs read as text.
+- Added: Microsoft SQL Server (sqlsrv) for the SQL source: pdo_sqlsrv, else pdo_dblib (FreeTDS), else PDO_ODBC with
+  the driver of [SqlSourceSettings] OdbcDriver; ApplicationIntent=ReadOnly, UTF-8, encryption by SqlServerEncrypt and
+  SqlServerTrustServerCertificate.
+- Added: The SELECT-only check of the SQL source reads T-SQL (bracketed names, N'...' strings, nested comments) and
+  Oracle SQL (q'[...]' strings, quoted package names) and refuses EXEC, system procedures, SELECT ... INTO, MERGE,
+  OPENROWSET, OPENQUERY, OPENDATASOURCE, locking hints, PL/SQL blocks, FOR UPDATE, DBMS_ and UTL_ packages and
+  database links.
+- Added: Test connection on the source step of an SQL import: connects with the options of the form, reads the first
+  row of the query and shows its columns or the masked error, without saving.
+- Added: The databases the SQL source can read on this server, in the catalogue and on the source step, with what the
+  host needs for a missing driver; the job queue's workers note their PHP and its drivers, so the editor tells when
+  runs work although the web server's PHP has no driver.
 
 ### Updated
 
