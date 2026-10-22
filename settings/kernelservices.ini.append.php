@@ -82,6 +82,8 @@ RoundTrip[]=transfer.xrowextract
 RoundTrip[]=transfer.bccie
 RoundTrip[]=transfer.rss_export
 RoundTrip[]=transfer.sqliimport
+# the data tables of Exponential 6.0.15 (Setup > Data tables): import into a table, tables and content in sync
+RoundTrip[]=transfer.datatable
 Keywords[]=import csv
 Keywords[]=spreadsheet
 Keywords[]=excel
@@ -605,5 +607,13 @@ Class=expImportDataTableFieldSource
 Scope=worker
 Tags[]=datatable.field_source
 Description=The fields of a 7x SQLI Import source, for a new data table.
+
+# The target "A data table": the records become rows of a persistent class, written by the kernel's
+# expDataTableWriter (Exponential 6.0.15; disabled on an older kernel)
+[Service_sqliimport.handler.datatable]
+Class=expImportDataTableHandler
+Scope=worker
+Tags[]=sqliimport.handler
+Description=7x SQLI Import target: rows of a data table (a persistent class)
 
 */ ?>

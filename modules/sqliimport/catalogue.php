@@ -37,10 +37,24 @@ if ( isset( $Params['Example'] ) && $Params['Example'] !== false && $Params['Exa
     eZExecution::cleanExit();
 }
 
+// the group "Data tables" (Exponential 6.0.15): a synchronisation opens in the kernel's form, prefilled with the data
+// table and the content class chosen here (only names from the lists are passed on)
+$dataTables = expImportDataTables::forCatalogue();
+$http = eZHTTPTool::instance();
+if ( $dataTables['sync'] && $http->hasPostVariable( 'DataTableSyncButton' ) )
+{
+    $table = (string)$http->postVariable( 'DataTableClass', '' );
+    $contentClass = (string)$http->postVariable( 'DataTableContentClass', '' );
+    $Module->redirectTo( '/' . expImportDataTables::syncUrl( isset( $dataTables['tables'][$table] ) ? $table : '',
+                                                            isset( $dataTables['content_classes'][$contentClass] ) ? $contentClass : '' ) );
+    return;
+}
+
 $registry->registerTransforms();
 $tpl = eZTemplate::factory();
 $tpl->setVariable( 'sources', $sources );
 $tpl->setVariable( 'sources_by_group', $registry->sourcesByGroup() );
+$tpl->setVariable( 'data_tables', $dataTables );
 $tpl->setVariable( 'handlers', $registry->handlers() );
 $tpl->setVariable( 'transforms', expImportTransforms::catalogue() );
 $tpl->setVariable( 'can_manage', expImportAdmin::can( 'edit' ) );

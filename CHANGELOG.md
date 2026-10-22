@@ -7,6 +7,11 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 
 ### Added
 
+- Added: The target "A data table": the records become rows of a persistent class, written by the kernel's
+  expDataTableWriter (Exponential 6.0.15), with column lines and transforms, keys and the modes upsert, insert,
+  update and replace; a dry run checks without writing.
+- Added: The catalogue's group "Data tables" (import into a table, the module table wizard, content and tables in
+  sync), "New data table from its fields" for every import, and the round trip with transfer.datatable.
 - Added: The SQL source reads through a named connection of Exponential 6.0.15 (option connection, Setup, Data
   tables, Connections), with the same query check in the connection's dialect and paged reads.
 - Added: A secret's value can be typed in the editor (New value, for users with secrets/manage) and is stored in the

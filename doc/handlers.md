@@ -121,6 +121,35 @@ Status=enabled
 
 A handler can also be a kernel service tagged `sqliimport.handler` (`settings/kernelservices.ini.append.php`).
 
+## The target "A data table" (Exponential 6.0.15)
+
+Besides the mapping to a content class, an import can fill the table of a **persistent class** (a module's or an
+extension's own table, listed in **Setup, Data tables**): choose **Rows of a data table (a persistent class)** in the
+step Processing. The rows are written by the kernel's `expDataTableWriter`: checked against the class's definition,
+on the class's connection, matched by a unique key, a transaction per chunk, never raw SQL. Nothing of content is
+made, so a run of this target cannot be undone; its report lists the key of every row.
+
+| Option | Values | Default |
+|---|---|---|
+| `class` | a persistent class with a table (a list of the data tables of the site) | required |
+| `mode` | `upsert` (add new rows, update existing ones), `insert`, `update`, `replace` (an existing row is removed and written again) | `upsert` |
+| `keys` | the columns a row is matched by, one per line | the class's keys |
+| `columns` | one line per column: `column = field of the record \| transforms` (the one-line chain of the mapping grid, e.g. `price = price \| number`); empty: every field whose name is a column | |
+
+A relation column (object, node, user) takes a reference to content instead of an id: `@object:<remote id>`,
+`@node:<remote id>` or `@path:<url alias>`. A dry run checks and counts with the writer, and writes nothing.
+
+**A new table from an import.** Each import offers **New data table from its fields** under More (policy
+setup/setup). It opens the kernel's module table wizard with the import's fields, guessed from a sample of its
+source: column names, types (string, text, integer, float, boolean, date, datetime, json), lengths, required and
+unique columns. The wizard makes the class, the table and its admin views in an extension; the import can then fill
+it with this target. The provider is the kernel service `datatable.field_source.sqliimport`.
+
+**Content and tables in sync.** The catalogue's group **Data tables** opens the kernel's synchronisations (policy
+datatable/sync) with a data table and a content class filled in: export content to a table, migrate content into a
+table, keep a table in sync with content, import a table into content, or both ways with a conflict rule. The
+kernel runs them and keeps their history (tool `transfer.datatable`); 7x SQLI Import copies nothing itself.
+
 ## Handlers that read their own records
 
 A handler that also implements `expImportRecordProviderInterface` supplies the records itself, instead of the

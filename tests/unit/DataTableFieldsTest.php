@@ -82,7 +82,38 @@ class DataTableFieldsTest extends TestCase
         // it loads on a kernel with or without the interface, and has the methods the wizard calls
         $this->assertTrue( class_exists( 'expImportDataTableFieldSource' ) );
         $this->assertSame( interface_exists( 'expDataTableFieldSource' ), is_subclass_of( 'expImportDataTableFieldSource', 'expDataTableFieldSource' ) );
-        foreach ( array( 'dataTableFields', 'dataTableSourceLabel' ) as $method )
+        foreach ( array( 'dataTableSourceName', 'dataTableReferences', 'dataTableFields', 'dataTableSourceLabel' ) as $method )
             $this->assertTrue( method_exists( 'expImportDataTableFieldSource', $method ), $method );
+    }
+
+    /**
+     * The provider against the kernel's REAL interface (kernel/classes/datatable/expdatatablefieldsource.php of the
+     * installation, or of SQ688_KERNEL_ROOT): every method the interface declares is there with a signature PHP
+     * accepts, so a change of the contract fails here and not as a fatal error of the wizard.
+     */
+    public function testTheProviderFitsTheKernelInterface(): void
+    {
+        $roots = array_filter( array( (string)getenv( 'SQ688_KERNEL_ROOT' ), dirname( __DIR__, 4 ) ) );
+        $file = '';
+        foreach ( $roots as $root )
+            if ( is_file( $root . '/kernel/classes/datatable/expdatatablefieldsource.php' ) )
+            {
+                $file = $root . '/kernel/classes/datatable/expdatatablefieldsource.php';
+                break;
+            }
+        if ( $file === '' )
+            $this->markTestSkipped( 'no kernel with the data tables here (set SQ688_KERNEL_ROOT to an Exponential 6.0.15 installation)' );
+        $code = (string)file_get_contents( $file );
+        $this->assertSame( 1, preg_match( '/interface\s+expDataTableFieldSource\s*\{(.*)\}/s', $code, $m ), 'the kernel declares the interface' );
+        preg_match_all( '/public\s+function\s+([A-Za-z0-9_]+)\s*\(([^)]*)\)/', $m[1], $methods, PREG_SET_ORDER );
+        $this->assertNotEmpty( $methods );
+        foreach ( $methods as $method )
+        {
+            $this->assertTrue( method_exists( 'expImportDataTableFieldSourceBase', $method[1] ), "the provider has $method[1]()" );
+            $reflection = new ReflectionMethod( 'expImportDataTableFieldSourceBase', $method[1] );
+            $kernelParams = trim( $method[2] ) === '' ? 0 : substr_count( $method[2], ',' ) + 1;
+            $this->assertSame( $kernelParams, $reflection->getNumberOfParameters(), "$method[1]() takes the kernel's parameters" );
+            $this->assertTrue( $reflection->isPublic() && !$reflection->isStatic(), "$method[1]() is a public instance method" );
+        }
     }
 }

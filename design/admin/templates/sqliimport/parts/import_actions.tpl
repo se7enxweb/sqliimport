@@ -11,6 +11,8 @@
 <summary>{'More'|i18n( 'extension/sqliimport' )}<span class="a4-sr-only"> {$i.import.name|wash}</span></summary>
 <div class="a4-sqliimport-more-body">
 {include uri='design:sqliimport/parts/button.tpl' action='duplicate' import_id=$i.import.id here=$here small=1 label='Duplicate'|i18n( 'extension/sqliimport' )}
+{* the kernel's module table wizard with this import's fields (Exponential 6.0.15, policy setup/setup) *}
+{if is_set( $datatable_wizard )}{if and( $datatable_wizard, $i.import.is_legacy|not )}<a class="a4-btn a4-btn-small" href={concat( '/setup/moduletable/(source)/sqliimport/(ref)/', $i.import.id )|ezurl}>{'New data table from its fields'|i18n( 'extension/sqliimport' )}</a>{/if}{/if}
 {if $i.import.is_enabled}{include uri='design:sqliimport/parts/button.tpl' action='disable' import_id=$i.import.id here=$here small=1 label='Disable'|i18n( 'extension/sqliimport' )}{else}{include uri='design:sqliimport/parts/button.tpl' action='enable' import_id=$i.import.id here=$here small=1 label='Enable'|i18n( 'extension/sqliimport' )}{/if}
 {include uri='design:sqliimport/parts/button.tpl' action='delete' import_id=$i.import.id here=$here small=1 kind='danger' label='Delete'|i18n( 'extension/sqliimport' ) confirm='Delete this import with its mapping and schedules? Its runs stay in the history.'|i18n( 'extension/sqliimport' )}
 </div>

@@ -125,6 +125,38 @@ Status=enabled
 Ein Handler kann auch ein Kernel-Dienst mit dem Tag `sqliimport.handler` sein
 (`settings/kernelservices.ini.append.php`).
 
+## Das Ziel „Eine Datentabelle“ (Exponential 6.0.15)
+
+Außer der Zuordnung zu einer Inhaltsklasse kann ein Import die Tabelle einer **persistenten Klasse** füllen (die
+eigene Tabelle eines Moduls oder einer Erweiterung, aufgeführt unter **Setup, Data tables**): im Schritt Processing
+**Rows of a data table (a persistent class)** wählen. Die Zeilen schreibt der `expDataTableWriter` des Kernels: gegen
+die Definition der Klasse geprüft, über die Verbindung der Klasse, über einen eindeutigen Schlüssel zugeordnet, eine
+Transaktion je Abschnitt, nie rohes SQL. Es entsteht kein Inhalt, ein Lauf dieses Ziels kann also nicht rückgängig
+gemacht werden; sein Bericht nennt den Schlüssel jeder Zeile.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `class` | eine persistente Klasse mit Tabelle (eine Liste der Datentabellen der Website) | Pflicht |
+| `mode` | `upsert` (neue Zeilen anlegen, bestehende ändern), `insert`, `update`, `replace` (eine bestehende Zeile wird entfernt und neu geschrieben) | `upsert` |
+| `keys` | die Spalten, über die eine Zeile zugeordnet wird, eine je Zeile | die Schlüssel der Klasse |
+| `columns` | eine Zeile je Spalte: `Spalte = Feld des Datensatzes \| Umwandlungen` (die einzeilige Kette des Rasters, z. B. `price = price \| number`); leer: jedes Feld, dessen Name eine Spalte ist | |
+
+Eine Beziehungsspalte (Objekt, Knoten, Benutzer) nimmt statt einer ID einen Verweis auf Inhalt: `@object:<Remote-ID>`,
+`@node:<Remote-ID>` oder `@path:<URL-Alias>`. Ein Probelauf prüft und zählt mit dem Writer und schreibt nichts.
+
+**Eine neue Tabelle aus einem Import.** Jeder Import bietet unter More **New data table from its fields** an
+(Richtlinie setup/setup). Das öffnet den Modultabellen-Assistenten des Kernels mit den Feldern des Imports, geschätzt
+aus einer Stichprobe seiner Quelle: Spaltennamen, Typen (string, text, integer, float, boolean, date, datetime, json),
+Längen, Pflicht- und eindeutige Spalten. Der Assistent legt Klasse, Tabelle und ihre Verwaltungsseiten in einer
+Erweiterung an; der Import kann sie dann mit diesem Ziel füllen. Der Anbieter ist der Kernel-Dienst
+`datatable.field_source.sqliimport`.
+
+**Inhalte und Tabellen abgleichen.** Die Gruppe **Data tables** des Katalogs öffnet die Synchronisationen des Kernels
+(Richtlinie datatable/sync) mit eingetragener Datentabelle und Inhaltsklasse: Inhalte in eine Tabelle exportieren,
+Inhalte in eine Tabelle migrieren, eine Tabelle mit Inhalten synchron halten, eine Tabelle in Inhalte importieren,
+oder beides mit einer Regel für Konflikte. Der Kernel führt sie aus und führt ihre Historie (Werkzeug
+`transfer.datatable`); 7x SQLI Import kopiert selbst nichts.
+
 ## Handler, die ihre Datensätze selbst lesen
 
 Ein Handler, der zusätzlich `expImportRecordProviderInterface` implementiert, liefert die Datensätze selbst statt

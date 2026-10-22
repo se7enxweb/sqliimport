@@ -172,7 +172,9 @@ class expImportRegistry
         {
             $class = get_class( $service );
             if ( $service instanceof expImportHandlerInterface )
-                $out[$service::identifier()] = array( 'class' => $class, 'label' => $service::label(), 'legacy' => false, 'schema' => $service::schema(), 'status' => 'enabled' );
+                $out[$service::identifier()] = array( 'class' => $class, 'label' => $service::label(), 'legacy' => false, 'schema' => $service::schema(),
+                                                       // a handler that needs something of the kernel says so (the data table target before 6.0.15)
+                                                       'status' => method_exists( $class, 'available' ) && !call_user_func( array( $class, 'available' ) ) ? 'disabled' : 'enabled' );
         }
         foreach ( expImportLegacyHandlerAdapter::available() as $id => $info )
         {

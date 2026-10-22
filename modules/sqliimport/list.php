@@ -12,6 +12,8 @@
 /** @var eZModule $Module */
 $Module = $Params['Module'];
 $tpl = eZTemplate::factory();
+$abilities = expImportDataTables::abilities();
+$tpl->setVariable( 'datatable_wizard', $abilities['wizard'] );
 $installed = expImportSchema::installed();
 $filter = array(
     'status' => isset( $Params['Status'] ) && isset( expImportAdmin::STATUS_FILTERS[$Params['Status']] ) ? (string)$Params['Status'] : '',

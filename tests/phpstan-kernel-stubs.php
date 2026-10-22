@@ -31,8 +31,28 @@ class expSecrets
 }
 interface expDataTableFieldSource
 {
+    public function dataTableSourceName();
+    public function dataTableReferences();
     public function dataTableFields( array $options );
     public function dataTableSourceLabel( array $options );
+}
+class expDataTableWriter
+{
+    public function __construct( $class, array $options = array() ) {}
+    /** @return array */
+    public function write( array $rows ) { return array(); }
+}
+class expDataTableCatalogue
+{
+    /** @return expDataTableCatalogue */
+    public static function instance() { return new self(); }
+    /** @return array */
+    public function classes() { return array(); }
+}
+class expDataSync
+{
+    /** @return bool */
+    public static function installed() { return false; }
 }
 class expDataConnections
 {

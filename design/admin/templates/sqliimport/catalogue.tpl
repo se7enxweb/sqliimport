@@ -45,6 +45,8 @@
 </section>
 {/foreach}
 
+{include uri='design:sqliimport/parts/datatable_cards.tpl'}
+
 <section class="a4-section" aria-labelledby="sq-cat-handlers">
 <div class="a4-section-head"><h2 class="a4-h2" id="sq-cat-handlers">{'Handlers'|i18n( 'extension/sqliimport' )}</h2></div>
 <table class="a4-table">
