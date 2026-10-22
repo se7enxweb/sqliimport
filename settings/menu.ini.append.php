@@ -7,6 +7,8 @@ Part[sqliimportnavigationpart]=Import management
 Tabs[]=sqliimport
 
 [Topmenu_sqliimport]
+# Icon - the icon admin4 draws before the tab's name: a name of design.ini [AdminDesignSettings] IconList[]
+Icon=upload
 NavigationPartIdentifier=sqliimportnavigationpart
 Name=Import management
 Tooltip=Manage your imports
