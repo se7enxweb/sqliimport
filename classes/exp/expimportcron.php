@@ -212,8 +212,23 @@ class expImportCron
         return (int)$text;
     }
 
+    /** @return int the offset of a zone from UTC at a moment, in seconds */
+    protected static function offsetAt( $ts, DateTimeZone $zone )
+    {
+        return (int)$zone->getOffset( new DateTime( '@' . (int)$ts ) );
+    }
+
+    /** @return int the moment of a local wall-clock time (counted as if it were UTC) in a zone */
+    protected static function localToTs( $local, DateTimeZone $zone )
+    {
+        $guess = $local - self::offsetAt( $local, $zone );
+        return $local - self::offsetAt( $guess, $zone );
+    }
+
     /**
-     * The first minute after $after the parsed expression allows, in a time zone.
+     * The first minute after $after the parsed expression allows, in a time zone. The wall clock is worked out from
+     * the zone's offset at each moment, in integers: DateTime of PHP before 8.1 showed the wrong one of two equal
+     * hours when the clocks go back.
      *
      * @param array $cron from parse()
      * @param int $after
@@ -222,19 +237,19 @@ class expImportCron
      */
     public static function nextCron( array $cron, $after, DateTimeZone $zone )
     {
-        $t = new DateTime( '@' . ( intdiv( (int)$after, 60 ) * 60 + 60 ) );
-        $t->setTimezone( $zone );
+        $ts = intdiv( (int)$after, 60 ) * 60 + 60;
         $limit = (int)$after + 5 * 366 * 86400;
-        for ( $guard = 0; $guard < 100000 && $t->getTimestamp() <= $limit; $guard++ )
+        for ( $guard = 0; $guard < 200000 && $ts <= $limit; $guard++ )
         {
-            if ( !in_array( (int)$t->format( 'n' ), $cron['month'], true ) )
+            $local = $ts + self::offsetAt( $ts, $zone );
+            list( $year, $month, $day, $dow, $hour, $minute ) = array_map( 'intval', explode( ' ', gmdate( 'Y n j w G i', $local ) ) );
+            if ( !in_array( $month, $cron['month'], true ) )
             {
-                $t = new DateTime( $t->format( 'Y-m-01 00:00:00' ), $zone );
-                $t->modify( '+1 month' );
+                $ts = max( $ts + 60, self::localToTs( gmmktime( 0, 0, 0, $month + 1, 1, $year ), $zone ) );
                 continue;
             }
-            $domOk = in_array( (int)$t->format( 'j' ), $cron['dom'], true );
-            $dowOk = in_array( (int)$t->format( 'w' ), $cron['dow'], true );
+            $domOk = in_array( $day, $cron['dom'], true );
+            $dowOk = in_array( $dow, $cron['dow'], true );
             if ( $cron['dom_any'] && $cron['dow_any'] )
                 $dayOk = true;
             elseif ( $cron['dom_any'] )
@@ -245,33 +260,28 @@ class expImportCron
                 $dayOk = $domOk || $dowOk;
             if ( !$dayOk )
             {
-                $t = new DateTime( $t->format( 'Y-m-d 00:00:00' ), $zone );
-                $t->modify( '+1 day' );
+                $ts = max( $ts + 60, self::localToTs( gmmktime( 0, 0, 0, $month, $day + 1, $year ), $zone ) );
                 continue;
             }
-            if ( !in_array( (int)$t->format( 'G' ), $cron['hour'], true ) )
+            if ( !in_array( $hour, $cron['hour'], true ) )
             {
-                $before = $t->getTimestamp();
-                $t = new DateTime( $t->format( 'Y-m-d H:00:00' ), $zone );
-                $t->setTimestamp( $t->getTimestamp() + 3600 );
-                if ( $t->getTimestamp() <= $before )
-                    $t->setTimestamp( $before + 60 );
+                // the next full hour of the local clock: time passes evenly, so it is this many seconds away
+                $ts += 3600 - ( $local % 3600 );
                 continue;
             }
-            if ( !in_array( (int)$t->format( 'i' ), $cron['minute'], true ) )
+            if ( !in_array( $minute, $cron['minute'], true ) )
             {
-                $t->setTimestamp( $t->getTimestamp() + 60 );
+                $ts += 60;
                 continue;
             }
             // the second occurrence of a wall-clock time (clocks went back an hour) is not a new run
-            $earlier = new DateTime( '@' . ( $t->getTimestamp() - 3600 ) );
-            $earlier->setTimezone( $zone );
-            if ( $earlier->format( 'Y-m-d H:i' ) === $t->format( 'Y-m-d H:i' ) )
+            $earlier = $ts - 3600;
+            if ( gmdate( 'Y-m-d H:i', $earlier + self::offsetAt( $earlier, $zone ) ) === gmdate( 'Y-m-d H:i', $local ) )
             {
-                $t->setTimestamp( $t->getTimestamp() + 60 );
+                $ts += 60;
                 continue;
             }
-            return $t->getTimestamp();
+            return $ts;
         }
         return 0;
     }

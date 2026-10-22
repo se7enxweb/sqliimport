@@ -8,7 +8,6 @@ parameters:
         - modules/sqliimport/run.php
         - modules/sqliimport/action.php
         - cronjobs/sqliimport_schedule.php
-        - tests/unit
     scanFiles:
         - tests/phpstan-kernel-stubs.php
     scanDirectories:

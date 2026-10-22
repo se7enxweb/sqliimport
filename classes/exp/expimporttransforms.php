@@ -285,14 +285,7 @@ class expImportTransforms
             case 'slug':
                 return $each( $value, function ( $v )
                 {
-                    $s = (string)$v;
-                    if ( function_exists( 'iconv' ) )
-                    {
-                        $t = @iconv( 'UTF-8', 'ASCII//TRANSLIT//IGNORE', $s );
-                        if ( $t !== false )
-                            $s = $t;
-                    }
-                    $s = strtolower( preg_replace( '/[^A-Za-z0-9]+/', '-', $s ) );
+                    $s = strtolower( preg_replace( '/[^A-Za-z0-9]+/', '-', self::ascii( (string)$v ) ) );
                     return trim( $s, '-' );
                 } );
             case 'richtext':
@@ -322,6 +315,29 @@ class expImportTransforms
                 return $url === '' ? '' : (string)$fn( $url, $name );
         }
         throw new expImportTransformException( "unknown transform '$name'" );
+    }
+
+    /**
+     * A text in plain ASCII letters where it can be: accents taken off (é > e), the German and Nordic letters spelled
+     * out (ä > ae, ß > ss, ø > o). The same on every server: it does not depend on the locale iconv() would use.
+     *
+     * @param string $s
+     * @return string
+     */
+    public static function ascii( $s )
+    {
+        $s = strtr( (string)$s, array( 'ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'Ä' => 'Ae', 'Ö' => 'Oe', 'Ü' => 'Ue', 'ß' => 'ss',
+                                       'æ' => 'ae', 'Æ' => 'Ae', 'ø' => 'o', 'Ø' => 'O', 'œ' => 'oe', 'Œ' => 'Oe', 'ð' => 'd', 'þ' => 'th',
+                                       'ł' => 'l', 'Ł' => 'L', 'đ' => 'd', 'Đ' => 'D', 'ı' => 'i' ) );
+        if ( class_exists( 'Normalizer' ) )
+        {
+            $n = Normalizer::normalize( $s, Normalizer::FORM_D );
+            if ( is_string( $n ) )
+                return (string)preg_replace( '/\p{Mn}+/u', '', $n );
+        }
+        $from = 'ÀÁÂÃÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÙÚÛÝàáâãåçèéêëìíîïñòóôõùúûýÿčćšžřňťďěůČĆŠŽŘŇŤĎĚŮ';
+        $to = 'AAAAACEEEEIIIINOOOOUUUYaaaaaceeeeiiiinoooouuuyyccszrntdeuCCSZRNTDEU';
+        return strtr( $s, array_combine( preg_split( '//u', $from, -1, PREG_SPLIT_NO_EMPTY ), str_split( $to ) ) );
     }
 
     /** @return DateTimeZone */

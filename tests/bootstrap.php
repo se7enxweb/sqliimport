@@ -25,3 +25,16 @@ spl_autoload_register( function ( $class )
     if ( isset( $map[$key] ) )
         require_once $map[$key];
 } );
+
+// Without a kernel (the CI of this repository): the base classes the extension's classes extend, so a test can load
+// them. Their kernel behaviour is never used by the unit tests.
+if ( !class_exists( 'eZPersistentObject' ) )
+{
+    #[AllowDynamicProperties]
+    class eZPersistentObject
+    {
+        public function __construct( $row = null )
+        {
+        }
+    }
+}

@@ -190,14 +190,7 @@ class expImportMapper
     {
         $norm = function ( $s )
         {
-            $s = strtolower( (string)$s );
-            if ( function_exists( 'iconv' ) )
-            {
-                $t = @iconv( 'UTF-8', 'ASCII//TRANSLIT//IGNORE', $s );
-                if ( $t !== false )
-                    $s = $t;
-            }
-            return preg_replace( '/[^a-z0-9]/', '', $s );
+            return preg_replace( '/[^a-z0-9]/', '', strtolower( expImportTransforms::ascii( (string)$s ) ) );
         };
         $out = array();
         $used = array();
