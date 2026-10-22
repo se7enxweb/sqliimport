@@ -109,7 +109,8 @@ class CatalogueTest extends TestCase
         // an article whose image is an object relation and which has no publish date or tags (as on many sites)
         $fields = expImportEditor::presetFields( $preset, array( 'title' => 'ezstring', 'intro' => 'ezxmltext', 'body' => 'ezxmltext',
                                                                   'image' => 'ezobjectrelation' ) );
-        $this->assertSame( array( 'title', 'intro', 'body' ), array_map( function ( $f ) { return $f['attribute']; }, $fields ) );
+        $this->assertSame( array( 'title', 'intro', 'body', 'image' ), array_map( function ( $f ) { return $f['attribute']; }, $fields ) );
+        $this->assertSame( 'media_object', $fields[3]['transforms'][0]['name'], 'an object relation gets the image as a media object' );
         $this->assertArrayNotHasKey( 'datatypes', $fields[0] );
         $fields = expImportEditor::presetFields( $preset, array( 'title' => 'ezstring', 'image' => 'ezimage', 'tags' => 'ezkeyword',
                                                                   'publish_date' => 'ezdatetime' ) );

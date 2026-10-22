@@ -78,6 +78,7 @@ class expImportWxrSource extends expImportAbstractSource
                 array( 'source' => 'content_html', 'attribute' => 'body', 'transforms' => array( array( 'name' => 'richtext' ) ) ),
                 array( 'source' => 'date', 'attribute' => 'publish_date', 'transforms' => array( array( 'name' => 'date' ) ), 'datatypes' => array( 'ezdate', 'ezdatetime' ) ),
                 array( 'source' => 'featured_image', 'attribute' => 'image', 'transforms' => array( array( 'name' => 'image' ) ), 'datatypes' => array( 'ezimage' ) ),
+                array( 'source' => 'featured_image', 'attribute' => 'image', 'transforms' => array( array( 'name' => 'media_object' ) ), 'datatypes' => array( 'ezobjectrelation' ) ),
                 array( 'source' => 'tags', 'attribute' => 'tags', 'transforms' => array( array( 'name' => 'join', 'args' => array( 'separator' => ', ' ) ) ), 'datatypes' => array( 'ezkeyword', 'eztags' ) ),
             ),
         );

@@ -26,6 +26,9 @@ class expImportTransforms
     /** @var callable|null fn( string $url, string $kind ): string local file path; set by the engine */
     public static $download = null;
 
+    /** @var callable|null fn( string $url, array $args ): int the ID of the media object of a file; set by the engine */
+    public static $mediaObject = null;
+
     /**
      * The built-in transforms: name => array( label, argument schema ).
      * @return array
@@ -66,6 +69,11 @@ class expImportTransforms
             'lookup' => array( 'The ID of the object with this remote ID (object relations)', array( 'prefix' => array( 'type' => 'string', 'help' => 'put before the value to make the remote ID' ) ) ),
             'image' => array( 'Downloads an image from a URL (ezimage)', array() ),
             'file' => array( 'Downloads a file from a URL (ezbinaryfile, ezmedia)', array() ),
+            'media_object' => array( 'An image or file object for a URL, made once per file (object relations)', array(
+                'parent' => array( 'type' => 'int', 'help' => 'the node the media objects are created below (default: the import\'s parent node)' ),
+                'class' => array( 'type' => 'string', 'help' => 'the class of a media object (default image)' ),
+                'attribute' => array( 'type' => 'string', 'help' => 'its file attribute (default image)' ),
+                'name' => array( 'type' => 'string', 'help' => 'a field of the record for its name (default: the file name)' ) ) ),
         );
     }
 
@@ -313,6 +321,16 @@ class expImportTransforms
                     throw new expImportTransformException( "$name needs a running installation" );
                 $url = trim( $text( is_array( $value ) ? reset( $value ) : $value ) );
                 return $url === '' ? '' : (string)$fn( $url, $name );
+            case 'media_object':
+                $fn = self::$mediaObject;
+                if ( !$fn )
+                    throw new expImportTransformException( 'media_object needs a running installation' );
+                $url = trim( $text( is_array( $value ) ? reset( $value ) : $value ) );
+                if ( $url === '' )
+                    return '';
+                if ( isset( $args['name'] ) && $args['name'] !== '' && $record )
+                    $args['name_value'] = (string)$record->get( (string)$args['name'], '' );
+                return (string)(int)$fn( $url, $args );
         }
         throw new expImportTransformException( "unknown transform '$name'" );
     }

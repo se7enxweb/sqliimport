@@ -64,6 +64,68 @@ class expImportMappingHandler implements expImportHandlerInterface
         {
             return expImportSourceFiles::downloadAsset( $url, $kind, $run );
         };
+        $parent = (int)( isset( $mapping['location']['parent_node_id'] ) && (int)$mapping['location']['parent_node_id'] ? $mapping['location']['parent_node_id']
+                                                                                                                       : $context->target['parent_node_id'] );
+        $owner = (int)$context->target['owner_id'] ?: expImport::currentUserID();
+        expImportTransforms::$mediaObject = $context->dryRun
+            ? function ( $url, array $args ) { return 0; }
+            : function ( $url, array $args ) use ( $run, $parent, $owner )
+            {
+                return self::mediaObject( $url, $args, $run, $parent, $owner );
+            };
+    }
+
+    /** @var array url => object ID of the media objects of this worker's runs */
+    protected static $mediaObjects = array();
+
+    /**
+     * The media object (an image, by default) of a file at an address: made once per file, found again by the hash of
+     * its content (remote ID sqliimport-media-<sha1>), so the same picture used by many records, runs or imports is
+     * one object. Its ID is what an object relation takes.
+     *
+     * @param string $url
+     * @param array $args parent, class, attribute, name_value
+     * @param expImportRun $run
+     * @param int $defaultParent
+     * @param int $owner
+     * @return int the object ID
+     * @throws expImportTransformException
+     */
+    public static function mediaObject( $url, array $args, expImportRun $run, $defaultParent, $owner )
+    {
+        $key = (int)$run->attribute( 'id' ) . ':' . $url;
+        if ( isset( self::$mediaObjects[$key] ) )
+            return self::$mediaObjects[$key];
+        $file = expImportSourceFiles::downloadAsset( $url, 'media_object', $run );
+        $remoteID = 'sqliimport-media-' . sha1_file( $file );
+        $existing = eZContentObject::fetchByRemoteID( $remoteID, false );
+        if ( is_array( $existing ) )
+            return self::$mediaObjects[$key] = (int)$existing['id'];
+        $classIdentifier = isset( $args['class'] ) && $args['class'] !== '' ? (string)$args['class'] : 'image';
+        $attribute = isset( $args['attribute'] ) && $args['attribute'] !== '' ? (string)$args['attribute'] : 'image';
+        $attributes = self::classAttributes( $classIdentifier );
+        if ( $attributes === null || !isset( $attributes[$attribute] ) )
+            throw new expImportTransformException( "media_object: the class $classIdentifier has no attribute $attribute" );
+        $parent = isset( $args['parent'] ) && (int)$args['parent'] ? (int)$args['parent'] : (int)$defaultParent;
+        if ( $parent < 1 || !eZContentObjectTreeNode::fetch( $parent, false, false ) )
+            throw new expImportTransformException( "media_object: no parent node $parent" );
+        $name = isset( $args['name_value'] ) && trim( (string)$args['name_value'] ) !== '' ? trim( (string)$args['name_value'] )
+              : ucfirst( trim( (string)preg_replace( '/[-_ ]+/', ' ', pathinfo( (string)parse_url( $url, PHP_URL_PATH ), PATHINFO_FILENAME ) ) ) );
+        $content = SQLIContent::create( new SQLIContentOptions( array( 'class_identifier' => $classIdentifier, 'remote_id' => $remoteID, 'creator_id' => (int)$owner ) ) );
+        foreach ( array( 'name', 'title' ) as $nameAttribute )
+            if ( isset( $attributes[$nameAttribute] ) )
+            {
+                $content->fields->$nameAttribute = $name !== '' ? $name : 'Media';
+                break;
+            }
+        $content->fields->$attribute = $file;
+        $publisher = SQLIContentPublisher::getInstance();
+        $publisher->setOptions( new SQLIContentPublishOptions( array( 'parent_node_id' => $parent, 'modification_check' => false ) ) );
+        $publisher->publish( $content );
+        $id = (int)$content->id;
+        $content->flush();
+        unset( $content );
+        return self::$mediaObjects[$key] = $id;
     }
 
     /**
