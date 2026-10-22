@@ -1547,7 +1547,7 @@ mit ihren Vorgaben, die ein Format nach Bedarf überschreibt:
 |---|---|
 | `description()` | was das Format ist und was ein Datensatz ist |
 | `group()` | `data`, `content`, `platform`, `commerce`, `media` oder `other` |
-| `examples()` | eine Liste von `array( 'label', 'file' )` (eine Datei in `share/examples` der Erweiterung, mit `'options'`, falls nötig) oder `array( 'label', 'url' )` |
+| `examples()` | eine Liste von `array( 'label', 'file' )` (eine Datei in `share/examples` von sqliimport, mit `'options'`, falls nötig), `array( 'label', 'file', 'extension' => 'ezodf' )` (eine Datei in `share/samples` dieser Erweiterung), `array( 'label', 'path' => 'extension/<Name>/share/...' )` (relativ zur Installation, nur unter `share/` einer Erweiterung) oder `array( 'label', 'url' )` |
 | `preset()` | eine Zuordnung als Ausgangspunkt: `class`, `match`, `fields` (je mit `source`, `attribute`, `transforms` und wahlweise `datatypes`), oder `array()` |
 | `variants()` | ID => `label`, `description`, `extensions`, `defaults` (Option => Wert), `examples`, `preset` |
 

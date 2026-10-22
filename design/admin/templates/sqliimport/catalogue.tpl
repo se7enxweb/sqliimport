@@ -31,7 +31,7 @@
 {/if}
 <div class="a4-sqliimport-format-foot">
 {foreach $s.examples as $n => $e}
-{if is_set( $e.file )}<a class="a4-btn a4-btn-ghost" href={concat( '/sqliimport/catalogue/(example)/', $id, '/(n)/', $n )|ezurl} download title="{$e.label|wash}"><span class="a4-icon a4-bi-download" aria-hidden="true"></span> {$e.file|wash}</a>
+{if or( is_set( $e.file ), is_set( $e.path ) )}<a class="a4-btn a4-btn-ghost" href={concat( '/sqliimport/catalogue/(example)/', $id, '/(n)/', $n )|ezurl} download title="{$e.label|wash}"><span class="a4-icon a4-bi-download" aria-hidden="true"></span> {first_set( $e.file, $e.path )|wash}</a>
 {elseif is_set( $e.url )}<a class="a4-btn a4-btn-ghost" href="{$e.url|wash}" rel="noopener noreferrer" target="_blank" title="{$e.label|wash}"><span class="a4-icon a4-bi-box-arrow-up-right" aria-hidden="true"></span> {'Example'|i18n( 'extension/sqliimport' )}</a>{/if}
 {/foreach}
 {foreach $s.examples as $e}{if and( is_unset( $e.url ), is_set( $e.options ), is_set( $s.origins ) )}{if $s.origins|contains( 'remote' )}<p class="a4-help">{'Example'|i18n( 'extension/sqliimport' )}: {$e.label|wash}</p>{/if}{/if}{/foreach}

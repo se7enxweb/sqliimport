@@ -407,7 +407,7 @@ class expImportEditor
         $data = json_decode( (string)$json, true );
         if ( !is_array( $data ) || empty( $data['sqliimport_mapping'] ) || !isset( $data['mapping']['class'] ) )
             throw new expImportValidationException( array( 'MappingFile' => 'not a mapping file of 7x SQLI Import' ), 'not a mapping file' );
-        $mapping = array_intersect_key( $data['mapping'], array_flip( array( 'class', 'language', 'match', 'fields' ) ) );
+        $mapping = array_intersect_key( $data['mapping'], array_flip( array( 'class', 'language', 'match', 'fields', 'class_from', 'variants' ) ) );
         $attributes = expImportMappingHandler::classAttributes( (string)$mapping['class'] );
         if ( $attributes === null )
             throw new expImportValidationException( array( 'MappingFile' => 'this site has no class ' . $mapping['class'] ), 'unknown class' );
@@ -525,6 +525,39 @@ class expImportEditor
             'location' => array( 'parent_node_id' => !empty( $target['parent_node_id'] ) ? (int)$target['parent_node_id']
                                                                                       : (int)expImport::setting( 'ImportSettings', 'DefaultParentNodeID', 2 ) ),
         );
+        // the preset's rule for the parent of a record (parent_from, parent_prefix, extra_parents_from), e.g. a tree
+        // of documents whose records name their folder
+        if ( isset( $preset['location'] ) && is_array( $preset['location'] ) )
+            foreach ( array( 'parent_from', 'parent_prefix', 'extra_parents_from' ) as $key )
+                if ( isset( $preset['location'][$key] ) && is_scalar( $preset['location'][$key] ) )
+                    $mapping['location'][$key] = trim( (string)$preset['location'][$key] );
+        // a class per record (class_from, variants): each variant's lines are filtered like the main ones, for its class;
+        // a variant whose class this site does not have is left out (its records then take the main class)
+        if ( !empty( $preset['class_from'] ) && !empty( $preset['variants'] ) && is_array( $preset['variants'] ) )
+        {
+            $variants = array();
+            foreach ( $preset['variants'] as $value => $variant )
+            {
+                if ( !is_array( $variant ) )
+                    continue;
+                if ( !empty( $variant['skip'] ) )
+                {
+                    $variants[(string)$value] = array( 'skip' => true );
+                    continue;
+                }
+                $variantClass = isset( $variant['class'] ) && (string)$variant['class'] !== '' ? eZContentClass::fetchByIdentifier( (string)$variant['class'] ) : null;
+                if ( !$variantClass )
+                    continue;
+                $variants[(string)$value] = array( 'class' => (string)$variant['class'],
+                                                   'fields' => self::presetFields( $variant, array_map( function ( $attribute ) { return (string)$attribute->attribute( 'data_type_string' ); },
+                                                                                                         $variantClass->dataMap() ) ) );
+            }
+            if ( $variants )
+            {
+                $mapping['class_from'] = (string)$preset['class_from'];
+                $mapping['variants'] = $variants;
+            }
+        }
         $row = expImportMapping::saveArray( $mapping, $this->import->attribute( 'id' ) );
         $this->import->setAttribute( 'mapping_id', $row->attribute( 'id' ) );
         $this->import->store();
@@ -836,8 +869,15 @@ class expImportEditor
                 'extra_parents_from' => trim( (string)$this->post( 'LocationExtraParentsFrom' ) ),
             ),
         );
-        // stored even when not complete yet (the grid keeps what was entered); the errors are shown
+        // a class per record (class_from, variants: from a preset or a mapping file) is not in the grid: it is kept
         $existing = (int)$this->import->attribute( 'mapping_id' ) ? expImportMapping::fetch( $this->import->attribute( 'mapping_id' ) ) : null;
+        $before = $existing ? $existing->toArray() : array();
+        if ( !empty( $before['class_from'] ) && !empty( $before['variants'] ) && !$this->post( 'RemoveVariants' ) )
+        {
+            $mapping['class_from'] = $before['class_from'];
+            $mapping['variants'] = $before['variants'];
+        }
+        // stored even when not complete yet (the grid keeps what was entered); the errors are shown
         $row = expImportMapping::saveArray( $mapping, $this->import->attribute( 'id' ), $existing );
         $this->import->setAttribute( 'mapping_id', (int)$row->attribute( 'id' ) );
         $this->save( false );

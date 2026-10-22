@@ -18,8 +18,9 @@ if ( isset( $Params['Example'] ) && $Params['Example'] !== false && $Params['Exa
 {
     $id = (string)$Params['Example'];
     $n = isset( $Params['N'] ) ? (int)$Params['N'] : 0;
-    $example = isset( $sources[$id]['examples'][$n]['file'] ) ? basename( (string)$sources[$id]['examples'][$n]['file'] ) : '';
-    $path = $example !== '' ? expImport::exampleDirectory() . '/' . $example : '';
+    // this extension's share/examples, or the share/samples of the extension that declares the format (expImport::examplePath())
+    $path = isset( $sources[$id]['examples'][$n] ) ? expImport::examplePath( (array)$sources[$id]['examples'][$n] ) : '';
+    $example = basename( $path );
     if ( $path === '' || !is_file( $path ) )
         return $Module->handleError( eZError::KERNEL_NOT_AVAILABLE, 'kernel' );
     $types = array( 'csv' => 'text/csv', 'tsv' => 'text/tab-separated-values', 'json' => 'application/json', 'ndjson' => 'application/x-ndjson',

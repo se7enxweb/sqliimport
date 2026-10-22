@@ -54,13 +54,21 @@ class expImportMapping extends eZPersistentObject
                 'language' => $row->attribute( 'language' ),
             );
         }
-        return array(
+        // a class per record (class_from, variants) is kept with the location rule, which is JSON (no schema change)
+        $location = (array)expImport::decode( $this->attribute( 'location_json' ) );
+        $out = array(
             'class' => $this->attribute( 'class_identifier' ),
             'language' => $this->attribute( 'language' ),
             'match' => $match,
             'fields' => $fields,
-            'location' => expImport::decode( $this->attribute( 'location_json' ) ),
+            'location' => array_diff_key( $location, array( 'class_from' => 1, 'variants' => 1 ) ),
         );
+        if ( !empty( $location['class_from'] ) && !empty( $location['variants'] ) )
+        {
+            $out['class_from'] = (string)$location['class_from'];
+            $out['variants'] = (array)$location['variants'];
+        }
+        return $out;
     }
 
     /**
@@ -82,7 +90,10 @@ class expImportMapping extends eZPersistentObject
         $row->setAttribute( 'language', isset( $mapping['language'] ) ? (string)$mapping['language'] : '' );
         // the match rule is small JSON; it lives in match_key (varchar 255)
         $row->setAttribute( 'match_key', substr( expImport::json( isset( $mapping['match'] ) ? $mapping['match'] : array() ), 0, 255 ) );
-        $row->setAttribute( 'location_json', expImport::json( isset( $mapping['location'] ) ? $mapping['location'] : array() ) );
+        $location = isset( $mapping['location'] ) ? (array)$mapping['location'] : array();
+        if ( !empty( $mapping['class_from'] ) && !empty( $mapping['variants'] ) )
+            $location = array( 'class_from' => (string)$mapping['class_from'], 'variants' => (array)$mapping['variants'] ) + $location;
+        $row->setAttribute( 'location_json', expImport::json( $location ) );
         $row->setAttribute( 'modified', $now );
         $row->store();
         $id = (int)$row->attribute( 'id' );

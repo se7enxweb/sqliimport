@@ -1483,7 +1483,7 @@ defaults, which a format overrides as it needs:
 |---|---|
 | `description()` | what the format is and what one record is |
 | `group()` | `data`, `content`, `platform`, `commerce`, `media` or `other` |
-| `examples()` | a list of `array( 'label', 'file' )` (a file in the extension's `share/examples`, with `'options'` if it needs some) or `array( 'label', 'url' )` |
+| `examples()` | a list of `array( 'label', 'file' )` (a file in sqliimport's `share/examples`, with `'options'` if it needs some), `array( 'label', 'file', 'extension' => 'ezodf' )` (a file in that extension's `share/samples`), `array( 'label', 'path' => 'extension/<name>/share/...' )` (relative to the installation, only below an extension's `share/`) or `array( 'label', 'url' )` |
 | `preset()` | a mapping to start from: `class`, `match`, `fields` (each with `source`, `attribute`, `transforms` and optionally `datatypes`), or `array()` |
 | `variants()` | id => `label`, `description`, `extensions`, `defaults` (option => value), `examples`, `preset` |
 

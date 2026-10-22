@@ -15,6 +15,16 @@
 </select>
 <span class="a4-help">{'After a new class is chosen, save to see its attributes.'|i18n( 'extension/sqliimport/edit' )}</span>
 </div>
+{* a class per record (class_from, variants), from the format's preset or a mapping file: not edited in the grid,
+   which is the mapping of every other record; kept when the grid is saved, unless removed here *}
+{if and( is_set( $mapping.class_from ), is_set( $mapping.variants ) )}
+<div class="a4-field a4-field-wide">
+<p class="a4-notice is-info">{'Records choose their class by the field %field:'|i18n( 'extension/sqliimport/edit',, hash( '%field', $mapping.class_from ) )|wash}
+{foreach $mapping.variants as $sq_mv_value => $sq_mv}<code>{$sq_mv_value|wash}</code> → {if is_set( $sq_mv.skip )}{'not imported'|i18n( 'extension/sqliimport/edit' )}{else}<code>{$sq_mv.class|wash}</code> ({'%n lines'|i18n( 'extension/sqliimport/edit',, hash( '%n', $sq_mv.fields|count ) )}){/if}{delimiter}; {/delimiter}{/foreach}.
+{'Every other record uses the class and the lines below. Change the variants with a mapping file (download, edit, load).'|i18n( 'extension/sqliimport/edit' )}</p>
+<label><input type="checkbox" name="RemoveVariants" value="1" /> {'Remove the class per record when saving'|i18n( 'extension/sqliimport/edit' )}</label>
+</div>
+{/if}
 <div class="a4-field">
 <label for="sq-mlang">{'Language of the fields'|i18n( 'extension/sqliimport/edit' )}</label>
 <select id="sq-mlang" name="MappingLanguage">

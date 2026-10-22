@@ -226,6 +226,8 @@ class expImportSourceFiles
     public static function downloadAsset( $url, $kind, expImportRun $run )
     {
         $dir = expImport::storageDirectory( 'runs/' . (int)$run->attribute( 'id' ) . '/assets' );
+        if ( strpos( $url, 'run:' ) === 0 )
+            return self::runAsset( (string)substr( $url, 4 ), $kind, $run );
         if ( strpos( $url, 'source:' ) === 0 )
             return self::sourceAsset( (string)substr( $url, 7 ), $kind, $run, $dir );
         $name = substr( sha1( $url ), 0, 16 ) . self::extensionOf( parse_url( $url, PHP_URL_PATH ) ?: '' );
@@ -240,6 +242,50 @@ class expImportSourceFiles
         {
             throw new expImportTransformException( "$kind: " . $e->getMessage() );
         }
+    }
+
+    /**
+     * A file a source wrote next to its snapshot ("run:<path below the run's directory>"): a document a remote
+     * source downloaded, an image taken out of a document (ezodf's document formats). Resolved against the run's
+     * directory, or for the editor's sample and preview (a run without an id) against the import's preview
+     * directory; never a path outside it, never a directory, never larger than [SourceSettings] MaxSourceMegabytes.
+     *
+     * @param string $rel
+     * @param string $kind
+     * @param expImportRun $run
+     * @return string the local file
+     * @throws expImportTransformException
+     */
+    public static function runAsset( $rel, $kind, expImportRun $run )
+    {
+        $base = (int)$run->attribute( 'id' ) > 0 ? self::runDirectory( $run->attribute( 'id' ) )
+                                                  : expImport::storageDirectory( 'preview/' . (int)$run->attribute( 'import_id' ) );
+        return self::runFile( $base, $rel, $kind, self::maxBytes() );
+    }
+
+    /**
+     * A file below a directory, by a relative path from a record: no "." or ".." part, no NUL, no link leading out of
+     * the directory, a file (not a directory), at most $maxBytes.
+     *
+     * @param string $base
+     * @param string $rel
+     * @param string $kind for the message
+     * @param int $maxBytes
+     * @return string the real path of the file
+     * @throws expImportTransformException
+     */
+    public static function runFile( $base, $rel, $kind, $maxBytes )
+    {
+        $rel = ltrim( str_replace( '\\', '/', (string)$rel ), '/' );
+        if ( $rel === '' || strpos( $rel, "\0" ) !== false || preg_match( '#(^|/)\.\.?(/|$)#', $rel ) )
+            throw new expImportTransformException( "$kind: run:$rel is not a file of the run" );
+        $root = realpath( $base );
+        $file = realpath( $base . '/' . $rel );
+        if ( $root === false || $file === false || strpos( $file, $root . DIRECTORY_SEPARATOR ) !== 0 || !is_file( $file ) )
+            throw new expImportTransformException( "$kind: the run has no file $rel" );
+        if ( filesize( $file ) > (int)$maxBytes )
+            throw new expImportTransformException( "$kind: $rel is larger than [SourceSettings] MaxSourceMegabytes" );
+        return $file;
     }
 
     /**

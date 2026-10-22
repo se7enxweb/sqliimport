@@ -47,6 +47,30 @@ dem Inhalt mit.
   Kommas). Sie werden zu weiteren Platzierungen eines neuen Objekts.
 - Datensätze werden in ihrer Reihenfolge verarbeitet. Ein Elternobjekt, das im selben Lauf importiert wird, muss
   also vor seinen Kindern kommen.
+- Die Abschnitte eines Laufs laufen nacheinander, nie nebeneinander: Der nächste Abschnitt wird erst eingereiht,
+  wenn der vorige fertig ist. Ein Ordner-Datensatz, der vor seinen Dokumenten kommt, wird also vor ihnen
+  veröffentlicht, wie groß der Lauf auch ist. Ein Datensatz, dessen Elternobjekt trotzdem fehlt, schlägt mit „the
+  parent of the record does not exist (yet)“ fehl; **Retry failed rows** nach dem Lauf platziert ihn.
+
+### Eine Klasse je Datensatz
+
+Manche Quellen liefern Datensätze verschiedener Art: die Dokumente von ezodf liefern Ordner und Dokumente, ein Feed
+vielleicht Folgen und Notizen. `class_from` nennt das Feld des Datensatzes, das die Klasse wählt, und `variants`
+gibt je Wert eine Klasse und Zeilen; Zuordnung und Platzierung bleiben die der Zuordnung, ein Baum aus Ordnern und
+Dokumenten teilt sich also das Muster der Remote-ID und die Regel für das Elternobjekt. Ein Wert ohne Variante nimmt
+die Klasse und die Zeilen der Zuordnung; `skip` lässt diese Datensätze weg (ihre Zeilen sagen „not imported“).
+
+```json
+"class_from": "kind",
+"variants": {
+  "folder": { "class": "folder", "fields": [ { "source": "title", "attribute": "name" } ] },
+  "note":   { "skip": true }
+}
+```
+
+Die Vorgabe eines Formats kann sie mitbringen, ebenso eine Zuordnungsdatei (herunterladen, bearbeiten, laden). Der
+Schritt Mapping zeigt sie über dem Raster, das die Zuordnung aller übrigen Datensätze ist; beim Speichern des Rasters
+bleiben sie erhalten, außer **Remove the class per record when saving** ist angekreuzt.
 
 ## Verhalten
 
@@ -95,13 +119,26 @@ Datensatz mit ihrer Meldung fehl. Die eingebauten Umwandlungen (`expImportTransf
 | `date` | Ein Datum oder eine Uhrzeit als Zeitstempel (ezdate, ezdatetime) | `format` (PHP-Datumsformat; `excel`: ein Tabellendatum; leer: jede Form, die `strtotime()` liest), `timezone` (Vorgabe `UTC`) |
 | `date_format` | Ein Datum als Text in einem Format | `format` (Pflicht), `timezone` (Vorgabe `UTC`) |
 | `slug` | Ein URL-freundlicher Bezeichner | |
-| `richtext` | HTML in den Rich Text (ezxmltext) des Attributs | |
+| `richtext` | HTML in den Rich Text (ezxmltext) des Attributs; seine Bilder des Laufs werden eingebettete Bildobjekte | `images` (`embed`, Vorgabe, oder `drop`), `image_parent`, `image_size` (Vorgabe `medium`) |
 | `lookup` | Die ID des Objekts mit dieser Remote-ID (Objektbeziehungen) | `prefix` |
 | `image` | Lädt ein Bild von einer URL herunter (ezimage) | |
 | `file` | Lädt eine Datei von einer URL herunter (ezbinaryfile, ezmedia) | |
 
 Für `image` und `file` gelten dieselben Adressregeln wie für eine Quelle mit `url` ([sources.md](sources.md)). In
 einem Probelauf, also auch in der Vorschau des Editors, laden sie nichts herunter: Die Adresse steht für die Datei.
+
+**Dateien des Laufs und der Quelle.** Außer einer Adresse nehmen `image`, `file` und `media_object` auch
+`source:<Pfad>` (eine Datei aus dem ZIP oder Paket des Laufs) und `run:<Pfad>`: eine Datei, die eine Quelle neben
+ihren Abzug in das Verzeichnis des Laufs geschrieben hat, etwa ein Dokument, das eine entfernte Quelle geladen hat,
+oder ein Bild aus einem Dokument (die Dokumentformate von ezodf). Ein `run:`-Pfad verlässt dieses Verzeichnis nie
+(kein `..`, kein Link nach draußen) und ist höchstens `[SourceSettings] MaxSourceMegabytes` groß; in der Stichprobe
+des Editors wird er aus dem Vorschauverzeichnis des Imports gelesen.
+
+**Bilder im Rich Text.** `richtext` macht aus jedem `<img>`, dessen `src` `run:` oder `source:` ist, ein Bildobjekt
+(einmal je Datei, wie `media_object`, unter `image_parent` oder dem Elternknoten des Imports; der `alt`-Text als
+Name) und bettet es an der Stelle des Bildes ein, in der Größe `image_size`. Ein Bild, das nicht zu haben ist,
+entfällt mit einem Hinweis in der Zeile. `images=drop` lässt alle weg; ein `<img>` einer anderen Adresse entfernt
+der XML-Parser wie bisher. Ein Probelauf legt kein Objekt an und lässt die Bilder weg.
 
 ### Datumsangaben aus Tabellen
 

@@ -44,6 +44,30 @@ If no object matches, a new one is created. Prefer a remote ID: it is indexed, a
   additional locations of a new object.
 - Records are processed in their order, so a parent that is imported in the same run must come before its
   children.
+- The chunks of a run run one after the other, never side by side: the next chunk is queued only when the one
+  before it has ended. A folder record that comes before its documents is therefore published before them, however
+  large the run. A record whose parent is missing all the same fails with "the parent of the record does not exist
+  (yet)"; **Retry failed rows** after the run places it.
+
+### A class per record
+
+Some sources give records of several kinds: ezodf's documents give folders and documents, a feed may give
+episodes and notes. `class_from` names the record field that chooses the class, and `variants` gives a class and
+lines per value; match and location stay the mapping's, so a tree of folders and documents shares the remote ID
+pattern and the parent rule. A value without a variant uses the mapping's own class and lines; `skip` leaves those
+records out (their rows say "not imported").
+
+```json
+"class_from": "kind",
+"variants": {
+  "folder": { "class": "folder", "fields": [ { "source": "title", "attribute": "name" } ] },
+  "note":   { "skip": true }
+}
+```
+
+A format's preset can bring them, and so can a mapping file (download, edit, load). The step Mapping shows them
+above the grid, which is the mapping of every other record; they are kept when the grid is saved, unless **Remove
+the class per record when saving** is checked.
 
 ## Behavior
 
@@ -92,13 +116,26 @@ built-in transforms (`expImportTransforms::builtins()`):
 | `date` | A date or time as a timestamp (ezdate, ezdatetime) | `format` (PHP date format; `excel`: a spreadsheet date; empty: any form `strtotime()` reads), `timezone` (default `UTC`) |
 | `date_format` | A date as a text in a format | `format` (required), `timezone` (default `UTC`) |
 | `slug` | A URL-friendly identifier | |
-| `richtext` | HTML to the rich text (ezxmltext) of the attribute | |
+| `richtext` | HTML to the rich text (ezxmltext) of the attribute; its pictures of the run become embedded image objects | `images` (`embed`, default, or `drop`), `image_parent`, `image_size` (default `medium`) |
 | `lookup` | The ID of the object with this remote ID (object relations) | `prefix` |
 | `image` | Downloads an image from a URL (ezimage) | |
 | `file` | Downloads a file from a URL (ezbinaryfile, ezmedia) | |
 
 `image` and `file` follow the same address rules as a `url` source ([sources.md](sources.md)). In a dry run, and
 so in the preview of the editor, they download nothing: the address stands for the file.
+
+**Files of the run and of the source.** Besides an address, `image`, `file` and `media_object` take
+`source:<path>` (a file of the run's ZIP or package) and `run:<path>`: a file a source wrote next to its snapshot
+in the run's directory, such as a document a remote source downloaded or a picture taken out of a document
+(ezodf's document formats). A `run:` path never leaves that directory (no `..`, no link pointing out of it) and
+is at most `[SourceSettings] MaxSourceMegabytes`; in the editor's sample it is read from the import's preview
+directory.
+
+**Pictures in rich text.** `richtext` turns every `<img>` whose `src` is `run:` or `source:` into an image object
+(made once per file, as `media_object` does, below `image_parent` or the import's parent; the `alt` text as its
+name) and embeds it where the picture was, at the size `image_size`. A picture that cannot be had is left out
+with a note in the row. `images=drop` leaves all of them out; an `<img>` of any other address is dropped by the
+XML parser as before. A dry run makes no object and leaves the pictures out.
 
 ### Dates from spreadsheets
 

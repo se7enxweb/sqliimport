@@ -48,7 +48,8 @@ class expImportMappingHandler implements expImportHandlerInterface
         $mapping = $context->import->mappingArray();
         if ( !$mapping )
             throw new expImportException( 'the import has no mapping' );
-        $errors = expImportMapper::validate( $mapping, self::classAttributes( $mapping['class'] ) );
+        $errors = array_merge( expImportMapper::validate( $mapping, self::classAttributes( $mapping['class'] ) ),
+                               expImportMapper::validateVariants( $mapping, function ( $class ) { return self::classAttributes( $class ); } ) );
         if ( $errors )
             throw new expImportValidationException( $errors, 'the mapping is not valid: ' . implode( '; ', $errors ) );
         $this->mapping = $mapping;
@@ -159,11 +160,15 @@ class expImportMappingHandler implements expImportHandlerInterface
     /** @return expImportRowResult what was done with one record */
     protected function processRecord( expImportRecord $record, expImportContext $context )
     {
-        $plan = expImportMapper::apply( $this->mapping, $record );
+        // a mapping with a class per record (class_from): the variant of this record, or none when its kind is skipped
+        $mapping = expImportMapper::variantFor( $this->mapping, $record );
+        if ( $mapping === null )
+            return expImportRowResult::skipped( "not imported: its {$this->mapping['class_from']} is " . trim( (string)$record->get( (string)$this->mapping['class_from'], '' ) ) );
+        $plan = expImportMapper::apply( $mapping, $record );
         $language = $this->mapping['language'] !== '' ? $this->mapping['language']
                   : ( $context->target['language'] !== '' ? $context->target['language'] : eZContentObject::defaultLanguage() );
 
-        $object = $this->findObject( $plan );
+        $object = $this->findObject( $plan, $mapping['class'] );
         if ( $object && (int)$object->attribute( 'status' ) === eZContentObject::STATUS_ARCHIVED )
             return expImportRowResult::skipped( 'the object is in the trash', $object->attribute( 'id' ) );
         if ( $object && $context->behaviour['update_policy'] === 'create_only' )
@@ -215,7 +220,7 @@ class expImportMappingHandler implements expImportHandlerInterface
             return $this->dryRunResult( $object, $plan, $language );
 
         $versionBefore = $object ? (int)$object->attribute( 'current_version' ) : 0;
-        $options = array( 'class_identifier' => $this->mapping['class'], 'language' => $language );
+        $options = array( 'class_identifier' => $mapping['class'], 'language' => $language );
         if ( $plan['remote_id'] !== '' )
             $options['remote_id'] = $plan['remote_id'];
         if ( (int)$context->target['section_id'] )
@@ -337,7 +342,7 @@ class expImportMappingHandler implements expImportHandlerInterface
     }
 
     /** @return eZContentObject|null */
-    protected function findObject( array $plan )
+    protected function findObject( array $plan, $class = null )
     {
         if ( $plan['remote_id'] !== '' )
         {
@@ -350,7 +355,7 @@ class expImportMappingHandler implements expImportHandlerInterface
             JOIN ezcontentobject o ON o.id = a.contentobject_id AND o.current_version = a.version
             JOIN ezcontentclass_attribute ca ON ca.id = a.contentclassattribute_id AND ca.version = 0
             JOIN ezcontentclass c ON c.id = o.contentclass_id AND c.version = 0
-            WHERE c.identifier = '" . $db->escapeString( $this->mapping['class'] ) . "'
+            WHERE c.identifier = '" . $db->escapeString( $class !== null ? (string)$class : $this->mapping['class'] ) . "'
               AND ca.identifier = '" . $db->escapeString( $attribute ) . "'
               AND ( a.data_text = '" . $db->escapeString( $value ) . "' OR a.sort_key_string = '" . $db->escapeString( mb_strtolower( $value ) ) . "' )",
             array( 'limit' => 1 ) );

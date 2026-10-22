@@ -7,6 +7,13 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 
 ### Added
 
+- Added: Files of the run as run:<path> for the transforms image, file and media_object (a document a remote source
+  downloaded, a picture taken out of a document), never outside the run's directory.
+- Added: The richtext transform keeps the pictures of the run: each becomes an image object, embedded where it was
+  (option images: embed or drop, image_parent, image_size).
+- Added: A class per record in a mapping (class_from, variants), so folders and documents of one source are imported
+  in one run; presets also bring their parent rule (parent_from, parent_prefix).
+- Added: Examples of a format declared by another extension, from that extension's share/samples.
 - Added: Secrets from the kernel's secret store of Exponential 6.0.15 (Setup, Secrets, scope sqliimport) when it is
   there, with sqliimport.ini [SecretSettings] Secrets[] and env: as before; a value in an address is masked too.
 - Added: The fields of a new data table guessed from an import's sample (column names, types, lengths, required,

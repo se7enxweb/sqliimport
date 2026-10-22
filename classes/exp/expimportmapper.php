@@ -24,6 +24,8 @@
  *   location     array( 'parent_node_id' => int, 'parent_from' => path (a record field with the parent's remote ID),
  *                'parent_prefix' => text put before it, 'extra_parents_from' => path (a list of remote IDs of more
  *                parents) )
+ *   class_from   optional: a record field whose value chooses a variant (variants: value => array( class, fields ) or
+ *                array( skip => true )), for sources whose records are of several kinds (folders and documents)
  */
 class expImportMapper
 {
@@ -88,6 +90,81 @@ class expImportMapper
         $location = isset( $mapping['location'] ) && is_array( $mapping['location'] ) ? $mapping['location'] : array();
         if ( empty( $location['parent_node_id'] ) && empty( $location['parent_from'] ) )
             $errors[] = 'choose where new objects are placed (a parent node, or a field with the parent\'s remote ID)';
+        return array_merge( $errors, self::validateVariants( $mapping ) );
+    }
+
+    /**
+     * The mapping for one record when the mapping has a class per record (class_from + variants): the value of the
+     * record's field class_from picks a variant, which brings its own class and field lines (match and location stay
+     * the mapping's, so folders and documents of one tree share the remote ID pattern and the parent rule). A variant
+     * with skip leaves those records out; a value without a variant uses the mapping's own class and lines.
+     *
+     *   'class_from' => 'kind',
+     *   'variants' => array( 'folder' => array( 'class' => 'folder', 'fields' => array( ...lines... ) ),
+     *                        'note' => array( 'skip' => true ) )
+     *
+     * @param array $mapping
+     * @param expImportRecord $record
+     * @return array|null the mapping to apply, null when the record is skipped
+     */
+    public static function variantFor( array $mapping, expImportRecord $record )
+    {
+        if ( empty( $mapping['class_from'] ) || empty( $mapping['variants'] ) || !is_array( $mapping['variants'] ) )
+            return $mapping;
+        $value = $record->get( (string)$mapping['class_from'], '' );
+        $value = is_array( $value ) ? '' : trim( (string)$value );
+        if ( $value === '' || !isset( $mapping['variants'][$value] ) || !is_array( $mapping['variants'][$value] ) )
+            return $mapping;
+        $variant = $mapping['variants'][$value];
+        if ( !empty( $variant['skip'] ) )
+            return null;
+        if ( isset( $variant['class'] ) && (string)$variant['class'] !== '' )
+            $mapping['class'] = (string)$variant['class'];
+        if ( isset( $variant['fields'] ) && is_array( $variant['fields'] ) )
+            $mapping['fields'] = $variant['fields'];
+        $mapping['variant'] = $value;
+        unset( $mapping['class_from'], $mapping['variants'] );
+        return $mapping;
+    }
+
+    /**
+     * Checks the variants of a mapping with a class per record.
+     *
+     * @param array $mapping
+     * @param callable|null $attributesOf class identifier => attributes (identifier => datatype) or null, when known
+     * @return string[] errors
+     */
+    public static function validateVariants( array $mapping, ?callable $attributesOf = null )
+    {
+        if ( empty( $mapping['variants'] ) )
+            return array();
+        if ( !is_array( $mapping['variants'] ) )
+            return array( 'the variants of the mapping must be a list of values with their class' );
+        if ( empty( $mapping['class_from'] ) )
+            return array( 'variants need the field that chooses them (class_from)' );
+        $errors = array();
+        foreach ( $mapping['variants'] as $value => $variant )
+        {
+            if ( !is_array( $variant ) )
+            {
+                $errors[] = "variant '$value': give a class or skip";
+                continue;
+            }
+            if ( !empty( $variant['skip'] ) )
+                continue;
+            $check = array( 'class' => isset( $variant['class'] ) && (string)$variant['class'] !== '' ? (string)$variant['class'] : ( isset( $mapping['class'] ) ? $mapping['class'] : '' ),
+                            'fields' => isset( $variant['fields'] ) && is_array( $variant['fields'] ) ? $variant['fields'] : ( isset( $mapping['fields'] ) ? $mapping['fields'] : array() ),
+                            'match' => isset( $mapping['match'] ) ? $mapping['match'] : array(),
+                            'location' => isset( $mapping['location'] ) ? $mapping['location'] : array() );
+            $attributes = $attributesOf && preg_match( '/^[a-z0-9_]+$/i', $check['class'] ) ? $attributesOf( $check['class'] ) : null;
+            if ( $attributesOf && $attributes === null )
+            {
+                $errors[] = "variant '$value': the class '{$check['class']}' does not exist";
+                continue;
+            }
+            foreach ( self::validate( $check, $attributes ) as $error )
+                $errors[] = "variant '$value': $error";
+        }
         return $errors;
     }
 

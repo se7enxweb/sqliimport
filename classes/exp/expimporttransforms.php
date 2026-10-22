@@ -68,7 +68,10 @@ class expImportTransforms
             'date_format' => array( 'A date as a text in a format', array( 'format' => array( 'type' => 'string', 'required' => true ),
                                                                            'timezone' => array( 'type' => 'string', 'default' => 'UTC' ) ) ),
             'slug' => array( 'A URL-friendly identifier', array() ),
-            'richtext' => array( 'HTML to the rich text (ezxmltext) of the attribute', array() ),
+            'richtext' => array( 'HTML to the rich text (ezxmltext) of the attribute', array(
+                'images' => array( 'type' => 'string', 'default' => 'embed', 'help' => 'embed: every <img> of a file of the run (run:, source:) becomes an image object embedded in the text; drop: images are left out' ),
+                'image_parent' => array( 'type' => 'int', 'help' => 'the node the image objects are created below (default: the import\'s parent node)' ),
+                'image_size' => array( 'type' => 'string', 'default' => 'medium', 'help' => 'the image alias of the embed (small, medium, large, original)' ) ) ),
             'lookup' => array( 'The ID of the object with this remote ID (object relations)', array( 'prefix' => array( 'type' => 'string', 'help' => 'put before the value to make the remote ID' ) ) ),
             'image' => array( 'Downloads an image from a URL (ezimage)', array( 'required' => array( 'type' => 'bool', 'help' => 'the record fails when the image cannot be had (default: it is imported without it, with a note)' ) ) ),
             'file' => array( 'Downloads a file from a URL (ezbinaryfile, ezmedia)', array( 'required' => array( 'type' => 'bool', 'help' => 'the record fails when the file cannot be had (default: it is imported without it, with a note)' ) ) ),
@@ -303,7 +306,7 @@ class expImportTransforms
             case 'richtext':
                 if ( !class_exists( 'SQLIContentUtils' ) || !class_exists( 'eZXMLTextType' ) )
                     throw new expImportTransformException( 'richtext needs a running installation' );
-                return SQLIContentUtils::getRichContent( $text( $value ) );
+                return SQLIContentUtils::getRichContent( self::richtextImages( $text( $value ), $args ) );
             case 'lookup':
                 $fn = self::$lookup;
                 if ( !$fn )
@@ -337,6 +340,48 @@ class expImportTransforms
                 return self::optionalDownload( function () use ( $fn, $url, $args ) { return (string)(int)$fn( $url, $args ); }, $name, $url, $args );
         }
         throw new expImportTransformException( "unknown transform '$name'" );
+    }
+
+    /**
+     * The images of an HTML text for the rich text: every <img> whose src is a file of the run (run:<path>, as ezodf's
+     * document formats write the pictures of a converted document) or of the source (source:<path in the ZIP>)
+     * becomes an image object, made once per file like media_object (below image_parent, default the import's parent;
+     * the alt text as its name), embedded where the picture was (an embed of size image_size in the XML). With
+     * images=drop, or when a file cannot be had (a note for the row), the picture is left out; an <img> of another
+     * address is left to the XML parser, which drops it as before. A dry run makes no object and drops the picture.
+     *
+     * @param string $html
+     * @param array $args images, image_parent, image_size
+     * @return string
+     */
+    public static function richtextImages( $html, array $args )
+    {
+        $mode = isset( $args['images'] ) && $args['images'] === 'drop' ? 'drop' : 'embed';
+        $size = isset( $args['image_size'] ) && preg_match( '/^[a-z0-9_]+$/i', (string)$args['image_size'] ) ? (string)$args['image_size'] : 'medium';
+        $fn = self::$mediaObject;
+        return (string)preg_replace_callback( '/<img\b[^>]*>/i', function ( $m ) use ( $mode, $size, $fn, $args )
+        {
+            $src = self::htmlAttribute( $m[0], 'src' );
+            if ( !preg_match( '/^(run|source):/', $src ) )
+                return $m[0];
+            if ( $mode === 'drop' || !$fn )
+                return '';
+            $alt = trim( self::htmlAttribute( $m[0], 'alt' ) );
+            $objectArgs = array( 'parent' => isset( $args['image_parent'] ) ? (int)$args['image_parent'] : 0, 'class' => '', 'attribute' => '',
+                                 'name_value' => $alt );
+            $id = (int)self::optionalDownload( function () use ( $fn, $src, $objectArgs ) { return (string)(int)$fn( $src, $objectArgs ); },
+                                               'richtext image', $src, array() );
+            // the form the XML input parser reads as an embed (as the online editor writes it): id eZObject_<id>, alt = the size
+            return $id > 0 ? '<img id="eZObject_' . $id . '" src="" alt="' . $size . '" />' : '';
+        }, (string)$html );
+    }
+
+    /** @return string the decoded value of an attribute of one HTML tag, '' when it has none */
+    protected static function htmlAttribute( $tag, $name )
+    {
+        if ( preg_match( '/\s' . preg_quote( $name, '/' ) . '\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))/i', $tag, $m ) )
+            return html_entity_decode( $m[1] !== '' ? $m[1] : ( isset( $m[2] ) && $m[2] !== '' ? $m[2] : ( isset( $m[3] ) ? $m[3] : '' ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+        return '';
     }
 
     /**
