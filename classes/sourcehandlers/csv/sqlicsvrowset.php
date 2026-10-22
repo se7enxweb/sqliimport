@@ -53,7 +53,7 @@ class SQLICSVRowSet implements ArrayAccess, Iterator, Countable
      * @param SQLICSVOptions $options
      * @return SQLICSVRowSet
      */
-    public static function fromCSVFile( $fp, SQLICSVOptions $options = null )
+    public static function fromCSVFile( $fp, ?SQLICSVOptions $options = null )
     {
         if ( !$options instanceof SQLICSVOptions )
             $options = new SQLICSVOptions();
@@ -134,7 +134,7 @@ class SQLICSVRowSet implements ArrayAccess, Iterator, Countable
         $header = preg_replace( '#[^a-z0-9]#i', ' ', $header );
         $header = trim( $header );
         $header = ucwords( $header );
-        $header{0} = strtolower( $header{0} );
+        $header = lcfirst( $header );
         $header = str_replace( ' ', '', $header );
         
         return $header;
@@ -163,6 +163,7 @@ class SQLICSVRowSet implements ArrayAccess, Iterator, Countable
      * (non-PHPdoc)
      * @see ArrayAccess::offsetExists()
      */
+    #[\ReturnTypeWillChange]
     public function offsetExists( $offset )
     {
         return isset( $this->rows[$offset] );
@@ -172,6 +173,7 @@ class SQLICSVRowSet implements ArrayAccess, Iterator, Countable
      * (non-PHPdoc)
      * @see ArrayAccess::offsetGet()
      */
+    #[\ReturnTypeWillChange]
     public function offsetGet( $offset )
     {
         return $this->rows[$offset];
@@ -181,6 +183,7 @@ class SQLICSVRowSet implements ArrayAccess, Iterator, Countable
      * (non-PHPdoc)
      * @see ArrayAccess::offsetSet()
      */
+    #[\ReturnTypeWillChange]
     public function offsetSet( $offset, $value )
     {
         $this->rows[$offset] = $value;
@@ -191,6 +194,7 @@ class SQLICSVRowSet implements ArrayAccess, Iterator, Countable
      * (non-PHPdoc)
      * @see ArrayAccess::offsetUnset()
      */
+    #[\ReturnTypeWillChange]
     public function offsetUnset( $offset )
     {
         unset( $this->rows[$offset] );
@@ -210,6 +214,7 @@ class SQLICSVRowSet implements ArrayAccess, Iterator, Countable
      * (non-PHPdoc)
      * @see Iterator::current()
      */
+    #[\ReturnTypeWillChange]
     public function current()
     {
         $pos = current( $this->iteratorPointer );
@@ -220,6 +225,7 @@ class SQLICSVRowSet implements ArrayAccess, Iterator, Countable
      * (non-PHPdoc)
      * @see Iterator::key()
      */
+    #[\ReturnTypeWillChange]
     public function key()
     {
         return current( $this->iteratorPointer );
@@ -229,6 +235,7 @@ class SQLICSVRowSet implements ArrayAccess, Iterator, Countable
      * (non-PHPdoc)
      * @see Iterator::next()
      */
+    #[\ReturnTypeWillChange]
     public function next()
     {
         next( $this->iteratorPointer );
@@ -238,6 +245,7 @@ class SQLICSVRowSet implements ArrayAccess, Iterator, Countable
      * (non-PHPdoc)
      * @see Iterator::rewind()
      */
+    #[\ReturnTypeWillChange]
     public function rewind()
     {
         reset( $this->iteratorPointer );
@@ -247,6 +255,7 @@ class SQLICSVRowSet implements ArrayAccess, Iterator, Countable
      * (non-PHPdoc)
      * @see Iterator::valid()
      */
+    #[\ReturnTypeWillChange]
     public function valid()
     {
         $valid = false;
@@ -261,6 +270,7 @@ class SQLICSVRowSet implements ArrayAccess, Iterator, Countable
      * (non-PHPdoc)
      * @see Countable::count()
      */
+    #[\ReturnTypeWillChange]
     public function count()
     {
         return count( $this->rows );

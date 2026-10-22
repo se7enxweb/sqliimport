@@ -80,7 +80,7 @@ abstract class SQLIImportAbstractHandler
      * Constructor
      * @param SQLIImportHandlerOptions $options
      */
-    public function __construct( SQLIImportHandlerOptions $options = null )
+    public function __construct( ?SQLIImportHandlerOptions $options = null )
     {
         $this->importINI = eZINI::instance( 'sqliimport.ini' );
         $this->cli = eZCLI::instance();
@@ -97,7 +97,7 @@ abstract class SQLIImportAbstractHandler
      * @return string
      * @see SQLIContentUtils::getRemoteFile()
      */
-    protected function getRemoteFile( $url, array $httpAuth = null )
+    protected function getRemoteFile( $url, ?array $httpAuth = null )
     {
         return SQLIContentUtils::getRemoteFile( $url, $httpAuth, $this->debug );
     }

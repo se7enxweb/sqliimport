@@ -117,7 +117,7 @@ class SQLIScheduledImport extends eZPersistentObject
      * @param string $name
      * @return mixed
      */
-    public function __get( $name )
+    public function __get( $name ): mixed
     {
         return $this->attribute( $name );
     }
@@ -127,7 +127,7 @@ class SQLIScheduledImport extends eZPersistentObject
      */
     public function __toString()
     {
-        return $this->attribute( 'label' );
+        return (string)$this->attribute( 'label' );
     }
     
     /**

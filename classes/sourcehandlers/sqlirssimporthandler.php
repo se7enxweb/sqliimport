@@ -21,7 +21,7 @@ class SQLIRSSImportHandler extends SQLIImportAbstractHandler implements ISQLIImp
      * Constructor
      * @param SQLIImportHandlerOptions $options
      */
-    public function __construct( SQLIImportHandlerOptions $options = null )
+    public function __construct( ?SQLIImportHandlerOptions $options = null )
     {
         parent::__construct( $options );
         $this->remoteIDPrefix = $this->getHandlerIdentifier().'-';

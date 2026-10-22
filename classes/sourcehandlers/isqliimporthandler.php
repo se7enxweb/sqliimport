@@ -14,7 +14,7 @@ interface ISQLIImportHandler
      * Constructor
      * @param SQLIImportHandlerOptions $options
      */
-    public function __construct( SQLIImportHandlerOptions $options = null );
+    public function __construct( ?SQLIImportHandlerOptions $options = null );
     
     /**
      * Main method called to configure/initialize handler.

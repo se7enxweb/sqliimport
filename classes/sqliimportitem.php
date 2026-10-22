@@ -147,7 +147,7 @@ class SQLIImportItem extends eZPersistentObject
      * @param string $name
      * @return mixed
      */
-    public function __get( $name )
+    public function __get( $name ): mixed
     {
         $ret = null;
         if( $this->hasAttribute( $name ) )

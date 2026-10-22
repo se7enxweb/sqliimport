@@ -28,7 +28,7 @@ class SQLIContentUtils
      * @return string
      * @throws SQLIContentException
      */
-    public static function getRemoteFile( $url, array $httpAuth = null, $debug = false, $allowProxyUse = true )
+    public static function getRemoteFile( $url, ?array $httpAuth = null, $debug = false, $allowProxyUse = true )
     {
         $url = trim( $url );
         $ini = eZINI::instance();

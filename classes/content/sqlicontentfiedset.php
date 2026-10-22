@@ -166,6 +166,7 @@ class SQLIContentFieldset implements Iterator
      * (non-PHPdoc)
      * @see Iterator::current()
      */
+    #[\ReturnTypeWillChange]
     public function current()
     {
         return $this->fields[current( $this->iteratorPointer )];
@@ -175,6 +176,7 @@ class SQLIContentFieldset implements Iterator
      * (non-PHPdoc)
      * @see Iterator::key()
      */
+    #[\ReturnTypeWillChange]
     public function key()
     {
         return current( $this->iteratorPointer );
@@ -184,6 +186,7 @@ class SQLIContentFieldset implements Iterator
      * (non-PHPdoc)
      * @see Iterator::next()
      */
+    #[\ReturnTypeWillChange]
     public function next()
     {
         next( $this->iteratorPointer );
@@ -193,6 +196,7 @@ class SQLIContentFieldset implements Iterator
      * (non-PHPdoc)
      * @see Iterator::rewind()
      */
+    #[\ReturnTypeWillChange]
     public function rewind()
     {
         reset( $this->iteratorPointer );
@@ -202,6 +206,7 @@ class SQLIContentFieldset implements Iterator
      * (non-PHPdoc)
      * @see Iterator::valid()
      */
+    #[\ReturnTypeWillChange]
     public function valid()
     {
         return isset( $this->fields[current( $this->iteratorPointer )] );

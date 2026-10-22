@@ -37,6 +37,7 @@ class SQLILocationSet implements ArrayAccess, Iterator
      * (non-PHPdoc)
      * @see ArrayAccess::offsetExists()
      */
+    #[\ReturnTypeWillChange]
     public function offsetExists( $offset )
     {
         return isset( $this->locations[$offset] );
@@ -46,6 +47,7 @@ class SQLILocationSet implements ArrayAccess, Iterator
      * (non-PHPdoc)
      * @see ArrayAccess::offsetGet()
      */
+    #[\ReturnTypeWillChange]
     public function offsetGet( $offset )
     {
         if( !isset( $this->locations[$offset] ) )
@@ -58,6 +60,7 @@ class SQLILocationSet implements ArrayAccess, Iterator
      * Fieldsets are readonly. Will throw an exception when trying to directly assign a value
      * @see ArrayAccess::offsetSet()
      */
+    #[\ReturnTypeWillChange]
     public function offsetSet( $offset, $value )
     {
         throw new SQLILocationException( __METHOD__.' => Fieldset direct value assignment not allowed' );
@@ -69,6 +72,7 @@ class SQLILocationSet implements ArrayAccess, Iterator
      * @param mixed $offset
      * @throws SQLILocationException
      */
+    #[\ReturnTypeWillChange]
     public function offsetUnset( $offset )
     {
          throw new SQLILocationException( __METHOD__.' => Fieldset unset not allowed' );
@@ -78,6 +82,7 @@ class SQLILocationSet implements ArrayAccess, Iterator
      * (non-PHPdoc)
      * @see Iterator::current()
      */
+    #[\ReturnTypeWillChange]
     public function current()
     {
         return $this->locations[current( $this->iteratorPointer )];
@@ -87,6 +92,7 @@ class SQLILocationSet implements ArrayAccess, Iterator
      * (non-PHPdoc)
      * @see Iterator::key()
      */
+    #[\ReturnTypeWillChange]
     public function key()
     {
         return current( $this->iteratorPointer );
@@ -96,6 +102,7 @@ class SQLILocationSet implements ArrayAccess, Iterator
      * (non-PHPdoc)
      * @see Iterator::next()
      */
+    #[\ReturnTypeWillChange]
     public function next()
     {
         next( $this->iteratorPointer );
@@ -105,6 +112,7 @@ class SQLILocationSet implements ArrayAccess, Iterator
      * (non-PHPdoc)
      * @see Iterator::rewind()
      */
+    #[\ReturnTypeWillChange]
     public function rewind()
     {
         reset( $this->iteratorPointer );
@@ -114,6 +122,7 @@ class SQLILocationSet implements ArrayAccess, Iterator
      * (non-PHPdoc)
      * @see Iterator::valid()
      */
+    #[\ReturnTypeWillChange]
     public function valid()
     {
         return isset( $this->locations[current( $this->iteratorPointer )] );
