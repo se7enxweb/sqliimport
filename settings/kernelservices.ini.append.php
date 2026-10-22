@@ -57,6 +57,14 @@ Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: JSON Lines (NDJSON)
 
+[Service_sqliimport.source.google_sheets]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportGoogleSheetsSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: Google Sheets by its link
+
 [Service_sqliimport.source.yaml]
 Class=expImportSourceEntry
 Factory=expImportSourceEntry::of

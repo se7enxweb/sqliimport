@@ -59,6 +59,16 @@ class expImportSourceFiles
                 return $target;
             case 'url':
                 $url = isset( $config['url'] ) ? (string)$config['url'] : '';
+                // a format may turn the address it is given into the one to download (a sheet's link into its CSV)
+                $sources = expImportRegistry::instance()->sources();
+                $type = (string)$import->attribute( 'source_type' );
+                if ( isset( $sources[$type] ) && method_exists( $sources[$type]['class'], 'downloadUrl' ) )
+                {
+                    $url = (string)call_user_func( array( $sources[$type]['class'], 'downloadUrl' ), $url );
+                    $refusal = self::refuseUrl( $url );
+                    if ( $refusal !== null )
+                        throw new expImportSourceException( $refusal );
+                }
                 return self::download( $url, $dir . '/source' . self::extensionOf( parse_url( $url, PHP_URL_PATH ) ?: '' ) );
             case 'path':
                 return self::allowedPath( isset( $config['path'] ) ? (string)$config['path'] : '' );
