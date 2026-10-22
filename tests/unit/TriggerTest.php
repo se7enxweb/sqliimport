@@ -211,6 +211,11 @@ class TriggerTest extends TestCase
         $this->assertSame( 'jsonl', expImportTriggerAuth::bodyExtension( 'application/jsonl', $json ) );
         $this->assertSame( 'jsonl', expImportTriggerAuth::bodyExtension( 'application/x-ndjson', array( 'json', 'jsonl' ) ) );
         $this->assertSame( 'xml', expImportTriggerAuth::bodyExtension( 'application/rss+xml', array( 'xml', 'rdf' ) ) );
+        // a ZIP of documents or media, a package, a Word file
+        $this->assertSame( 'zip', expImportTriggerAuth::bodyExtension( 'application/zip', array( 'zip', 'odt', 'doc', 'docx' ) ) );
+        $this->assertSame( 'ezpkg', expImportTriggerAuth::bodyExtension( 'application/gzip', array( 'ezpkg' ) ) );
+        $this->assertSame( 'docx', expImportTriggerAuth::bodyExtension( 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', array( 'zip', 'docx' ) ) );
+        $this->assertNull( expImportTriggerAuth::bodyExtension( 'application/zip', $csv ), 'a ZIP is no CSV' );
         // X-Sqliimport-Format names the extension (a spreadsheet, a format without a content type of its own)
         $this->assertSame( 'xlsx', expImportTriggerAuth::bodyExtension( 'application/octet-stream', array( 'xlsx', 'ods' ), 'XLSX' ) );
         $this->assertNull( expImportTriggerAuth::bodyExtension( 'text/csv', $csv, 'php' ), 'only an extension of the format' );

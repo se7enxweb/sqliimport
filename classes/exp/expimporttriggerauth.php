@@ -102,6 +102,18 @@ class expImportTriggerAuth
         'application/atom+xml' => array( 'atom', 'xml' ), 'application/yaml' => array( 'yaml', 'yml' ), 'text/yaml' => array( 'yaml', 'yml' ),
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => array( 'xlsx' ),
         'application/vnd.oasis.opendocument.spreadsheet' => array( 'ods' ),
+        // archives (the media and document formats, packages) and the other file formats of the catalogue
+        'application/zip' => array( 'zip' ), 'application/x-zip-compressed' => array( 'zip' ),
+        'application/gzip' => array( 'ezpkg', 'gz', 'tgz' ), 'application/x-gzip' => array( 'ezpkg', 'gz', 'tgz' ),
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => array( 'docx' ),
+        'application/vnd.oasis.opendocument.text' => array( 'odt' ), 'application/msword' => array( 'doc' ),
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation' => array( 'pptx' ),
+        'application/pdf' => array( 'pdf' ), 'application/rtf' => array( 'rtf' ), 'text/rtf' => array( 'rtf' ),
+        'text/markdown' => array( 'md', 'markdown' ), 'text/x-markdown' => array( 'md', 'markdown' ),
+        'text/calendar' => array( 'ics' ), 'text/vcard' => array( 'vcf' ), 'text/x-vcard' => array( 'vcf' ),
+        'text/x-opml' => array( 'opml' ), 'application/toml' => array( 'toml' ),
+        'application/avro' => array( 'avro' ), 'application/vnd.apache.avro+binary' => array( 'avro' ),
+        'application/vnd.apache.arrow.file' => array( 'arrow', 'feather' ), 'application/vnd.apache.arrow.stream' => array( 'arrows', 'arrow' ),
     );
 
     /** @var string|null tests: a fixed server key */
