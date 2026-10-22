@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+<title>Atom</title>
+<entry><id>urn:uuid:1</id><title>Entry one</title><link rel="alternate" href="https://example.invalid/e1"/><link rel="self" href="https://example.invalid/self"/>
+<updated>2026-10-20T08:00:00Z</updated><summary>Sum</summary><author><name>Ann</name></author><category term="news"/></entry>
+</feed>

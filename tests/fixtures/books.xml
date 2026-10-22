@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <meta><book id="ignored-not-under-catalog-path"/></meta>
+  <book id="b1">
+    <title>Dune</title>
+    <dc:creator>Frank Herbert</dc:creator>
+    <tag>sf</tag>
+    <tag>classic</tag>
+    <price currency="EUR">9.90</price>
+  </book>
+  <book id="b2"><title><![CDATA[Neuromancer & co]]></title><tag>cyberpunk</tag></book>
+  <book id="b3"/>
+</catalog>

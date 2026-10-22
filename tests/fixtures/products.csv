@@ -1,0 +1,6 @@
+﻿id;title;body;price
+1;"First; with semicolon";"line one
+line two";1.234,50
+2;Second;"a=b=c";10
+
+3;Third;"say ""hi""";0

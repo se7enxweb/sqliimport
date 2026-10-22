@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The unit tests of 7x SQLI Import that need no database and no running installation: sources, transforms, the
+  mapper, schedules, option schemas, the schema definition and the styling and script rules of the admin pages.
+  Run from this directory: phpunit (PHPUnit 9.6 or later, e.g. an installation's vendor/bin/phpunit).
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         bootstrap="tests/bootstrap.php"
+         colors="false"
+         cacheResult="false"
+         failOnWarning="true"
+         failOnRisky="true"
+         beStrictAboutOutputDuringTests="true">
+    <testsuites>
+        <testsuite name="unit">
+            <directory suffix="Test.php">tests/unit</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

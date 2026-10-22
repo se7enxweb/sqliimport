@@ -1,0 +1,33 @@
+# PHPStan for the 2.x code of 7x SQLI Import (classes/exp, the views and cronjobs of 2.x). The kernel of Exponential
+# is not part of this repository, so its classes are unknown here: those findings are ignored, everything else counts.
+parameters:
+    level: 3
+    paths:
+        - classes/exp
+        - modules/sqliimport/list.php
+        - modules/sqliimport/run.php
+        - modules/sqliimport/action.php
+        - cronjobs/sqliimport_schedule.php
+        - tests/unit
+    scanFiles:
+        - tests/phpstan-kernel-stubs.php
+    scanDirectories:
+        - classes
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        - identifier: class.notFound
+        - identifier: staticMethod.notFound
+        - identifier: method.notFound
+        - identifier: constant.notFound
+        - identifier: classConstant.notFound
+        - identifier: property.notFound
+        - identifier: parameter.notFound
+        - identifier: interface.notFound
+        - identifier: argument.type
+        - identifier: return.type
+        - identifier: variable.undefined
+        - identifier: catch.notThrowable
+        - identifier: instanceof.notFound
+        - '#unknown class#'
+        - '#has invalid type#'
+        - '#on an unknown class#'

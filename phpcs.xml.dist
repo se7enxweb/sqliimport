@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<!-- The code style checks of the 2.x code of 7x SQLI Import: no syntax errors, UTF-8 without a byte order mark,
+     Unix line endings, spaces not tabs, no trailing spaces, no short open tags, no closing tag at the end of a class
+     file. The layout itself follows the kernel of Exponential (spaces inside parentheses, braces on their own line). -->
+<ruleset name="sqliimport">
+    <description>7x SQLI Import 2.x</description>
+    <file>classes/exp</file>
+    <file>modules/sqliimport/list.php</file>
+    <file>modules/sqliimport/run.php</file>
+    <file>modules/sqliimport/action.php</file>
+    <file>cronjobs/sqliimport_schedule.php</file>
+    <file>bin/php</file>
+    <exclude-pattern>bin/php/sqlidoimport.php</exclude-pattern>
+    <file>tests/unit</file>
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <rule ref="Generic.PHP.Syntax"/>
+    <rule ref="Generic.Files.ByteOrderMark"/>
+    <rule ref="Generic.Files.LineEndings"/>
+    <rule ref="Generic.WhiteSpace.DisallowTabIndent"/>
+    <rule ref="Squiz.WhiteSpace.SuperfluousWhitespace"/>
+    <rule ref="Generic.PHP.DisallowShortOpenTag"/>
+    <rule ref="PSR2.Files.ClosingTag"/>
+    <rule ref="Generic.PHP.DeprecatedFunctions"/>
+    <rule ref="Generic.PHP.ForbiddenFunctions"/>
+</ruleset>

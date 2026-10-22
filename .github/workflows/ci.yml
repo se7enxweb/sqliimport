@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { php: '8.0', phpunit: 'phpunit:9.6' }
+          - { php: '8.1', phpunit: 'phpunit:10' }
+          - { php: '8.2', phpunit: 'phpunit:11' }
+          - { php: '8.3', phpunit: 'phpunit:12' }
+          - { php: '8.4', phpunit: 'phpunit' }
+          - { php: '8.5', phpunit: 'phpunit' }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, xmlreader, mbstring, json, iconv
+          tools: ${{ matrix.phpunit }}
+          coverage: none
+
+      - name: Syntax of every PHP file
+        run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
+
+      - name: Unit tests (no database)
+        run: phpunit
+
+  static:
+    name: PHPStan and phpcs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: phpstan, phpcs
+          coverage: none
+
+      - name: PHPStan
+        run: phpstan analyse --no-progress
+
+      - name: phpcs
+        run: phpcs
