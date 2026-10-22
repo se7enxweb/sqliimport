@@ -1,11 +1,12 @@
 {
     "name": "se7enxweb/sqliimport",
-    "description": "SQLI Import for Exponential: a framework and admin interface to import external content (XML, CSV, RSS, any source) into Exponential through import handlers, run immediately or on a schedule by a cronjob.",
-    "keywords": [ "exponential", "exponential-legacy", "legacy-extension", "import", "content import", "csv", "xml", "rss", "cronjob", "migration" ],
+    "description": "7x SQLI Import for Exponential: imports content from CSV, XML, RSS and JSON sources (upload, URL or server file) through a no-code mapping or import handlers, run by the job queue in chunks with a log and a row per record, on demand or on schedules. Handlers of sqliimport 1.x keep working.",
+    "keywords": [ "exponential", "exponential 6", "exponential-legacy", "legacy-extension", "import", "content import", "csv", "xml", "rss", "json", "mapping", "job queue", "cronjob", "migration" ],
     "homepage": "https://github.com/se7enxweb/sqliimport",
     "support": {
         "issues": "https://github.com/se7enxweb/sqliimport/issues",
-        "source": "https://github.com/se7enxweb/sqliimport"
+        "source": "https://github.com/se7enxweb/sqliimport",
+        "docs": "https://github.com/se7enxweb/sqliimport/tree/master/doc"
     },
     "type": "ezpublish-legacy-extension",
     "license": "GPL-2.0-only",
@@ -31,12 +32,19 @@
     "prefer-stable": true,
     "require": {
         "php": ">=8.0",
-        "se7enxweb/exponential-legacy-installer": "*"
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-xmlreader": "*",
+        "ext-dom": "*",
+        "se7enxweb/exponential-legacy-installer": "*",
+        "se7enxweb/expqueue": "~0.1.5",
+        "se7enxweb/expui": "^1.0.0.14"
     },
     "suggest": {
-        "ext-pcntl": "Lets a running import be interrupted safely with SIGTERM or SIGINT (kill -15, kill -2, Ctrl+C)",
-        "ext-simplexml": "For XML sources read with SQLIXMLParser and the bundled RSS handler",
-        "ext-dom": "For XML sources read with SQLIXMLParser in DOM mode"
+        "se7enxweb/expai": "Suggests mappings and explains failed rows (7x SQLI Import 2.1)",
+        "openspout/openspout": "XLSX and ODS sources (a later 2.x release)",
+        "ext-pcntl": "Lets the 1.x command line script sqlidoimport.php stop safely on SIGTERM or SIGINT",
+        "ext-iconv": "Better slugs and name matching (transliteration)"
     },
     "replace": {
         "lolautruche/sqliimport": "self.version"

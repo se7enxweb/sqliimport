@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <software>
 	<metadata>
-		<name>SQLI Import</name>
-		<version>1.3.1</version>
+		<name>7x SQLI Import</name>
+		<version>2.0.0-alpha.1</version>
 		<copyright>Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x</copyright>
 		<license>GNU General Public License v2.0</license>
 		<info_url>https://github.com/se7enxweb/sqliimport</info_url>
 	</metadata>
+	<dependencies>
+		<requires>
+			<extension name="expqueue" />
+			<extension name="expui" />
+		</requires>
+	</dependencies>
 </software>
