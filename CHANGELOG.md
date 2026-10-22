@@ -32,6 +32,17 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 - Added: TSV (tsv) and JSON Lines (ndjson) as formats of their own (variants of the CSV and JSON sources).
 - Added: WordPress exports (wxr): posts and pages with author, dates, categories, tags, meta and featured image, or
   the media, categories, tags and authors of the export.
+- Added: The format iCalendar (.ics, file or address): one record per event (and per task on request) with start
+  and end as written, in ISO 8601 UTC and as timestamps (time zones and all-day dates included), recurrence rule,
+  categories and organizer; read as a stream. Preset: the class event.
+- Added: The format vCard (.vcf, 3.0 and 4.0): one record per contact with name parts, e-mail addresses, phone
+  numbers, organization, address, birthday and photo address; read as a stream. No preset.
+- Added: The format Google Merchant product feed (RSS with the g: namespace): ID, title, description, images, price
+  and sale price with currency, availability, brand, GTIN, MPN, categories, shipping and tax. Preset: the class
+  product of the webshop.
+- Added: The formats Shopify product CSV (the rows of one handle are one product with its variants and images) and
+  WooCommerce product CSV (variations nested in their variable product), with prices as decimals, the currency as
+  an option and the tax fields. Preset: the class product of the webshop.
 
 ### Updated
 

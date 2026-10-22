@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
+  <channel>
+    <title>Example shop</title>
+    <link>https://shop.example.com/</link>
+    <description>The products of the example shop</description>
+    <item>
+      <g:id>EX-1001</g:id>
+      <title>Example travel mug</title>
+      <description><![CDATA[<p>Keeps coffee warm for <strong>six hours</strong>.</p>]]></description>
+      <link>https://shop.example.com/products/travel-mug</link>
+      <g:image_link>https://shop.example.com/images/travel-mug.jpg</g:image_link>
+      <g:additional_image_link>https://shop.example.com/images/travel-mug-side.jpg</g:additional_image_link>
+      <g:additional_image_link>https://shop.example.com/images/travel-mug-top.jpg</g:additional_image_link>
+      <g:price>24.90 EUR</g:price>
+      <g:sale_price>19.90 EUR</g:sale_price>
+      <g:sale_price_effective_date>2026-11-01T00:00+0100/2026-11-30T23:59+0100</g:sale_price_effective_date>
+      <g:availability>in_stock</g:availability>
+      <g:condition>new</g:condition>
+      <g:brand>Example Brand</g:brand>
+      <g:gtin>4006381333931</g:gtin>
+      <g:mpn>TM-350</g:mpn>
+      <g:product_type>Home &gt; Kitchen &gt; Mugs</g:product_type>
+      <g:google_product_category>Home &amp; Garden &gt; Kitchen &amp; Dining &gt; Tableware &gt; Drinkware &gt; Mugs</g:google_product_category>
+      <g:color>Blue</g:color>
+      <g:shipping>
+        <g:country>DE</g:country>
+        <g:service>Standard</g:service>
+        <g:price>4.95 EUR</g:price>
+      </g:shipping>
+      <g:tax>
+        <g:country>DE</g:country>
+        <g:rate>19</g:rate>
+        <g:tax_ship>yes</g:tax_ship>
+      </g:tax>
+      <g:custom_label_0>Bestseller</g:custom_label_0>
+      <g:custom_label_1>Winter</g:custom_label_1>
+    </item>
+    <item>
+      <g:id>EX-1002</g:id>
+      <g:title>Example notebook, A5</g:title>
+      <g:description>Dotted pages, 160 sheets.</g:description>
+      <g:link>https://shop.example.com/products/notebook-a5</g:link>
+      <g:image_link>https://shop.example.com/images/notebook.jpg</g:image_link>
+      <g:price>1,299.00 USD</g:price>
+      <g:availability>preorder</g:availability>
+      <g:availability_date>2026-12-01T00:00-0500</g:availability_date>
+      <g:brand>Example Paper Co.</g:brand>
+      <g:identifier_exists>no</g:identifier_exists>
+      <g:condition>new</g:condition>
+      <g:product_type>Office &gt; Paper</g:product_type>
+    </item>
+    <item>
+      <g:id>EX-1003</g:id>
+      <title>Example desk lamp</title>
+      <description>A lamp for the example desk.</description>
+      <link>https://shop.example.com/products/desk-lamp</link>
+      <g:image_link>https://shop.example.com/images/desk-lamp.jpg</g:image_link>
+      <g:price>39,00 EUR</g:price>
+      <g:availability>out_of_stock</g:availability>
+      <g:condition>refurbished</g:condition>
+      <g:brand>Example Brand</g:brand>
+      <g:mpn>DL-7</g:mpn>
+      <g:item_group_id>DL</g:item_group_id>
+    </item>
+  </channel>
+</rss>

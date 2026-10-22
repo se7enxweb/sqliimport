@@ -124,6 +124,172 @@ Die Werte kommen so, wie sie in der Datei gespeichert sind:
 
 Eine sehr große Tabelle wird schneller gelesen, wenn sie als CSV gespeichert ist.
 
+## iCalendar (`ical`)
+
+Gruppe: Inhalte. Dateiendungen: `ics`, `ical`, `ifb`, `txt`. Kalenderdateien (RFC 5545), wie Kalender-Apps,
+Buchungssysteme und Veranstaltungsseiten sie veröffentlichen, als Upload oder über eine Abonnement-Adresse. Die Datei
+wird als Datenstrom Zeile für Zeile gelesen; gefaltete Zeilen werden zusammengefügt und die Maskierungen `\\`, `\;`,
+`\,` und `\n` zurückgelesen. Der Cursor eines Datensatzes ist die Byte-Position nach seinem `END:VEVENT`. Beispiel:
+`share/examples/events.ics`.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `components` | `events` (VEVENT), `events_todos` (VEVENT und VTODO), `todos` (VTODO) | `events` |
+| `timezone` | die Zeitzone von Zeiten ohne Zone und von ganztägigen Daten (`Europe/Berlin`) | `UTC` |
+| `key` | das Schlüsselfeld | `id` |
+
+| Feld | Inhalt |
+|---|---|
+| `id` | die UID; ein geänderter Termin einer Serie (mit `RECURRENCE-ID`) erhält `<uid>@<Datum in ISO 8601 UTC>`; ohne UID ein Hash aus Titel und Beginn |
+| `uid`, `type` | die UID wie geschrieben; `event` oder `todo` |
+| `summary`, `description`, `location`, `url`, `status`, `priority`, `class`, `sequence` | wie geschrieben, ohne Maskierungen (`status` und `class` kleingeschrieben) |
+| `start`, `end` | der Wert wie geschrieben (`20261105T190000`) |
+| `start_iso`, `end_iso` | ISO 8601 in UTC (`2026-11-05T18:00:00Z`), ein ganztägiges Datum als `2026-11-05` |
+| `start_timestamp`, `end_timestamp` | Unix-Zeitstempel (ein ganztägiges Datum: Mitternacht in der Zone der Option) |
+| `start_timezone`, `end_timezone` | die `TZID`, `UTC` oder die Zone der Option |
+| `all_day` | `1` für ein Datum ohne Uhrzeit |
+| `rrule`, `exdates` | die Wiederholungsregel wie geschrieben; die ausgenommenen Termine (eine Liste, ISO 8601) |
+| `recurrence_id` | der Termin, den eine geänderte Instanz ersetzt (ISO 8601) |
+| `categories` | eine Liste (mehrere `CATEGORIES`-Zeilen werden zusammengefasst) |
+| `organizer`, `organizer_name`, `attendees` | die Adresse des Veranstalters ohne `mailto:`, sein `CN`, die Adressen der Teilnehmer |
+| `created`, `last_modified` | ISO 8601 in UTC |
+| `geo_lat`, `geo_lon`, `calendar` | die Position; der Name des Kalenders (`X-WR-CALNAME`) |
+| `raw.*` | jede Eigenschaft unter ihrem kleingeschriebenen Namen, als Text |
+
+Das Ende kommt aus `DTEND`, bei einer Aufgabe aus `DUE`, oder aus `DURATION`; ein ganztägiger Termin ohne Ende dauert
+den Tag. Eine `TZID` wird mit der Zonendatenbank von PHP umgerechnet; eine Zone, die PHP nicht kennt (etwa ein
+Windows-Zonenname), wird in der Zone der Option gelesen und in den erkannten Werten der Vorschau genannt. Erinnerungen
+innerhalb eines Termins entfallen. Eine Wiederholungsregel wird nicht aufgelöst: Eine Serie ist ein Datensatz, und ihre
+`rrule` lässt sich zuordnen.
+
+Vorlage: Klasse `event` der Standardinstallation, Remote-ID `ical-{id}`: `summary` nach `title`, `description` nach
+`text` (Rich Text), `categories` nach `category` (Schlagwörter, verbunden), `start_timestamp` nach `from_time` und
+`end_timestamp` nach `to_time`.
+
+## vCard (`vcard`)
+
+Gruppe: Inhalte. Dateiendungen: `vcf`, `vcard`, `txt`. Kontakte, wie Adressbücher, Telefone und Mailprogramme sie
+exportieren: vCard 4.0 und 3.0, und von 2.1 das Übliche (bloße Typen wie `TEL;WORK`, Quoted-Printable-Werte mit
+`CHARSET`). Jedes `BEGIN:VCARD` ... `END:VCARD` ist ein Datensatz, als Datenstrom gelesen wie bei iCalendar.
+Beispiel: `share/examples/contacts.vcf` (erfundene Personen, Adressen unter `example.com`, 555-Nummern).
+
+| Feld | Inhalt |
+|---|---|
+| `id` | die UID ohne `urn:uuid:`, sonst `vcard-` und ein Hash aus formatiertem Namen und E-Mail-Adresse |
+| `uid`, `version`, `kind`, `fn` | wie geschrieben; `fn` wird aus `N` gebildet, wenn es fehlt |
+| `n` | `family`, `given`, `additional`, `prefix`, `suffix`; auch als `family_name` und `given_name` |
+| `nickname`, `title`, `role`, `note`, `gender`, `anniversary`, `rev` | wie geschrieben |
+| `org`, `org_unit` | die Organisation und ihre Abteilungen |
+| `email`, `emails` | die bevorzugte (sonst die erste) Adresse und alle; `email_work`, `email_home` die erste dieses Typs |
+| `tel`, `tels` | die bevorzugte (sonst die erste) Nummer und alle; `tel_work`, `tel_home`, `tel_cell`, `tel_fax` |
+| `adr`, `adr_text`, `adrs` | die erste Anschrift (`po_box`, `extended`, `street`, `locality`, `region`, `postal_code`, `country`, `type`), dieselbe in einer Zeile, alle Anschriften |
+| `url`, `urls` | die erste Webadresse und alle |
+| `bday`, `bday_iso` | der Geburtstag wie geschrieben und als `JJJJ-MM-TT` (`--MM-TT` ohne Jahr) |
+| `categories` | eine Liste |
+| `photo`, `photo_embedded` | die `http(s)`-Adresse des Fotos; ein eingebettetes Foto wird nicht übernommen, `photo_embedded` ist dann `1` |
+| `raw.*` | jede Eigenschaft unter ihrem kleingeschriebenen Namen, als Text |
+
+Es gibt keine Vorlage: Eine Standardinstallation hat keine Kontaktklasse, und Benutzer (`ezuser`) werden nicht über
+eine Zuordnung angelegt. Ordnen Sie die Karten einer Klasse Ihrer Website zu. Kontaktdaten sind personenbezogene
+Daten: Importieren Sie sie nur, wenn die genannten Personen zugestimmt haben.
+
+## Google-Merchant-Feed (`google_merchant`)
+
+Gruppe: Handel. Dateiendungen: `xml`, `rss`. Der Produkt-Feed, den Shops für das Google Merchant Center und
+Preisvergleichsseiten erstellen: RSS 2.0 (oder Atom) mit dem Namensraum `g:`, als Datenstrom gelesen wie XML, externe
+Entitäten werden nie geladen. Jeder Eintrag ist ein Produkt. Felder werden mit dem Präfix `g:` und ohne es gefunden
+(`<title>` und `<g:title>`). Beispiel: `share/examples/products-google.xml`.
+
+| Feld | Inhalt |
+|---|---|
+| `id`, `item_group_id` | `g:id` (sonst der Link), die Gruppe der Varianten |
+| `title`, `description`, `link`, `mobile_link` | wie geschrieben (die Beschreibung kann HTML enthalten) |
+| `image_link` (auch `image`), `additional_image_links`, `images` | das Hauptbild, die weiteren, alle |
+| `price`, `currency`, `price_text` | der Betrag als Dezimalzahl (`1,299.00 USD` ergibt `1299.00`), der ISO-4217-Code, der Wert wie geschrieben |
+| `sale_price`, `sale_price_currency`, `sale_price_effective_date` | der Angebotspreis |
+| `availability`, `availability_date`, `condition`, `brand`, `gtin`, `mpn`, `identifier_exists` | wie geschrieben |
+| `product_type`, `categories`, `google_product_category` | der Kategoriepfad des Shops, derselbe als Liste (bei `>` geteilt), die Kategorie von Google |
+| `color`, `size`, `gender`, `age_group`, `material`, `pattern` | wie geschrieben |
+| `shipping`, `shipping_weight` | eine Liste aus `country`, `region`, `service`, `price`, `currency` |
+| `tax`, `vat` | eine Liste aus `country`, `region`, `rate`, `tax_ship`; `vat` ist der Satz des ersten Eintrags |
+| `tags` | die gesetzten eigenen Labels `custom_label_0` bis `custom_label_4` |
+| `raw.*` | das unveränderte Element |
+
+Die einzige Option ist `key` (Vorgabe `id`). Vorlage: siehe [die Produktvorlage](#die-produktvorlage), Remote-ID
+`gmc-{id}`, Artikelnummer aus `id`.
+
+## Shopify-Produkt-CSV (`shopify`)
+
+Gruppe: Handel. Dateiendung: `csv`. Der Produktexport eines Shopify-Shops (Produkte, Exportieren). Die Zeilen mit
+demselben `Handle` sind ein Produkt: Die erste Zeile enthält das Produkt, weitere Zeilen fügen Varianten und Bilder
+hinzu. Die Datei wird als Datenstrom gelesen wie CSV; der Cursor eines Datensatzes ist die Byte-Position der ersten
+Zeile des nächsten Produkts. Beispiel: `share/examples/products-shopify.csv`.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `delimiter`, `enclosure`, `encoding` | wie bei CSV | `auto`, `"`, `auto` |
+| `currency` | der ISO-4217-Code der Preise (der Export nennt ihn nicht) | leer |
+| `key` | das Schlüsselfeld | `id` |
+
+| Feld | Inhalt |
+|---|---|
+| `id`, `handle` | der Handle |
+| `title`, `description`, `vendor`, `product_category`, `type`, `status`, `seo_title`, `seo_description` | wie geschrieben (`description` ist `Body (HTML)`) |
+| `tags` | eine Liste |
+| `published`, `gift_card` | `1` oder `0` |
+| `options` | die Namen der Optionen (`Size`, `Color`; der Platzhalter `Title` eines Produkts ohne Varianten entfällt) |
+| `variants` | eine Liste aus `sku`, `price`, `compare_at_price`, `option1` bis `option3`, `grams`, `inventory_qty`, `barcode`, `taxable`, `requires_shipping`, `weight_unit`, `tax_code`, `cost`, `image` |
+| `sku`, `price`, `compare_at_price`, `taxable`, `tax_code` | die der ersten Variante |
+| `price_min`, `price_max` | der niedrigste und der höchste Variantenpreis |
+| `currency` | die Option `currency` |
+| `images`, `image`, `image_alt` | die Bildadressen in ihrer Reihenfolge, die erste, ihr Alternativtext |
+| `row.*` | die erste Zeile wie gelesen, unter den kleingeschriebenen Spaltennamen |
+
+Vorlage: [die Produktvorlage](#die-produktvorlage), Remote-ID `shopify-{id}`, Artikelnummer aus `sku`.
+
+## WooCommerce-Produkt-CSV (`woocommerce`)
+
+Gruppe: Handel. Dateiendung: `csv`. Der Produktexport von WooCommerce (Produkte, Exportieren) mit den englischen
+Spaltennamen. Eine Zeile ist ein Produkt. Beispiel: `share/examples/products-woocommerce.csv`.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `variations` | `nested` (die Variationen, die ihrem variablen Produkt folgen, kommen in dessen `variants`), `records` (jede Zeile ist ein Datensatz) | `nested` |
+| `delimiter`, `enclosure`, `encoding`, `currency`, `key` | wie bei Shopify | |
+
+| Feld | Inhalt |
+|---|---|
+| `id`, `wc_id` | die ID (sonst die SKU), die ID wie geschrieben |
+| `type`, `types` | `simple`, `variable`, `variation`, `grouped`, `external`; alle Typen einer Zelle wie `simple, virtual` |
+| `sku`, `title`, `visibility`, `short_description`, `description`, `purchase_note` | wie geschrieben; das `\n` von WooCommerce ist ein Zeilenumbruch |
+| `published`, `featured` | `1`, `0` oder `-1` für einen Entwurf |
+| `regular_price`, `sale_price`, `price`, `current_price`, `currency` | Dezimalzahlen; `price` ist der reguläre Preis (bei einem variablen Produkt der niedrigste seiner Variationen), `current_price` der Angebotspreis, wenn gesetzt |
+| `sale_from`, `sale_to` | die Daten des Angebotspreises |
+| `tax_status`, `tax_class` | die Steuerfelder von WooCommerce (der Export enthält keinen Steuersatz) |
+| `in_stock`, `stock`, `backorders`, `weight`, `length`, `width`, `height`, `shipping_class` | wie geschrieben |
+| `categories`, `category`, `tags` | die Kategoriepfade (`Clothing > Hoodies`) als Liste, der letzte Teil des ersten, die Schlagwörter als Liste |
+| `images`, `image` | die Bildadressen, die erste |
+| `parent`, `parent_id`, `grouped`, `upsells`, `cross_sells` | das übergeordnete Produkt (`id:102` ergibt `102`), die verknüpften Produkte als Listen |
+| `external_url`, `button_text`, `position` | wie geschrieben |
+| `attributes` | eine Liste aus `name`, `values` (eine Liste), `visible`, `global` |
+| `meta.*` | die Spalten `Meta: <Schlüssel>` nach Schlüssel |
+| `variants` | die Variationen: `id`, `sku`, `title`, `regular_price`, `sale_price`, `price`, `stock`, `in_stock`, `image`, `attributes` |
+| `row.*` | die Zeile wie gelesen |
+
+Ein Komma innerhalb eines Listeneintrags schreibt WooCommerce als `\,`; es wird zurückgelesen. Vorlage:
+[die Produktvorlage](#die-produktvorlage), Remote-ID `woocommerce-{id}`, Artikelnummer aus `sku` und
+`short_description` nach `short_description`.
+
+### Die Produktvorlage
+
+Die drei Produktformate beginnen mit der Klasse `product` des Exponential-Webshops: `title` nach `name`, die
+Artikelnummer nach `product_number`, `description` nach `description` (Rich Text), `price` nach `price` und `tags`
+nach `tags` (Schlagwörter, mit Kommas verbunden). Der Preis läuft durch `template` als `{price}|1|1`, was `ezprice`
+als Betrag, Mehrwertsteuertyp 1 und „Preis enthält Mehrwertsteuer“ liest; ändern Sie Steuertyp und die letzte `1`
+(`0`: ohne Mehrwertsteuer) in der Zuordnung, wenn Ihr Shop es braucht. Bilder sind nicht in der Vorlage: Das `image`
+des Webshops ist eine Objektbeziehung, ordnen Sie `image` daher mit `lookup` Bildobjekten zu, die Sie zuerst
+importieren. Ein Produkt mit leerem Preis schlägt fehl, weil `ezprice` einen Betrag ablehnt, der keine Zahl ist.
+
 ## OPML (`opml`)
 
 Dateiendungen: `opml`, `xml`. Das Gliederungsformat, in dem Feedreader und Podcast-Apps ihre Abonnements
