@@ -41,9 +41,6 @@ Links[catalogue]=sqliimport/catalogue
 Links[settings]=sqliimport/settings
 Links[active]=sqliimport/list/(status)/active
 Links[failed]=sqliimport/list/(status)/failed
-Links[items]=sqliimport/items
-Links[scheduled]=sqliimport/scheduledlist
-Links[addimport]=sqliimport/addimport
 Links[queue]=expqueue/dashboard
 LinkNames[]
 LinkNames[dashboard]=Overview
@@ -54,16 +51,11 @@ LinkNames[catalogue]=Catalogue
 LinkNames[settings]=Settings
 LinkNames[active]=Running runs
 LinkNames[failed]=Failed runs
-LinkNames[items]=1.x import requests
-LinkNames[scheduled]=1.x scheduled imports
-LinkNames[addimport]=New 1.x import request
 LinkNames[queue]=Job queue
 Groups[]
 Groups[]=runs
-Groups[]=legacy
 GroupNames[]
 GroupNames[runs]=Imports and runs
-GroupNames[legacy]=sqliimport 1.x
 GroupLinks_runs[]
 GroupLinks_runs[]=dashboard
 GroupLinks_runs[]=statistics
@@ -74,9 +66,5 @@ GroupLinks_runs[]=schedules
 GroupLinks_runs[]=queue
 GroupLinks_runs[]=catalogue
 GroupLinks_runs[]=settings
-GroupLinks_legacy[]
-GroupLinks_legacy[]=items
-GroupLinks_legacy[]=scheduled
-GroupLinks_legacy[]=addimport
 
 */ ?>

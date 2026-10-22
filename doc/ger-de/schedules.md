@@ -29,8 +29,13 @@ Jede Aktion ist eine POST-Anfrage mit dem Formular-Token und wird im Audit-Proto
 deaktivierter Import behält seinen Zeitplan, seine geplanten Läufe werden aber übersprungen, bis er wieder
 aktiviert ist.
 
-Gibt es noch nicht migrierte geplante Importe von 1.x, nennt die Seite ihre Anzahl und verlinkt ihre Liste von 1.x;
-sie laufen weiter, bis `./console ext:sqliimport:migrate-1x --apply` sie hierher übernimmt
+Darunter listet der Abschnitt **1.x scheduled imports** (früher `sqliimport/scheduledlist`) die geplanten Importe
+von 1.x mit Handler, Optionen, Häufigkeit und nächstem Lauf: **Run now** (fordert einen Import mit ihren Optionen an;
+run), **Edit**, **Enable** oder **Disable** und **Delete** (manage) sowie **New 1.x scheduled import**. Edit öffnet
+das Formular `sqliimport/schedules/(legacy)/<id>` (oder `/new`; früher `sqliimport/addscheduled`) über den Listen:
+Bezeichnung, Handler, Optionen, erster Lauf (Datum, Stunde, Minute), Häufigkeit (einmal, stündlich, täglich,
+wöchentlich, monatlich, alle N Minuten, mindestens 5) und ob er aktiv ist. Ein migrierter verlinkt stattdessen den
+Zeitplan seines Imports. Sie laufen weiter, bis `./console ext:sqliimport:migrate-1x --apply` sie hierher übernimmt
 ([migration-1x.md](migration-1x.md)).
 
 ## Arten

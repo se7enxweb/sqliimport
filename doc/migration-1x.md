@@ -72,12 +72,28 @@ the import `legacy-<handler>`.
 
 - **1.x handlers run untouched** in the 2.x engine. Their rows have the outcome `processed`, and their progression
   notes go to the run's log ([handlers.md](handlers.md)).
-- **The 1.x pages stay** in the left menu of the Imports tab under "sqliimport 1.x": the 1.x import requests
-  (`sqliimport/items`), the scheduled imports (`sqliimport/scheduledlist`) and the form for a new request
-  (`sqliimport/addimport`, `sqliimport/addscheduled`). Their actions (cancel, interrupt, remove, purge) are now
-  POST forms with a confirmation. A request made there is handed to the 2.x engine by the cron part.
-- **The 1.x list moved:** `sqliimport/list` is now the 2.x dashboard. The 1.x list of import requests is
-  `sqliimport/items`. Update bookmarks.
+- **The 1.x pages are part of the 2.x pages.** No page of 1.x is needed any more, and the left menu no longer
+  has a group "sqliimport 1.x":
+
+  | 1.x page | Where its function is now |
+  |---|---|
+  | `sqliimport/items` (the import requests) | The dashboard `sqliimport/list`, section "1.x import requests": status, progress, progression notes, the run of each request, **Cancel** (pending), **Interrupt** (running); paged by `(legacyoffset)` |
+  | `sqliimport/addimport` (request an import) | The dashboard, the form **Request import** of that section (a 1.x handler and its `name=value` options) |
+  | `sqliimport/purgelist` | The dashboard, **Purge history** in that section |
+  | `sqliimport/alterimport/<cancel\|interrupt>/<id>` | The dashboard, **Cancel** or **Interrupt** of the request; it also cancels the request's 2.x run |
+  | `sqliimport/scheduledlist` | `sqliimport/schedules`, section "1.x scheduled imports": **Run now**, **Edit**, **Enable** or **Disable**, **Delete** |
+  | `sqliimport/addscheduled[/<id>]` | `sqliimport/schedules/(legacy)/<id>` (or `/new`): label, handler, options, first run, frequency, active; a migrated one opens its import's schedule in the editor |
+  | `sqliimport/removescheduled/<id>` | `sqliimport/schedules`, **Delete** |
+  | the progress of a request | the run page `sqliimport/run/<id>` (progress, counters, log) |
+
+- **The old addresses keep working.** A GET of a 1.x page goes to the 2.x page above, with its ids and offset
+  (`sqliimport/addscheduled/12` to `sqliimport/schedules/(legacy)/12`). A POST with the fields of 1.x
+  (`RequestImportButton`, `ImportHandler`, `ImportOptions`; `RequestScheduledImportButton` and the `Scheduled*`
+  fields; the POST of `alterimport`, `removescheduled`, `purgelist`) still does what it did, checked by the form
+  token and the handler limitation `SQLIImport_Type` as before, and then goes to the 2.x page. Scripts and 1.x
+  handlers that post there need no change. These addresses show no page of their own.
+- **The 1.x list moved:** `sqliimport/list` is the 2.x dashboard. Update bookmarks of `sqliimport/items` if you like;
+  they redirect.
 - **One import no longer blocks all others.** 1.x had one global lock (`SQLIImportToken`); 2.x runs different
   imports in parallel and each import once at a time.
 - **`sqlidoimport.php` and the 1.x cron parts are kept** but deprecated.

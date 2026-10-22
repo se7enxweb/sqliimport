@@ -70,7 +70,8 @@ The left menu of the Imports tab links the pages of the extension:
 | Catalogue | `sqliimport/catalogue` | The source types, handlers and transforms the site offers, with their options and status |
 | Settings | `sqliimport/settings` | The settings as they stand, export and import of definitions ([settings.md](settings.md#the-settings-page)) |
 
-Under "sqliimport 1.x" follow the pages of 1.x ([migration-1x.md](migration-1x.md#after-the-upgrade)).
+The pages of 1.x are part of these: the 1.x import requests are on the dashboard, the 1.x scheduled imports on
+Schedules; their old addresses redirect there ([migration-1x.md](migration-1x.md#after-the-upgrade)).
 
 ### The dashboard
 
@@ -83,6 +84,11 @@ Under "sqliimport 1.x" follow the pages of 1.x ([migration-1x.md](migration-1x.m
   **Disable** and **Delete** to users who may manage it ([editor.md](editor.md#changing-copying-and-deleting)).
 - The runs, newest first, filtered by status: `sqliimport/list/(status)/active`, `failed`, `completed` or
   `cancelled`, and by import: `sqliimport/list/(import)/<id>`.
+- **1.x import requests** (shown when 1.x handlers are configured or requests exist; it was `sqliimport/items`):
+  the form **Request import** (a 1.x handler and its options, one `name=value` per line; it was
+  `sqliimport/addimport`), **Purge history** (the ended requests; manage), and each request with its status,
+  progress and progression notes, a link to its run, and **Cancel** (pending) or **Interrupt** (running) for users
+  who may run its handler. Older requests: `sqliimport/list/(legacyoffset)/<n>`.
 
 The admin dashboard (`content/dashboard`) has a block **Imports** with the latest runs and their status, and a
 warning with a link when runs failed or ended with errors in the last 24 hours (`dashboard.ini

@@ -70,9 +70,23 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 - Updated: Two policies, as the owner chose: manage (Manage imports) and run (Run imports), both with the handler
   limitation; the functions view, edit, rollback, ai and settings of 2.0.0-alpha.1 are gone. manageimports of 1.x
   counts as manage, listimports lets one look; migrate-1x --roles gives manage to the roles with manageimports.
+- Updated: The pages of 1.x are part of the 2.x pages, so none of them is needed any more. The dashboard lists the
+  1.x import requests (request an import of a 1.x handler with its options, cancel, interrupt, purge history, the
+  progress, notes and run of each); Schedules lists the 1.x scheduled imports (run now, edit their frequency,
+  options and start, enable, disable, delete, add one). The left menu has no "sqliimport 1.x" group any more.
+- Updated: The addresses of the 1.x pages (items, scheduledlist, addimport, addscheduled, alterimport,
+  removescheduled, purgelist) redirect a GET to the matching 2.x page with their ids and offset; a POST with the 1.x
+  fields still does what it did (form token and handler limitation checked as before) and then redirects there.
+
+### Removed
+
+- Removed: The templates of the 1.x pages (items, scheduledlist, addimport, addscheduled, altererror and the part
+  postbutton); their addresses stay as redirects.
 
 ### Fixed
 
+- Fixed: The progress of a 1.x import request always read as 0 %: the percentage, kept under the member name of its
+  column, was read through the attribute of the same name in a circle.
 - Fixed: The run page of a queued or running run ended in an error (2.0.0-alpha.1).
 - Fixed: Spaces at the ends of a text argument of a transform (replace(search=" GmbH")) were cut off.
 

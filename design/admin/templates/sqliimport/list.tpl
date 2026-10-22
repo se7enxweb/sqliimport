@@ -1,5 +1,6 @@
 {* sqliimport/list: the dashboard of the Imports tab (7x SQLI Import). The key figures, a toolbar (run an import now,
-   the 1.x pages), the imports with their last run and next schedule, and the runs, filtered by status. Built from the
+   new import), the imports with their last run and next schedule, the runs, filtered by status, and the import
+   requests of 1.x (parts/legacy_items.tpl). Built from the
    administration's shared components only (.a4-page, .a4-figures, .a4-toolbar, .a4-table, .a4-badge, .a4-meter,
    .a4-empty); what they cannot do is in stylesheets/sqliimport.css (.a4-sqliimport-*). No inline CSS or script. *}
 <div class="context-block a4-page a4-sqliimport">
@@ -35,7 +36,7 @@
 </form>
 {/if}
 {if $can_edit}<a class="a4-btn" href={'/sqliimport/edit/new'|ezurl}><span class="a4-icon a4-bi-plus-lg" aria-hidden="true"></span> {'New import'|i18n( 'extension/sqliimport' )}</a>{/if}
-<a class="a4-btn a4-btn-ghost" href={'/sqliimport/items'|ezurl}>{'1.x import requests'|i18n( 'extension/sqliimport' )}{if gt( $figures.legacy_pending, 0 )} <span class="a4-badge is-info">{$figures.legacy_pending}</span>{/if}</a>
+{if or( $legacy_count|gt( 0 ), $legacy_handlers|count|gt( 0 ) )}<a class="a4-btn a4-btn-ghost" href="#a4-sqliimport-legacy">{'1.x import requests'|i18n( 'extension/sqliimport' )}{if gt( $figures.legacy_pending, 0 )} <span class="a4-badge is-info">{$figures.legacy_pending}</span>{/if}</a>{/if}
 <a class="a4-btn a4-btn-ghost" href={'/expqueue/dashboard'|ezurl}>{'Job queue'|i18n( 'extension/sqliimport' )}</a>
 </div>
 
@@ -135,6 +136,8 @@
 </p>
 {/if}
 </section>
+
+{include uri='design:sqliimport/parts/legacy_items.tpl'}
 
 {/if}
 

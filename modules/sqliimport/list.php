@@ -1,7 +1,8 @@
 <?php
 /**
  * sqliimport/list: the dashboard of the Imports tab. The key figures, the imports with their last run and next
- * schedule (Run now and Dry run for users who may run them), and the runs, filtered by (status) and (import).
+ * schedule (Run now and Dry run for users who may run them), the runs, filtered by (status) and (import), and the
+ * import requests of 1.x (request, cancel, interrupt, purge; paged by (legacyoffset)), which were sqliimport/items.
  *
  * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
  * @license GNU General Public License v2.0
@@ -58,7 +59,19 @@ $tpl->setVariable( 'next_url', $offset + $limit < $runCount ? $here . '/(offset)
 $tpl->setVariable( 'flash', $flash );
 $tpl->setVariable( 'can_run', expImportAdmin::can( 'run' ) );
 $tpl->setVariable( 'can_edit', expImportAdmin::can( 'edit' ) );
-$tpl->setVariable( 'can_legacy', expImportAdmin::can( 'manageimports' ) && (bool)expImportLegacyHandlerAdapter::available() );
+// the 1.x import requests (sqliimport_item): requested here, cancelled, interrupted and purged here; paged by (legacyoffset)
+$legacyOffset = isset( $Params['LegacyOffset'] ) ? max( 0, (int)$Params['LegacyOffset'] ) : 0;
+$legacyLimit = 10;
+list( $legacyItems, $legacyCount ) = $installed ? expImportLegacy::items( $legacyOffset, $legacyLimit ) : array( array(), 0 );
+$legacyHere = $here . ( $legacyOffset > 0 ? '/(legacyoffset)/' . $legacyOffset : '' );
+$tpl->setVariable( 'legacy_items', $legacyItems );
+$tpl->setVariable( 'legacy_count', $legacyCount );
+$tpl->setVariable( 'legacy_offset', $legacyOffset );
+$tpl->setVariable( 'legacy_here', $legacyHere );
+$tpl->setVariable( 'legacy_prev_url', $legacyOffset > 0 ? $here . ( $legacyOffset - $legacyLimit > 0 ? '/(legacyoffset)/' . ( $legacyOffset - $legacyLimit ) : '' ) : '' );
+$tpl->setVariable( 'legacy_next_url', $legacyOffset + $legacyLimit < $legacyCount ? $here . '/(legacyoffset)/' . ( $legacyOffset + $legacyLimit ) : '' );
+$tpl->setVariable( 'legacy_handlers', expImportLegacy::handlers( 'run' ) );
+$tpl->setVariable( 'can_purge', expImportAdmin::can( 'manage' ) );
 $tpl->setVariable( 'now', expImport::now() );
 $tpl->setVariable( 'stats', $installed ? expImportStatistics::overview( 30 ) : array() );
 

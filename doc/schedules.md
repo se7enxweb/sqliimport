@@ -27,8 +27,13 @@ Users with the policy `manage` ([permissions.md](permissions.md)) also get these
 Every action is a POST request with the form token and is recorded in the audit log. A disabled import keeps its
 schedule, but its scheduled runs are skipped until it is enabled again.
 
-When scheduled imports of 1.x have not been migrated yet, the page says how many there are and links their 1.x
-list; they keep running until `./console ext:sqliimport:migrate-1x --apply` moves them here
+Below, the section **1.x scheduled imports** (it was `sqliimport/scheduledlist`) lists the scheduled imports of
+1.x with their handler, options, frequency and next run: **Run now** (requests an import with its options; run),
+**Edit**, **Enable** or **Disable** and **Delete** (manage), and **New 1.x scheduled import**. Edit opens the form
+`sqliimport/schedules/(legacy)/<id>` (or `/new`; it was `sqliimport/addscheduled`) above the lists: label, handler,
+options, first run (date, hour, minute), frequency (once, hourly, daily, weekly, monthly, every N minutes, at least
+5) and whether it is active. A migrated one links to its import's schedule instead. They keep running until
+`./console ext:sqliimport:migrate-1x --apply` moves them here
 ([migration-1x.md](migration-1x.md)).
 
 ## Kinds

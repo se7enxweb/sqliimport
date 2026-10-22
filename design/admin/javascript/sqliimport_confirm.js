@@ -1,5 +1,5 @@
 /*
- * 7x SQLI Import: the question of an import action (sqliimport/parts/postbutton.tpl, a form with data-a4-confirm)
+ * 7x SQLI Import: the question of an import action (sqliimport/parts/button.tpl, a form with data-a4-confirm)
  * in an administration design without admin4's a4_actions.js. admin4 and admin4l ask it themselves (a4_actions.js
  * sets window.a4Actions); in the other designs this listener asks it, so an action that needs a confirmation is never
  * sent without one. Loaded through design.ini [JavaScriptSettings] BackendJavaScriptList, so the form needs no inline

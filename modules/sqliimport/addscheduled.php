@@ -1,158 +1,43 @@
 <?php
 /**
- * SQLi Import add scheduled import view
- * @copyright Copyright (C) 2010 - SQLi Agency. All rights reserved
- * @licence http://www.gnu.org/licenses/gpl-2.0.txt GNU GPLv2
- * @author Jerome Vieilledent
- * @version @@@VERSION@@@
+ * sqliimport/addscheduled/<id> (1.x): a 1.x scheduled import. Its form is part of sqliimport/schedules now
+ * (sqliimport/schedules/(legacy)/<id>, or the import's schedule in the editor once it was migrated); a GET goes there.
+ * A POST with the fields of 1.x (RequestScheduledImportButton, ImportHandler, ImportOptions, ScheduledDate,
+ * ScheduledHour, ScheduledMinute, ScheduledFrequency, ManualScheduledFrequency, ScheduledLabel, ScheduledActive;
+ * checked by ezformtoken) still stores it, if the user may use the handler (SQLIImport_Type), and then goes to
+ * sqliimport/schedules; a value that is not valid goes back to the form with the message.
+ *
+ * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
+ * @license GNU General Public License v2.0
  * @package sqliimport
  */
 
+/** @var eZModule $Module */
 $Module = $Params['Module'];
-$Result = array();
-$tpl = SQLIImportUtils::templateInit();
-$importINI = eZINI::instance( 'sqliimport.ini' );
 $http = eZHTTPTool::instance();
-
-try
+$id = isset( $Params['ScheduledImportID'] ) ? (int)$Params['ScheduledImportID'] : 0;
+$params = array( 'ScheduledImportID' => $id );
+if ( strtoupper( (string)eZSys::serverVariable( 'REQUEST_METHOD', true ) ) === 'POST' && $http->hasPostVariable( 'RequestScheduledImportButton' ) )
 {
-    $userLimitations = SQLIImportUtils::getSimplifiedUserAccess( 'sqliimport', 'manageimports' );
-    $simplifiedLimitations = $userLimitations['simplifiedLimitations'];
-    $scheduledImport = null;
-    $importID = null;
-    $currentImportHandler = null;
-    $importOptions = null;
-    $importDate = date( 'Y-m-d' );
-    $importHour = date( 'H' );
-    $importMinute = 0;
-    $importFrequency = 'none';
-    $importLabel = null;
-    $importIsActive = true;
-    $manualFrequency = 0;
-    
-    if( $Module->isCurrentAction( 'RequestScheduledImport' ) )
+    $in = expImportLegacy::postedScheduleFields( $http );
+    $handler = isset( $in['ImportHandler'] ) ? (string)$in['ImportHandler'] : '';
+    $existing = $id ? SQLIScheduledImport::fetch( $id ) : null;
+    // the handler it has and the one it gets: the user must be allowed both
+    if ( !expImportAdmin::can( 'manage', $handler )
+         || ( $existing instanceof SQLIScheduledImport && !expImportAdmin::can( 'manage', (string)$existing->attribute( 'handler' ) ) ) )
+        return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
+    try
     {
-        // Check if user has access to handler alteration
-        $currentImportHandler = $Module->actionParameter( 'ImportHandler') ;
-        $aLimitation = array( 'SQLIImport_Type' => $currentImportHandler );
-        $hasAccess = SQLIImportUtils::hasAccessToLimitation( $Module->currentModule(), 'manageimports', $aLimitation );
-        if( !$hasAccess )
-            return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
-        
-        $importID = (int)$Params['ScheduledImportID'];
-        $importOptions = $Module->actionParameter( 'ImportOptions' );
-        $importFrequency = $Module->actionParameter( 'ScheduledFrequency' );
-        $importLabel = $Module->actionParameter( 'ScheduledLabel' );
-        $importIsActive = $Module->actionParameter( 'ScheduledActive' ) ? 1 : 0;
-        
-        $aImportDate = explode( '-', $Module->actionParameter( 'ScheduledDate' ) );
-        $importHour = (int)$Module->actionParameter( 'ScheduledHour' );
-        $importMinute = (int)$Module->actionParameter( 'ScheduledMinute' );
-        $nextDate = mktime( $importHour, $importMinute, 0, $aImportDate[1], $aImportDate[2], $aImportDate[0] );
-        if( $nextDate == -1 ) // Bad date entered
-            throw new SQLIImportBaseException( SQLIImportUtils::translate( 'extension/sqliimport/error', 'Please choose a correct date' ) );
-        
-        $row = array(
-            'handler'               => $currentImportHandler,
-            'user_id'               => eZUser::currentUserID(),
-            'label'                 => $importLabel,
-            'frequency'             => $importFrequency,
-            'next'                  => $nextDate,
-            'is_active'             => $importIsActive
-        );
-        
-        // Handle frequency
-        if( $importFrequency == SQLIScheduledImport::FREQUENCY_MANUAL )
-        {
-            $manualFrequency = (int)$Module->actionParameter( 'ManualScheduledFrequency' );
-            if( $manualFrequency < 5 )
-                throw new SQLIImportBaseException( SQLIImportUtils::translate( 'extension/sqliimport/error', 'Please choose a frequency greater than 5min' ) );
-                
-            $row['manual_frequency'] = $manualFrequency;
-        }
-            
-        $scheduledImport = SQLIScheduledImport::fetch( $importID );
-        if ( !$scheduledImport instanceof SQLIScheduledImport )
-            $scheduledImport = new SQLIScheduledImport( $row );
-        else
-            $scheduledImport->fromArray( $row );
-        
-        if( $importOptions )
-            $scheduledImport->setAttribute( 'options', SQLIImportHandlerOptions::fromText( $importOptions ) );
-        
-        $scheduledImport->store();
-        $Module->redirectToView( 'scheduledlist' );
+        $scheduled = expImportLegacy::saveScheduled( $existing instanceof SQLIScheduledImport ? $id : 0, $in );
+        expImportLegacy::flash( 'ok', ezpI18n::tr( 'extension/sqliimport', 'The 1.x scheduled import "%name" is saved.', null,
+                                                   array( '%name' => $scheduled->attribute( 'label' ) !== '' ? $scheduled->attribute( 'label' ) : '#' . $scheduled->attribute( 'id' ) ) ) );
+        return $Module->redirectTo( expImportLegacy::redirectFor( 'scheduledlist' ) );
     }
-    else if( $Params['ScheduledImportID'] )
+    catch ( Exception $e )
     {
-        $scheduledImport = SQLIScheduledImport::fetch( $Params['ScheduledImportID'] );
-        $importID = $Params['ScheduledImportID'];
-        $currentImportHandler = $scheduledImport->attribute( 'handler' );
-        
-        // Check if user has access to handler alteration
-        $aLimitation = array( 'SQLIImport_Type' => $currentImportHandler );
-        $hasAccess = SQLIImportUtils::hasAccessToLimitation( $Module->currentModule(), 'manageimports', $aLimitation );
-        if( !$hasAccess )
-            return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
-        
-        $importOptions = $scheduledImport->attribute( 'options' )->toText();
-        $nextTime = $scheduledImport->attribute( 'next' );
-        if( !$nextTime )
-            $nextTime = $scheduledImport->attribute( 'requested_time' );
-        $importDate = date( 'Y-m-d', $nextTime );
-        $importHour = date( 'H', $nextTime );
-        $importMinute = date( 'i', $nextTime );
-        $importFrequency = $scheduledImport->attribute( 'frequency' );
-        $importLabel = $scheduledImport->attribute( 'label' );
-        $importIsActive = $scheduledImport->attribute( 'is_active' );
-        $manualFrequency = $scheduledImport->attribute( 'manual_frequency' );
+        SQLIImportLogger::writeError( $e->getMessage() );
+        expImportLegacy::flash( 'bad', $e->getMessage() );
     }
-    
+    return $Module->redirectTo( expImportLegacy::redirectFor( 'addscheduled', $params ) );
 }
-catch( Exception $e )
-{
-    $errMsg = $e->getMessage();
-    eZDebug::writeError( $errMsg );
-    $tpl->setVariable( 'error_message', $errMsg );
-}
-
-$tpl->setVariable( 'import_id', $importID );
-$tpl->setVariable( 'current_import_handler', $currentImportHandler );
-$tpl->setVariable( 'import_options', $importOptions );
-$tpl->setVariable( 'import_date', $importDate );
-$tpl->setVariable( 'import_hour', $importHour );
-$tpl->setVariable( 'import_minute', $importMinute );
-$tpl->setVariable( 'import_frequency', $importFrequency );
-$tpl->setVariable( 'import_label', $importLabel );
-$tpl->setVariable( 'import_is_active', $importIsActive );
-$tpl->setVariable( 'manual_frequency', $manualFrequency );
-
-$importHandlers = $importINI->variable( 'ImportSettings', 'AvailableSourceHandlers' );
-$aValidHandlers = array();
-// Check if import handlers are enabled
-foreach( $importHandlers as $handler )
-{
-    $handlerSection = $handler.'-HandlerSettings';
-    if( $importINI->variable( $handlerSection, 'Enabled' ) === 'true' )
-    {
-        $handlerName = $importINI->hasVariable( $handlerSection, 'Name' ) ? $importINI->variable( $handlerSection, 'Name' ) : $handler;
-        /*
-         * Policy limitations check.
-         * User has access to handler if it appears in $simplifiedLimitations['SQLIImport_Type']
-         * or if $simplifiedLimitations['SQLIImport_Type'] is not set (no limitations)
-         */
-        if( ( isset( $simplifiedLimitations['SQLIImport_Type'] ) && in_array ($handler, $simplifiedLimitations['SQLIImport_Type'] ) )
-            || !isset( $simplifiedLimitations['SQLIImport_Type'] ) )
-            $aValidHandlers[$handlerName] = $handler;
-    }
-}
-
-$tpl->setVariable( 'importHandlers', $aValidHandlers );
-
-$Result['path'] = array(
-    array(
-        'url'       => false,
-        'text'      => SQLIImportUtils::translate( 'extension/sqliimport', 'Edit a scheduled import' )
-    )
-);
-$Result['content'] = $tpl->fetch( 'design:sqliimport/addscheduled.tpl' );
+$Module->redirectTo( expImportLegacy::redirectFor( 'addscheduled', $params, array(), expImportLegacy::migratedImportID( $id ) ) );

@@ -1,76 +1,35 @@
 <?php
 /**
- * SQLi Import add immediate import view
- * @copyright Copyright (C) 2010 - SQLi Agency. All rights reserved
- * @licence http://www.gnu.org/licenses/gpl-2.0.txt GNU GPLv2
- * @author Jerome Vieilledent
- * @version @@@VERSION@@@
+ * sqliimport/addimport (1.x): a request of an immediate import of a 1.x handler. The form is on the dashboard now
+ * (sqliimport/list, "Request an import"); a GET goes there. A POST with the fields of 1.x (RequestImportButton,
+ * ImportHandler, ImportOptions; checked by ezformtoken) still stores the request, if the user may use the handler
+ * (SQLIImport_Type), and then goes to the dashboard.
+ *
+ * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
+ * @license GNU General Public License v2.0
  * @package sqliimport
  */
 
+/** @var eZModule $Module */
 $Module = $Params['Module'];
-$Result = array();
-$tpl = SQLIImportUtils::templateInit();
-$importINI = eZINI::instance( 'sqliimport.ini' );
 $http = eZHTTPTool::instance();
-
-try
+$target = expImportLegacy::redirectFor( 'addimport' );
+if ( strtoupper( (string)eZSys::serverVariable( 'REQUEST_METHOD', true ) ) === 'POST' && $http->hasPostVariable( 'RequestImportButton' ) )
 {
-    $userLimitations = SQLIImportUtils::getSimplifiedUserAccess( 'sqliimport', 'manageimports' );
-    $simplifiedLimitations = $userLimitations['simplifiedLimitations'];
-    
-    if( $Module->isCurrentAction( 'RequestImport' ) )
+    $handler = $http->hasPostVariable( 'ImportHandler' ) ? (string)$http->postVariable( 'ImportHandler' ) : '';
+    if ( !expImportAdmin::can( 'manage', $handler ) )
+        return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
+    try
     {
-        // Check if user has access to handler alteration
-        $aLimitation = array( 'SQLIImport_Type' => $Module->actionParameter( 'ImportHandler' ) );
-        $hasAccess = SQLIImportUtils::hasAccessToLimitation( $Module->currentModule(), 'manageimports', $aLimitation );
-        if( !$hasAccess )
-            return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
-        
-        $importOptions = $Module->actionParameter( 'ImportOptions' );
-        $pendingImport = new SQLIImportItem( array(
-            'handler'               => $Module->actionParameter( 'ImportHandler' ),
-            'user_id'               => eZUser::currentUserID()
-        ) );
-        if( $importOptions )
-            $pendingImport->setAttribute( 'options', SQLIImportHandlerOptions::fromText( $importOptions ) );
-        $pendingImport->store();
-        $Module->redirectToView( 'items' );
+        $item = expImportLegacy::requestImport( $handler, $http->hasPostVariable( 'ImportOptions' ) ? (string)$http->postVariable( 'ImportOptions' ) : '' );
+        expImportLegacy::flash( 'ok', ezpI18n::tr( 'extension/sqliimport', 'The 1.x import #%id of "%handler" is requested; the next cron round starts it.', null,
+                                                   array( '%id' => $item->attribute( 'id' ), '%handler' => expImportLegacy::handlerName( $handler ) ) ) );
+        $target = expImportLegacy::redirectFor( 'items' );
     }
-    
-    $importHandlers = $importINI->variable( 'ImportSettings', 'AvailableSourceHandlers' );
-    $aValidHandlers = array();
-    // Check if import handlers are enabled
-    foreach( $importHandlers as $handler )
+    catch ( Exception $e )
     {
-        $handlerSection = $handler.'-HandlerSettings';
-        if( $importINI->variable( $handlerSection, 'Enabled' ) === 'true' )
-        {
-            $handlerName = $importINI->hasVariable( $handlerSection, 'Name' ) ? $importINI->variable( $handlerSection, 'Name' ) : $handler;
-            /*
-             * Policy limitations check.
-             * User has access to handler if it appears in $simplifiedLimitations['SQLIImport_Type']
-             * or if $simplifiedLimitations['SQLIImport_Type'] is not set (no limitations)
-             */
-            if( ( isset( $simplifiedLimitations['SQLIImport_Type'] ) && in_array ($handler, $simplifiedLimitations['SQLIImport_Type'] ) )
-                || !isset( $simplifiedLimitations['SQLIImport_Type'] ) )
-                $aValidHandlers[$handlerName] = $handler;
-        }
+        SQLIImportLogger::writeError( $e->getMessage() );
+        expImportLegacy::flash( 'bad', $e->getMessage() );
     }
-    
-    $tpl->setVariable( 'importHandlers', $aValidHandlers );
 }
-catch( Exception $e )
-{
-    $errMsg = $e->getMessage();
-    SQLIImportLogger::writeError( $errMsg );
-    $tpl->setVariable( 'error_message', $errMsg );
-}
-
-$Result['path'] = array(
-    array(
-        'url'       => false,
-        'text'      => SQLIImportUtils::translate( 'extension/sqliimport', 'Request a new immediate import' )
-    )
-);
-$Result['content'] = $tpl->fetch( 'design:sqliimport/addimport.tpl' );
+$Module->redirectTo( $target );

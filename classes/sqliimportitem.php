@@ -151,9 +151,18 @@ class SQLIImportItem extends eZPersistentObject
     {
         // A kernel that keeps the persistent fields itself (Exponential 6: eZPersistentObject::__get) is asked first;
         // without that, attribute() would come back here for its own field and every field read as null.
+        // A field is kept under its member name: percentage_int (the column) is the member "percentage", which is also
+        // the name of the function attribute that reads it; asking the attribute here went round in a circle and the
+        // percentage read as 0.
         $def = self::definition();
-        if( isset( $def['fields'][$name] ) && method_exists( 'eZPersistentObject', '__get' ) )
-            return parent::__get( $name );
+        if( method_exists( 'eZPersistentObject', '__get' ) )
+        {
+            foreach( $def['fields'] as $key => $field )
+            {
+                if( $key === $name || ( is_array( $field ) && isset( $field['name'] ) && $field['name'] === $name ) )
+                    return parent::__get( $name );
+            }
+        }
 
         $ret = null;
         if( $this->hasAttribute( $name ) )

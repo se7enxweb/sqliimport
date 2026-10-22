@@ -1,44 +1,13 @@
 <?php
 /**
- * SQLi Import main list view
- * @copyright Copyright (C) 2010 - SQLi Agency. All rights reserved
- * @licence http://www.gnu.org/licenses/gpl-2.0.txt GNU GPLv2
- * @author Jerome Vieilledent
- * @version @@@VERSION@@@
+ * sqliimport/items (1.x): the list of the 1.x import requests is part of the dashboard now (sqliimport/list, section
+ * "1.x import requests"). This address stays and goes there, with its (offset).
+ *
+ * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
+ * @license GNU General Public License v2.0
  * @package sqliimport
  */
 
+/** @var eZModule $Module */
 $Module = $Params['Module'];
-$Result = array();
-$tpl = SQLIImportUtils::templateInit();
-
-try
-{
-    $offset = isset( $Params['UserParameters']['offset'] ) ? (int)$Params['UserParameters']['offset'] : 0; // Offset for pagination
-    $limit = eZPreferences::value( 'sqliimport_import_limit' );
-    $limit = $limit ? $limit : 10; // Default limit is 10
-    $imports = SQLIImportItem::fetchList( $offset, $limit );
-    $importCount = SQLIImportItem::count( SQLIImportItem::definition() );
-    $currentURI = '/'.$Module->currentModule().'/'.$Module->currentView();
-    
-    $tpl->setVariable( 'imports', $imports );
-    $tpl->setVariable( 'offset', $offset );
-    $tpl->setVariable( 'limit', $limit );
-    $tpl->setVariable( 'uri', $currentURI );
-    $tpl->setVariable( 'import_count', $importCount );
-    $tpl->setVariable( 'view_parameters', $Params['UserParameters'] );
-}
-catch( Exception $e )
-{
-    $errMsg = $e->getMessage();
-    SQLIImportLogger::writeError( $errMsg );
-    $tpl->setVariable( 'error_message', $errMsg );
-}
-
-$Result['path'] = array(
-    array(
-        'url'       => false,
-        'text'      => SQLIImportUtils::translate( 'extension/sqliimport', '1.x import requests' )
-    )
-);
-$Result['content'] = $tpl->fetch( 'design:sqliimport/items.tpl' );
+$Module->redirectTo( expImportLegacy::redirectFor( 'items', array(), (array)$Params['UserParameters'] ) );
