@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>Example feed list</title>
+  </head>
+  <body>
+    <outline text="News" title="News">
+      <outline type="rss" text="Example news" title="Example news" xmlUrl="https://example.org/feed.rss" htmlUrl="https://example.org/" description="The news of example.org"/>
+      <outline type="rss" text="Example blog" xmlUrl="https://example.org/blog/atom.xml" htmlUrl="https://example.org/blog/"/>
+    </outline>
+    <outline text="Tech">
+      <outline type="rss" text="Example releases" xmlUrl="https://example.net/releases.rss" category="Tech/Releases"/>
+      <outline type="link" text="Example documentation" url="https://example.net/docs/"/>
+    </outline>
+  </body>
+</opml>

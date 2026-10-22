@@ -32,6 +32,37 @@ class expImportRssSource extends expImportXmlSource
         return array( 'xml', 'rss', 'atom' );
     }
 
+    public static function description()
+    {
+        return 'RSS 2.0 and Atom feeds of a site, a blog or a news service, from an address or a file. Every item is a '
+             . 'record with id, title, link, summary, content, date, author, categories and enclosure.';
+    }
+
+    public static function group()
+    {
+        return 'content';
+    }
+
+    public static function examples()
+    {
+        return array( array( 'label' => 'An RSS feed of two items', 'file' => 'feed.rss' ),
+                      array( 'label' => 'An Atom feed', 'file' => 'feed.atom' ) );
+    }
+
+    public static function preset()
+    {
+        return array(
+            'class' => 'article',
+            'match' => array( 'type' => 'remote_id', 'pattern' => 'feed-{id}' ),
+            'fields' => array(
+                array( 'source' => 'title', 'attribute' => 'title', 'transforms' => array( array( 'name' => 'strip_tags' ), array( 'name' => 'trim' ) ) ),
+                array( 'source' => 'summary', 'attribute' => 'intro', 'transforms' => array( array( 'name' => 'richtext' ) ) ),
+                array( 'source' => 'content', 'attribute' => 'body', 'transforms' => array( array( 'name' => 'richtext' ) ) ),
+                array( 'source' => 'date', 'attribute' => 'publish_date', 'transforms' => array( array( 'name' => 'date' ) ) ),
+            ),
+        );
+    }
+
     public static function schema()
     {
         return array(

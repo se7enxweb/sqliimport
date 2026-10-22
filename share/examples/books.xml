@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <book id="b1">
+    <title>Dune</title>
+    <dc:creator>Frank Herbert</dc:creator>
+    <year>1965</year>
+    <price currency="EUR">12.90</price>
+  </book>
+  <book id="b2">
+    <title>The Left Hand of Darkness</title>
+    <dc:creator>Ursula K. Le Guin</dc:creator>
+    <year>1969</year>
+    <price currency="EUR">11.50</price>
+  </book>
+</catalog>

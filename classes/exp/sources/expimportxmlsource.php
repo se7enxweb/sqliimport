@@ -32,6 +32,17 @@ class expImportXmlSource extends expImportAbstractSource
         return array( 'xml' );
     }
 
+    public static function description()
+    {
+        return 'Any XML file: name the element of one record (book, catalog/book), and its attributes (@id) and child '
+             . 'elements become the fields. Read as a stream, external entities are never loaded, and an XSD can check it first.';
+    }
+
+    public static function examples()
+    {
+        return array( array( 'label' => 'A catalogue of two books', 'file' => 'books.xml', 'options' => array( 'record_path' => 'book', 'key' => '@id' ) ) );
+    }
+
     public static function schema()
     {
         return array(

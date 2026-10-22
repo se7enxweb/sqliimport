@@ -1,19 +1,41 @@
-{* sqliimport/catalogue: what this site can import from and with: the source types, the handlers (1.x ones marked
-   legacy) and the transforms, with their options. *}
+{* sqliimport/catalogue: what this site can import from and with: the formats by group (description, files,
+   examples, the mapping a format comes with, New import), the handlers (1.x ones marked legacy) and the transforms. *}
 <div class="context-block a4-page a4-sqliimport">
 <div class="box-header"><div class="box-ml">
 <h1 class="context-title">{'Catalogue'|i18n( 'extension/sqliimport' )}</h1>
 </div></div>
 <div class="box-bc"><div class="box-ml"><div class="box-content">
-<p class="a4-intro">{'Sources, handlers and transforms come from sqliimport.ini and from kernel services tagged sqliimport.source, sqliimport.handler and sqliimport.transform.'|i18n( 'extension/sqliimport' )}</p>
+<p class="a4-intro">{'Formats are kernel services tagged sqliimport.source (one source class and one block in kernelservices.ini each); handlers and transforms come from sqliimport.ini and from services tagged sqliimport.handler and sqliimport.transform.'|i18n( 'extension/sqliimport' )}</p>
 
-<section class="a4-section" aria-labelledby="sq-cat-sources">
-<div class="a4-section-head"><h2 class="a4-h2" id="sq-cat-sources">{'Sources'|i18n( 'extension/sqliimport' )}</h2></div>
-<table class="a4-table">
-<thead><tr><th>{'Source'|i18n( 'extension/sqliimport' )}</th><th>{'Files'|i18n( 'extension/sqliimport' )}</th><th>{'Options'|i18n( 'extension/sqliimport' )}</th><th>{'Status'|i18n( 'extension/sqliimport' )}</th></tr></thead>
-<tbody>{foreach $sources as $id => $s}<tr><td>{$s.label|wash}<br /><span class="a4-meta">{$id|wash} · {$s.class|wash}</span></td><td>{$s.extensions|implode( ', ' )|wash}</td><td>{foreach $s.schema as $o => $d}<code>{$o|wash}</code>{delimiter}, {/delimiter}{/foreach}</td><td><span class="a4-badge{if eq( $s.status, 'enabled' )} is-ok{elseif eq( $s.status, 'example' )} is-info{/if}">{$s.status|wash}</span></td></tr>{/foreach}</tbody>
-</table>
+{foreach $sources_by_group as $gid => $g}
+<section class="a4-section" aria-labelledby="sq-cat-{$gid|wash}">
+<div class="a4-section-head"><h2 class="a4-h2" id="sq-cat-{$gid|wash}">{$g.label|wash}</h2></div>
+<div class="a4-sqliimport-formats">
+{foreach $g.sources as $id => $s}
+<article class="a4-card" aria-labelledby="sq-fmt-{$id|wash}">
+<div class="a4-card-head">
+<h3 class="a4-h3" id="sq-fmt-{$id|wash}">{$s.label|wash}</h3>
+<span class="a4-badge{if eq( $s.status, 'enabled' )} is-ok{elseif eq( $s.status, 'example' )} is-info{/if}">{$s.status|wash}</span>
+</div>
+{if ne( $s.description, '' )}<p class="a4-sqliimport-format-desc">{$s.description|wash}</p>{/if}
+<p class="a4-meta">{'Files'|i18n( 'extension/sqliimport' )}: {$s.extensions|implode( ', ' )|wash} · <code>{$id|wash}</code>{if $s.schema|count|gt( 0 )} · {'Options'|i18n( 'extension/sqliimport' )}: {foreach $s.schema as $o => $d}<code>{$o|wash}</code>{delimiter}, {/delimiter}{/foreach}{/if}</p>
+{if $s.preset|count|gt( 0 )}
+<details class="a4-fold"><summary>{'Comes with a mapping to the class %class'|i18n( 'extension/sqliimport',, hash( '%class', $s.preset.class ) )|wash}</summary>
+<ul class="a4-sqliimport-format-list">{foreach $s.preset.fields as $f}<li><code>{$f.source|wash}</code> → <code>{$f.attribute|wash}</code>{if is_set( $f.transforms )}{if $f.transforms|count|gt( 0 )} <span class="a4-meta">({foreach $f.transforms as $t}{$t.name|wash}{delimiter} | {/delimiter}{/foreach})</span>{/if}{/if}</li>{/foreach}</ul>
+</details>
+{/if}
+<div class="a4-sqliimport-format-foot">
+{foreach $s.examples as $n => $e}
+{if is_set( $e.file )}<a class="a4-btn a4-btn-ghost" href={concat( '/sqliimport/catalogue/(example)/', $id, '/(n)/', $n )|ezurl} download title="{$e.label|wash}"><span class="a4-icon a4-bi-download" aria-hidden="true"></span> {$e.file|wash}</a>
+{elseif is_set( $e.url )}<a class="a4-btn a4-btn-ghost" href="{$e.url|wash}" rel="noopener noreferrer" target="_blank" title="{$e.label|wash}"><span class="a4-icon a4-bi-box-arrow-up-right" aria-hidden="true"></span> {'Example'|i18n( 'extension/sqliimport' )}</a>{/if}
+{/foreach}
+{if and( $can_manage, eq( $s.status, 'enabled' ) )}<a class="a4-btn a4-btn-primary" href={concat( '/sqliimport/edit/new/(source)/', $id )|ezurl}><span class="a4-icon a4-bi-plus-lg" aria-hidden="true"></span> {'New import'|i18n( 'extension/sqliimport' )}</a>{/if}
+</div>
+</article>
+{/foreach}
+</div>
 </section>
+{/foreach}
 
 <section class="a4-section" aria-labelledby="sq-cat-handlers">
 <div class="a4-section-head"><h2 class="a4-h2" id="sq-cat-handlers">{'Handlers'|i18n( 'extension/sqliimport' )}</h2></div>

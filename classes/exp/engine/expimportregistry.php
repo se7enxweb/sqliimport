@@ -74,20 +74,60 @@ class expImportRegistry
             $status = $ini->hasVariable( $section, 'Status' ) ? $ini->variable( $section, 'Status' ) : 'enabled';
             $this->addSource( $out, $id, $class, $status );
         }
-        foreach ( self::tagged( 'sqliimport.source' ) as $service )
-            $this->addSource( $out, call_user_func( array( get_class( $service ), 'identifier' ) ), get_class( $service ), 'enabled' );
-        return $this->sources = $out;
+        $entries = class_exists( 'expKernelServices' ) ? self::tagged( 'sqliimport.source' ) : expImportSourceEntry::fromSettings();
+        foreach ( $entries as $service )
+        {
+            $entry = $service instanceof expImportSourceEntry ? $service : new expImportSourceEntry( get_class( $service ) );
+            if ( !$entry->isValid() )
+            {
+                eZDebug::writeWarning( 'source ' . $entry->className() . ' is not an expImportSourceInterface', __METHOD__ );
+                continue;
+            }
+            $id = $entry->id();
+            // sqliimport.ini [Source_<id>] Status= switches a format of the service container off or to "example"
+            $section = 'Source_' . $id;
+            $status = $ini->hasVariable( $section, 'Status' ) ? $ini->variable( $section, 'Status' ) : 'enabled';
+            $out[$id] = array( 'id' => $id, 'status' => $status ) + $entry->toArray();
+        }
+        return $this->sources = self::sortByGroup( $out );
+    }
+
+    /** @return array the entries ordered by group (data first), the order within a group kept */
+    public static function sortByGroup( array $entries )
+    {
+        $out = array();
+        foreach ( expImportSourceEntry::GROUPS as $group )
+            foreach ( $entries as $id => $entry )
+                if ( $entry['group'] === $group )
+                    $out[$id] = $entry;
+        return $out;
     }
 
     protected function addSource( array &$out, $id, $class, $status )
     {
-        if ( $class === '' || !class_exists( $class ) || !is_subclass_of( $class, 'expImportSourceInterface' ) )
+        $entry = new expImportSourceEntry( $class );
+        if ( !$entry->isValid() )
         {
             eZDebug::writeWarning( "source $id: $class is not an expImportSourceInterface", __METHOD__ );
             return;
         }
-        $out[$id] = array( 'class' => $class, 'label' => $class::label(), 'status' => $status, 'extensions' => $class::extensions(),
-                           'schema' => $class::schema() );
+        $out[$id] = array( 'id' => $id, 'status' => $status ) + $entry->toArray();
+    }
+
+    /**
+     * The formats of the catalogue by group: group => array( label, sources: id => entry ), variants included.
+     * @return array
+     */
+    public function sourcesByGroup()
+    {
+        $out = array();
+        foreach ( $this->sources() as $id => $source )
+        {
+            if ( !isset( $out[$source['group']] ) )
+                $out[$source['group']] = array( 'label' => expImportAdmin::label( 'group', $source['group'] ), 'sources' => array() );
+            $out[$source['group']]['sources'][$id] = $source;
+        }
+        return $out;
     }
 
     /**

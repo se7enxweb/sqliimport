@@ -64,3 +64,13 @@
 .a4-sqliimport-actions { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: flex-end; gap: var(--a4-space-1); }
 .a4-sqliimport-more > summary { cursor: pointer; font-size: var(--a4-text-s); }
 .a4-sqliimport-more-body { display: flex; flex-wrap: wrap; gap: var(--a4-space-1); margin: var(--a4-space-1) 0 0; }
+
+/* the formats: grouped in the source step of the editor, as cards in the catalogue */
+.a4-sqliimport-format-group { margin: var(--a4-space-2) 0 0; }
+.a4-sqliimport-format-group > .a4-h3 { margin: 0 0 var(--a4-space-1); }
+.a4-sqliimport-formats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--a4-space-3); }
+.a4-sqliimport-formats > .a4-card { display: flex; flex-direction: column; gap: var(--a4-space-2); min-width: 0; }
+.a4-sqliimport-formats .a4-card-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--a4-space-1); }
+.a4-sqliimport-format-desc { margin: 0; }
+.a4-sqliimport-format-foot { display: flex; flex-wrap: wrap; gap: var(--a4-space-1); margin-top: auto; }
+.a4-sqliimport-format-list { margin: 0; padding-inline-start: var(--a4-space-4); }

@@ -16,10 +16,18 @@
 
 <fieldset class="a4-field a4-field-wide">
 <legend>{'Source type'|i18n( 'extension/sqliimport/edit' )}</legend>
+<span class="a4-help">{'Every format, with an example and what it maps to, is described in the'|i18n( 'extension/sqliimport/edit' )} <a href={'/sqliimport/catalogue'|ezurl}>{'catalogue'|i18n( 'extension/sqliimport/edit' )}</a>.</span>
+{foreach $sources_by_group as $gid => $g}
+<div class="a4-sqliimport-format-group">
+<h3 class="a4-h3">{$g.label|wash}</h3>
 <div class="a4-radios">
-{foreach $sources as $id => $s}{if eq( $s.status, 'enabled' )}
-<label><input type="radio" name="SourceType" value="{$id|wash}"{if or( and( $import, eq( $import.source_type, $id ) ), and( $import|not, eq( $id, 'csv' ) ) )} checked="checked"{/if} /> {$s.label|wash} <span class="a4-meta">{$s.extensions|implode( ', ' )|wash}</span></label>
+{foreach $g.sources as $id => $s}{if eq( $s.status, 'enabled' )}
+<label><input type="radio" name="SourceType" value="{$id|wash}"{if eq( $source_type, $id )} checked="checked"{/if} /> {$s.label|wash} <span class="a4-meta">{$s.extensions|implode( ', ' )|wash}</span></label>
 {/if}{/foreach}
+</div>
+</div>
+{/foreach}
+<div class="a4-radios">
 {def $legacy_handlers = array()}{foreach $handlers as $hid => $h}{if and( $h.legacy, eq( $h.status, 'enabled' ) )}{set $legacy_handlers = $legacy_handlers|append( hash( 'id', $hid, 'label', $h.label ) )}{/if}{/foreach}
 {if $legacy_handlers|count|gt( 0 )}
 <label><input type="radio" name="SourceType" value="legacy"{if and( $import, $import.is_legacy )} checked="checked"{/if} /> {'A 1.x handler that reads its own source'|i18n( 'extension/sqliimport/edit' )}</label>
@@ -61,7 +69,7 @@
 {/if}
 {undef $legacy_handlers}
 
-{def $type = cond( $import, $import.source_type, 'csv' )}
+{def $type = $source_type}
 {if is_set( $sources[$type] )}
 <fieldset class="a4-field a4-field-wide">
 <legend>{'Options of the source (%type)'|i18n( 'extension/sqliimport/edit',, hash( '%type', $sources[$type].label ) )|wash}</legend>

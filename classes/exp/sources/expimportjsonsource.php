@@ -29,6 +29,31 @@ class expImportJsonSource extends expImportAbstractSource
         return array( 'json', 'ndjson', 'jsonl' );
     }
 
+    public static function description()
+    {
+        return 'A JSON file or the answer of a REST address: a list of objects, at the top or at a path such as data.items. '
+             . 'Nested values are mapped by their path (author.name, tags.0).';
+    }
+
+    public static function examples()
+    {
+        return array( array( 'label' => 'Two articles with nested authors and tags', 'file' => 'articles.json', 'options' => array( 'record_path' => 'data.items', 'key' => 'id' ) ) );
+    }
+
+    public static function variants()
+    {
+        return array(
+            'ndjson' => array(
+                'label' => 'JSON Lines (NDJSON)',
+                'description' => 'One JSON object per line, as log shippers, data warehouses and many APIs export large data. '
+                               . 'It is read as a stream, so files of any size import with little memory.',
+                'extensions' => array( 'ndjson', 'jsonl', 'json' ),
+                'defaults' => array( 'format' => 'ndjson' ),
+                'examples' => array( array( 'label' => 'Two articles, one per line', 'file' => 'articles.ndjson' ) ),
+            ),
+        );
+    }
+
     public static function schema()
     {
         return array(

@@ -36,6 +36,42 @@ abstract class expImportAbstractSource implements expImportSourceInterface
         );
     }
 
+    // ---- the catalogue entry (expImportSourceEntry reads these; a source overrides what it has to say) -------------
+
+    /** @return string what the format is and what one record of it is */
+    public static function description()
+    {
+        return '';
+    }
+
+    /** @return string data, content, platform, commerce, media or other */
+    public static function group()
+    {
+        return 'data';
+    }
+
+    /** @return array list of array( 'label', 'file' (in the extension's share/examples) or 'url' ) */
+    public static function examples()
+    {
+        return array();
+    }
+
+    /**
+     * A mapping to start from: array( 'class' => identifier, 'match' => array( 'type', 'pattern' ),
+     * 'fields' => list of array( 'source', 'attribute', 'transforms' ) ), or array() when none fits.
+     * @return array
+     */
+    public static function preset()
+    {
+        return array();
+    }
+
+    /** @return array id => array( 'label', 'description', 'extensions', 'defaults', 'examples', 'preset' ) */
+    public static function variants()
+    {
+        return array();
+    }
+
     /** @return string the local file, checked */
     protected function file()
     {

@@ -60,7 +60,7 @@ $ViewList['action'] = array(
 $ViewList['edit'] = array(
     'script' => 'edit.php',
     'params' => array( 'ImportID' ),
-    'unordered_params' => array( 'step' => 'Step' ),
+    'unordered_params' => array( 'step' => 'Step', 'source' => 'Source' ),
     'default_navigation_part' => 'sqliimportnavigationpart',
     'functions' => array( 'manage or manageimports' ),
 );
@@ -75,6 +75,7 @@ $ViewList['schedules'] = array(
 $ViewList['catalogue'] = array(
     'script' => 'catalogue.php',
     'params' => array(),
+    'unordered_params' => array( 'example' => 'Example', 'n' => 'N' ),
     'default_navigation_part' => 'sqliimportnavigationpart',
     'functions' => $canView,
 );

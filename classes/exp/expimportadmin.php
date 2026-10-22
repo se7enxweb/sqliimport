@@ -153,6 +153,8 @@ class expImportAdmin
             'trigger' => array( 'manual' => 'Started by hand', 'schedule' => 'Schedule', 'cli' => 'Command line', 'rest' => 'REST API', 'legacy' => '1.x import request' ),
             'outcome' => array( 'created' => 'Created', 'updated' => 'Updated', 'unchanged' => 'Unchanged', 'skipped' => 'Skipped', 'failed' => 'Failed',
                                 'processed' => 'Processed (1.x)', 'undone' => 'Undone' ),
+            'group' => array( 'data' => 'Data', 'content' => 'Content', 'platform' => 'Platforms', 'commerce' => 'Commerce', 'media' => 'Media',
+                              'other' => 'Other' ),
         );
         if ( !isset( $labels[$group][$code] ) )
             return (string)$code;

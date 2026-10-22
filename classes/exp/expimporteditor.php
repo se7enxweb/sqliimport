@@ -181,6 +181,46 @@ class expImportEditor
         elseif ( $this->import->isLegacy() || $this->import->attribute( 'handler' ) === '' )
             $this->import->setAttribute( 'handler', 'mapping' );
         $this->save( $new );
+        if ( !$legacy && !(int)$this->import->attribute( 'mapping_id' ) && !empty( $sources[$type]['preset'] ) )
+            $this->applyPreset( $sources[$type]['preset'] );
+        return true;
+    }
+
+    /**
+     * Gives an import without a mapping the preset mapping of its format, when the site has the preset's class.
+     *
+     * @param array $preset
+     * @return bool whether it was applied
+     */
+    public function applyPreset( array $preset )
+    {
+        $identifier = isset( $preset['class'] ) ? (string)$preset['class'] : '';
+        $class = $identifier !== '' ? eZContentClass::fetchByIdentifier( $identifier ) : null;
+        if ( !$class )
+        {
+            $this->notice = ezpI18n::tr( 'extension/sqliimport/edit', 'The format comes with a mapping to the class %class, which this site does not have. Map the fields yourself.',
+                                         null, array( '%class' => $identifier ) );
+            return false;
+        }
+        $attributes = $class->dataMap();
+        $fields = array();
+        foreach ( isset( $preset['fields'] ) ? (array)$preset['fields'] : array() as $field )
+            if ( isset( $field['attribute'] ) && isset( $attributes[$field['attribute']] ) )
+                $fields[] = $field;
+        $target = $this->import->target();
+        $mapping = array(
+            'class' => $identifier,
+            'language' => '',
+            'match' => isset( $preset['match'] ) ? $preset['match'] : array( 'type' => 'remote_id', 'pattern' => (string)$this->import->attribute( 'identifier' ) . '-{id}' ),
+            'fields' => $fields,
+            'location' => array( 'parent_node_id' => !empty( $target['parent_node_id'] ) ? (int)$target['parent_node_id']
+                                                                                      : (int)expImport::setting( 'ImportSettings', 'DefaultParentNodeID', 2 ) ),
+        );
+        $row = expImportMapping::saveArray( $mapping, $this->import->attribute( 'id' ) );
+        $this->import->setAttribute( 'mapping_id', $row->attribute( 'id' ) );
+        $this->import->store();
+        $this->notice = ezpI18n::tr( 'extension/sqliimport/edit', 'The mapping of the format to %class was filled in (%n fields). Check it in the step Mapping.',
+                                     null, array( '%class' => $identifier, '%n' => count( $fields ) ) );
         return true;
     }
 

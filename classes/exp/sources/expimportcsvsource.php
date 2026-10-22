@@ -33,6 +33,31 @@ class expImportCsvSource extends expImportAbstractSource
         return array( 'csv', 'tsv', 'txt' );
     }
 
+    public static function description()
+    {
+        return 'Comma, semicolon, tab or pipe separated text, as spreadsheets and databases export it. The first line names '
+             . 'the columns, every further line is a record. Delimiter and encoding (UTF-8, Windows-1252) are detected.';
+    }
+
+    public static function examples()
+    {
+        return array( array( 'label' => 'Three products with title, price and an active flag', 'file' => 'products.csv' ) );
+    }
+
+    public static function variants()
+    {
+        return array(
+            'tsv' => array(
+                'label' => 'TSV file (tab separated)',
+                'description' => 'Tab separated values: what a copy from a spreadsheet, many databases and analytics tools give. '
+                               . 'The first line names the columns. Quotes are read as in CSV.',
+                'extensions' => array( 'tsv', 'tab', 'txt' ),
+                'defaults' => array( 'delimiter' => 'tab' ),
+                'examples' => array( array( 'label' => 'Three products, tab separated', 'file' => 'products.tsv' ) ),
+            ),
+        );
+    }
+
     public static function schema()
     {
         return array(

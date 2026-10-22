@@ -71,6 +71,12 @@ class expImport
         return is_array( $data ) ? $data : array();
     }
 
+    /** @return string the directory of the example files of the formats (share/examples of the extension) */
+    public static function exampleDirectory()
+    {
+        return dirname( __DIR__, 2 ) . '/share/examples';
+    }
+
     /**
      * The extension's directory below the site's storage directory (var/<site>/storage/sqliimport/<sub>), created on
      * demand. Uploads, URL snapshots and reports live there, outside the web root's served paths.

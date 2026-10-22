@@ -30,6 +30,18 @@ class expImportSpreadsheetSource extends expImportAbstractSource
         return array( 'xlsx', 'ods' );
     }
 
+    public static function description()
+    {
+        return 'Excel (XLSX) and OpenDocument (ODS) workbooks, read without a library. The first row of a sheet names the '
+             . 'columns; choose the sheet by name. Dates come as spreadsheet numbers: date(format=excel) turns them into dates.';
+    }
+
+    public static function examples()
+    {
+        return array( array( 'label' => 'Three products (XLSX)', 'file' => 'products.xlsx' ),
+                      array( 'label' => 'Three products (ODS)', 'file' => 'products.ods' ) );
+    }
+
     public static function schema()
     {
         return array(
