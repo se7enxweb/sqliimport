@@ -2,9 +2,9 @@
 <software>
 	<metadata>
 		<name>SQLI Import</name>
-		<version>@@@VERSION@@@</version>
-		<copyright>Copyright © 2010 @@@AUTHORS@@@ - SQLi Agency</copyright>
+		<version>1.3.0</version>
+		<copyright>Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x</copyright>
 		<license>GNU General Public License v2.0</license>
-		<info_url>http://projects.ez.no/sqliimport</info_url>
+		<info_url>https://github.com/se7enxweb/sqliimport</info_url>
 	</metadata>
 </software>
