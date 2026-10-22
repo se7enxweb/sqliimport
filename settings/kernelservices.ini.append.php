@@ -219,6 +219,22 @@ Scope=worker
 Tags[]=sqliimport.source
 Description=7x SQLI Import format: SQL database or query (MySQL, MariaDB, PostgreSQL, SQLite)
 
+[Service_sqliimport.source.mongodb]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportMongoDbSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: MongoDB collection (read-only find with filter, projection and sort)
+
+[Service_sqliimport.source.redis]
+Class=expImportSourceEntry
+Factory=expImportSourceEntry::of
+Arguments[]=expImportRedisSource
+Scope=worker
+Tags[]=sqliimport.source
+Description=7x SQLI Import format: Redis keys (SCAN by pattern, read-only commands)
+
 [Service_sqliimport.source.cie]
 Class=expImportSourceEntry
 Factory=expImportSourceEntry::of

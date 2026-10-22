@@ -11,7 +11,7 @@ Laufs dieselben Daten liest.
 | `upload` | `file`: der gespeicherte Name einer hochgeladenen Datei | Der Upload (im Speicherverzeichnis der Website unter `sqliimport/uploads/`) wird in das Verzeichnis des Laufs kopiert |
 | `url` | `url`: eine Adresse mit `http` oder `https` | Die Adresse wird in das Verzeichnis des Laufs heruntergeladen, mit dem Zeitlimit `[ImportSettings] StreamTimeout` und dem Größenlimit `[SourceSettings] MaxSourceMegabytes` |
 | `path` | `path`: eine Datei auf dem Server | Die Datei wird an Ort und Stelle gelesen, aber nur, wenn sie in einem der Verzeichnisse von `[SourceSettings] AllowedPaths[]` liegt |
-| `remote` | die eigenen Optionen der Quelle (eine Datenbank, ein Postfach) | Die Quelle liest ihre Daten einmal pro Lauf selbst und schreibt sie als JSON Lines in das Verzeichnis des Laufs (`sql`, `imap`) |
+| `remote` | die eigenen Optionen der Quelle (eine Datenbank, ein Postfach) | Die Quelle liest ihre Daten einmal pro Lauf selbst und schreibt sie als JSON Lines in das Verzeichnis des Laufs (`sql`, `mongodb`, `redis`, `imap`) |
 
 Regeln:
 
@@ -647,6 +647,138 @@ spricht die Quelle IMAP selbst über einen TLS-Socket (`LOGIN`, `EXAMINE`/`SELEC
 Die Vorlage bildet eine Nachricht auf einen Artikel ab, der über die Remote-ID `mail-{message_id}` wiedergefunden
 wird (bei langen IDs mit einem Hash gekürzt): Titel aus `subject`, Einleitung aus `summary`, Text aus `body` (beide
 als Rich Text), Veröffentlichungsdatum aus `date`.
+
+## MongoDB-Collection (`mongodb`)
+
+Gruppe: Daten. Herkunft: `remote`. Die Dokumente einer MongoDB-Collection (die Datenbank einer anderen Anwendung,
+ein Produkt- oder Ereignisspeicher): Ein Datensatz ist ein Dokument. Einmal pro Lauf liest die Quelle die passenden
+Dokumente seitenweise und schreibt sie in das Verzeichnis des Laufs, ein JSON-Objekt pro Zeile; die Stichprobe des
+Editors liest die ersten.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `uri` | ein Host (`mongo.example.org`), `host:port` oder eine `mongodb://`- oder `mongodb+srv://`-URI **ohne Benutzer und Passwort** (`mongodb://db1.example.org,db2.example.org/?replicaSet=rs0`) | Pflicht |
+| `port` | nur bei einem Host; `0` ist 27017 | `0` |
+| `tls` | die Verbindung verschlüsseln (Zertifikate werden geprüft); `mongodb+srv://` verwendet immer TLS | nein |
+| `user` | der Datenbankbenutzer | |
+| `password` | der **Name** eines Geheimnisses (siehe [Geheimnisse](#geheimnisse)), nie das Passwort | |
+| `auth_source` | die Datenbank, in der der Benutzer angelegt ist; leer: die Datenbank der URI, sonst `admin` | |
+| `database`, `collection` | was gelesen wird | Pflicht |
+| `filter` | ein Abfragedokument in JSON, z. B. `{"status": "published"}`; Extended JSON für Typen: `{"$oid": "..."}`, `{"$date": "2026-01-01T00:00:00Z"}` | jedes Dokument |
+| `projection` | die zu lesenden Felder, z. B. `{"title": 1, "author.name": 1}` | alle |
+| `sort` | z. B. `{"published_at": -1}` (braucht das Blättern `skip`) | `_id` |
+| `paging` | `id`: jede Seite nach der letzten `_id` (schnell, in `_id`-Reihenfolge); `skip`: Überspringen und Begrenzen (jede Sortierung) | `id` |
+| `batch_size` | Dokumente pro Seite (höchstens `[MongoDbSourceSettings] MaxBatchSize`) | `500` |
+| `limit` | höchstens so viele Dokumente; `0`: alle | `0` |
+| `arrays` | `json` (`["a","b"]`) oder `join` (`a, b`; ein Array aus Dokumenten bleibt JSON) | `json` |
+| `separator` | was zwischen den Werten eines verbundenen Arrays steht | `, ` |
+| `read_preference` | `primary`, `primaryPreferred`, `secondaryPreferred`, `secondary`, `nearest` | `primary` |
+| `key` | das Schlüsselfeld; ein verschachteltes Feld mit seinem Punktnamen (`meta.sku`) | `_id` |
+
+**Felder.** Verschachtelte Dokumente werden zu Punktnamen flachgeklopft: `{"author": {"name": "...", "address":
+{"city": "..."}}}` ergibt die Felder `author.name` und `author.address.city`. Dokumente, die tiefer als 32 Ebenen
+verschachtelt sind, werden als JSON geschrieben. Die BSON-Typen werden als Text geschrieben:
+
+| BSON | Feldwert |
+|---|---|
+| ObjectId | ihre 24 Hexziffern (`6717a1f0c2d4e5f601234561`) |
+| Datum (UTCDateTime) | ISO 8601 in UTC: `2026-04-02T08:30:00Z`, mit Millisekunden, wenn es welche hat (`...08:30:00.250Z`) |
+| Decimal128 | seine Dezimalzeichenkette (`12.50`), nie eine Gleitkommazahl |
+| Binary | Base64; eine UUID (Untertyp 3 oder 4) als `0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0` |
+| Int64, Int32, Double, Boolean, Null | wie sie sind |
+| Timestamp | ISO 8601 seiner Sekunden |
+| Regulärer Ausdruck, JavaScript | `/muster/flags`, der Code |
+| Array | JSON oder eine verbundene Liste (Option `arrays`); BSON-Werte darin werden genauso geschrieben |
+
+**Nur Lesen ist möglich.** Die Quelle führt nichts aus als ein Find (`MongoDB\Driver\Query`) mit Filter, Projektion
+und Sortierung: keinen Befehl, keine Aggregation, kein Schreiben. Abgelehnt werden, in jeder Tiefe von Filter,
+Projektion oder Sortierung, die Operatoren, die Code auf dem Server ausführen oder schreiben: `$where`, `$function`,
+`$accumulator`, `$out` und `$merge`. Ein Filter muss ein JSON-Objekt sein; eine Pipeline (eine Liste von Stufen) wird
+nicht angenommen. System-Collections (`system.*`) werden nicht gelesen. Geben Sie dem Import einen Datenbankbenutzer,
+der nur die Rolle `read` auf dieser Datenbank hat.
+
+**Geheimnisse und Hosts.** Die URI darf weder Benutzer noch Passwort enthalten (auch keine URI-Optionen, die eines
+tragen); der Benutzer ist eine Option und das Passwort der Name eines Geheimnisses, das dem Treiber als
+Verbindungsoption übergeben und in jeder Meldung als `[secret <Name>]` maskiert wird. Ein Server in einem privaten
+oder reservierten Netz wird abgelehnt, außer bei `[SourceSettings] AllowPrivateHosts=enabled` oder wenn er in
+`[MongoDbSourceSettings] AllowedHosts[]` steht (jeder Host der URI; bei `mongodb+srv://` der SRV-Name oder jeder Host,
+den sein SRV-Eintrag nennt). `[MongoDbSourceSettings] Timeout` begrenzt den Verbindungsaufbau, die Serverauswahl und
+jede Abfrage auf dem Server (`maxTimeMS`).
+
+**Verbindung testen.** Im Schritt Quelle verbindet *Verbindung testen* mit den Optionen des Formulars, liest das
+erste passende Dokument und zeigt seine Felder oder den Fehler (maskiert). Nichts wird gespeichert.
+
+**Treiber.** Die PECL-Erweiterung `mongodb` (1.15 oder neuer; die Composer-Bibliothek `mongodb/mongodb` wird nicht
+gebraucht) im PHP der Worker der Job-Queue, die die Läufe lesen, und im PHP des Webservers für Test und Stichprobe im
+Editor. RHEL: `php-pecl-mongodb` von Remi oder `pecl install mongodb`; Debian: `php-mongodb`; Plesk:
+`pecl install mongodb` für sein PHP. Katalog und Schritt Quelle zeigen, ob dieser Server und die Worker sie haben.
+
+**Beispiel:** `share/examples/mongodb-articles.ndjson` ist, was ein Lauf aus einer Collection von Artikeln liest
+(drei Dokumente, flachgeklopft), um eine Zuordnung auszuprobieren; die anderen Beispiele des Katalogs sind
+Konfigurationen.
+
+## Redis-Schlüssel (`redis`)
+
+Gruppe: Daten. Herkunft: `remote`. Die Schlüssel einer Redis-Datenbank, die zu einem Muster passen (ein Cache mit
+Produktdaten, der Speicher einer anderen Anwendung): Ein Datensatz ist ein Schlüssel. Einmal pro Lauf durchläuft die
+Quelle die Schlüssel mit `SCAN` und schreibt sie in das Verzeichnis des Laufs, ein JSON-Objekt pro Zeile.
+
+| Option | Werte | Vorgabe |
+|---|---|---|
+| `host`, `port` | der Redis-Server | Port `6379` |
+| `tls` | die Verbindung verschlüsseln (das Zertifikat wird geprüft) | nein |
+| `database` | der Datenbankindex (`SELECT`) | `0` |
+| `user` | ein ACL-Benutzer (Redis 6 und neuer); leer: nur das Passwort | |
+| `password` | der **Name** eines Geheimnisses, nie das Passwort; leer: kein `AUTH` | |
+| `pattern` | die zu lesenden Schlüssel, wie `SCAN ... MATCH` es liest: `product:*`, `news:[0-9]*` | `*` |
+| `types` | die zu lesenden Typen, durch Kommas getrennt: `hash`, `string`, `list`, `set`, `zset`, `stream` | alle sechs |
+| `scan_count` | das `COUNT` jedes `SCAN` (ein Hinweis, wie viele Schlüssel der Server pro Schritt ansieht) | `100` |
+| `max_items` | höchstens so viele Werte (Einträge) einer Liste, Menge, sortierten Menge oder eines Streams | `1000` |
+| `limit` | höchstens so viele Schlüssel; `0`: alle | `0` |
+| `decode_json` | ein Zeichenkettenwert, der ein JSON-Objekt oder eine JSON-Liste ist, wird als seine Felder gelesen (`value.title`) | ja |
+| `arrays` | `keep` (eine Liste: `values.0`, `values.1` ...), `json` oder `join` | `keep` |
+| `separator` | was zwischen den Werten einer verbundenen Liste steht | `, ` |
+| `key` | das Schlüsselfeld | `_key` |
+
+Jeder Datensatz hat `_key` (den Schlüssel), `_type` und `_ttl` (Sekunden, `-1` ohne Ablauf) und je nach Typ:
+
+| Typ | Felder | Befehl |
+|---|---|---|
+| hash | seine Felder als Felder (ein Feld namens `_key`, `_type` oder `_ttl` wird weggelassen) | `HGETALL` |
+| string | `value`: der Text, oder seine Felder, wenn er JSON ist | `GET` |
+| list | `values`, die ersten `max_items` | `LRANGE` |
+| set | `values`, sortiert, damit zwei Läufe denselben Datensatz ergeben | `SMEMBERS` |
+| sorted set | `values` (die Elemente, nach Score) und `scores` | `ZRANGE ... WITHSCORES` |
+| stream | `entries`: eine Liste aus `id` und den Feldern des Eintrags, die ersten `max_items` | `XRANGE - + COUNT` |
+
+Werte, die kein UTF-8 sind, werden als `base64:...` geschrieben. Schlüssel anderer Typen (Module wie RedisJSON)
+werden ausgelassen.
+
+**Nur Lesen ist möglich.** Nach `AUTH` und `SELECT` sendet die Quelle nur `SCAN`, `TYPE`, `TTL`, `HGETALL`, `GET`,
+`LRANGE`, `SMEMBERS`, `ZRANGE` und `XRANGE`; der Client lehnt jeden anderen Befehl ab, bevor er den Server erreicht.
+`KEYS` wird nie verwendet: `SCAN` durchläuft die Schlüssel schrittweise, ohne den Server zu blockieren, und ein
+Schlüssel, den es doppelt liefert, wird einmal gelesen. Ein Lauf bricht ab, wenn mehr als
+`[RedisSourceSettings] MaxScannedKeys` Schlüssel passen (engen Sie das Muster ein). Geben Sie dem Import einen
+ACL-Benutzer, der nur lesen darf, z. B. `ACL SETUSER reader on >... ~product:* +@read`.
+
+**Geheimnisse und Hosts.** Das Passwort ist der Name eines Geheimnisses und wird in jeder Meldung maskiert. Ein Server
+in einem privaten oder reservierten Netz wird abgelehnt, außer bei `AllowPrivateHosts=enabled` oder wenn er in
+`[RedisSourceSettings] AllowedHosts[]` steht. `[RedisSourceSettings] Timeout` begrenzt den Verbindungsaufbau und jede
+Antwort.
+
+**Verbindung testen.** *Verbindung testen* verbindet, sucht den ersten passenden Schlüssel der gewählten Typen (in
+höchstens `[RedisSourceSettings] TestScanRounds` Schritten von `SCAN`) und zeigt seine Felder oder den maskierten
+Fehler.
+
+**Treiber.** Die PECL-Erweiterung `redis` (phpredis), wo sie installiert ist (RHEL: `php-pecl-redis` von Remi oder
+`pecl install redis`; Debian: `php-redis`); ohne sie spricht ein kleiner Client der Erweiterung RESP über einen
+Socket (Treiber `socket`, mit `openssl` für TLS), sodass die Quelle mit jedem PHP funktioniert.
+`[RedisSourceSettings] Client` wählt: `auto` (die Vorgabe), `phpredis` oder `socket`. Der eingebaute Client lehnt
+einen Wert ab, der größer als `MaxValueMegabytes` ist.
+
+**Beispiel:** `share/examples/redis-products.ndjson` ist, was ein Lauf aus den Schlüsseln `product:*` liest (zwei
+Hashes, eine JSON-Zeichenkette und eine Menge), um eine Zuordnung auszuprobieren.
+
 ## Seiten einer Website über ihre Sitemap (`sitemap`) und der Webseiten-Scraper (`webpage`)
 
 Gruppe: Plattformen. Diese beiden Formate lesen öffentliche Webseiten selbst (der Ursprung `remote`): einmal pro

@@ -55,7 +55,7 @@ class expImportJobHandler extends expQueueHandlerBase
             switch ( $job->attribute( 'type' ) )
             {
                 case expImportRunner::JOB_RUN:
-                    // what this worker's PHP can read, for the editor of the SQL source, which may run in another PHP
+                    // what this worker's PHP can read, for the editor of the SQL, MongoDB and Redis sources, which may run in another PHP
                     expImportSqlSource::recordWorkerPhp();
                     return $this->prepare( $run, $import, $job, $log );
                 case expImportRunner::JOB_CHUNK:

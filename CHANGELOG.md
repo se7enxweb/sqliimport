@@ -130,6 +130,21 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 - Added: The databases the SQL source can read on this server, in the catalogue and on the source step, with what the
   host needs for a missing driver; the job queue's workers note their PHP and its drivers, so the editor tells when
   runs work although the web server's PHP has no driver.
+- Added: The format MongoDB collection (mongodb): the documents of a collection read through the PHP extension
+  mongodb (no composer library) with a find only: filter, projection and sort as JSON (Extended JSON for ObjectId and
+  dates), $where, $function, $accumulator, $out and $merge refused at any depth, system collections not read. Paging
+  by _id or by skip and limit, a page size and a limit, the read preference. Nested documents become dotted fields;
+  ObjectId as hex, dates in ISO 8601 UTC, Decimal128 as a string, Binary in base64 (a UUID as a UUID), arrays as
+  JSON or a joined list. No credentials in the URI: the user is an option, the password the name of a secret.
+  Settings in [MongoDbSourceSettings] (AllowedHosts[], Timeout, MaxBatchSize).
+- Added: The format Redis keys (redis): the keys that match a pattern, walked with SCAN (MATCH, COUNT; never KEYS),
+  each with _key, _type and _ttl: a hash's fields, a string (decoded when it is JSON), the values of a list, set or
+  sorted set (with scores), the entries of a stream. Only SCAN, TYPE, TTL, HGETALL, GET, LRANGE, SMEMBERS, ZRANGE and
+  XRANGE are sent after AUTH and SELECT. Through the PHP extension redis, else a small RESP client over a socket of
+  its own (TLS verified). Settings in [RedisSourceSettings] (AllowedHosts[], Client, Timeout, MaxValueMegabytes,
+  MaxScannedKeys, TestScanRounds).
+- Added: Test connection and the list of drivers (with what the job queue's workers have) for the MongoDB and Redis
+  sources; the example snapshots share/examples/mongodb-articles.ndjson and redis-products.ndjson.
 
 ### Updated
 

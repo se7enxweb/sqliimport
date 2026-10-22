@@ -1,0 +1,4 @@
+{"_key":"product:1001","_type":"hash","_ttl":-1,"sku":"TEA-SENCHA-100","name":"Sencha","price":"9.90","stock":"42"}
+{"_key":"product:1002","_type":"hash","_ttl":-1,"sku":"TEA-OOLONG-100","name":"Oolong","price":"14.50","stock":"17"}
+{"_key":"product:1003","_type":"string","_ttl":86400,"value":{"sku":"TEA-DARJ-100","name":"Darjeeling","price":"16.00","stock":8}}
+{"_key":"product:featured","_type":"set","_ttl":-1,"values":["product:1001","product:1003"]}
