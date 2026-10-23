@@ -28,7 +28,7 @@ class ManualFoundBugsTest extends TestCase
         $handler = (string)file_get_contents( self::root() . '/classes/exp/handlers/expimportmappinghandler.php' );
         $this->assertStringNotContainsString( '$content->addLocation(', $handler, 'never before the first publish' );
         $this->assertStringContainsString( '$extraNodes = self::addExtraLocations( $objectID, $extra );', $handler );
-        $this->assertStringContainsString( 'eZContentOperationCollection::addAssignment(', $handler );
+        $this->assertStringContainsString( '$node = $object->addLocation( $parentNodeID, true );', $handler, 'without the current user\'s rights (a command line run has none)' );
         $jobs = (string)file_get_contents( self::root() . '/classes/exp/engine/expimportjobhandler.php' );
         $this->assertStringContainsString( "'nodes_added' =>", $jobs, 'the undo record knows the added locations' );
         $undo = (string)file_get_contents( self::root() . '/classes/exp/handlers/expimportundohandler.php' );

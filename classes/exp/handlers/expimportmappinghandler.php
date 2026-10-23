@@ -507,14 +507,35 @@ class expImportMappingHandler implements expImportHandlerInterface
         if ( !$object instanceof eZContentObject || !$parents )
             return array();
         $missing = self::missingParents( self::currentParents( $object ), $parents );
-        if ( !$missing )
+        $main = eZContentObjectTreeNode::fetch( (int)$object->mainNodeID() );
+        if ( !$missing || !$main instanceof eZContentObjectTreeNode )
             return array();
-        $mainNodeID = (int)$object->mainNodeID();
-        eZContentOperationCollection::addAssignment( $mainNodeID, (int)$objectID, $missing );
+        // as the kernel's addAssignment() does, without its check of the current user's rights: a run places its
+        // content as the import (publishing does not ask either), and a run of the command line has no user
+        $db = eZDB::instance();
+        $db->begin();
         $added = array();
-        foreach ( eZContentObjectTreeNode::fetchByContentObjectID( (int)$objectID ) as $node )
-            if ( in_array( (int)$node->attribute( 'parent_node_id' ), $missing, true ) )
-                $added[] = (int)$node->attribute( 'node_id' );
+        foreach ( $missing as $parentNodeID )
+        {
+            if ( !eZContentObjectTreeNode::fetch( $parentNodeID, false, false ) )
+                continue;
+            $node = $object->addLocation( $parentNodeID, true );
+            if ( !$node instanceof eZContentObjectTreeNode )
+                continue;
+            $node->setAttribute( 'contentobject_is_published', 1 );
+            $node->setAttribute( 'main_node_id', $main->attribute( 'main_node_id' ) );
+            $node->setAttribute( 'contentobject_version', $main->attribute( 'contentobject_version' ) );
+            $node->updateSubTreePath();
+            $node->sync();
+            $added[] = (int)$node->attribute( 'node_id' );
+        }
+        $db->commit();
+        if ( $added )
+        {
+            if ( class_exists( 'eZSearch' ) )
+                eZSearch::addNodeAssignment( (int)$main->attribute( 'node_id' ), (int)$objectID, $missing );
+            eZContentCacheManager::clearContentCacheIfNeeded( (int)$objectID );
+        }
         return $added;
     }
 
