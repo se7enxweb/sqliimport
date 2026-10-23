@@ -632,6 +632,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Summarize</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
@@ -657,6 +661,14 @@
     </message>
     <message>
         <source>memory peak %m MB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Summary by the AI</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Made from the figures of the run, without record values; check it against them.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -705,6 +717,34 @@
     </message>
     <message>
         <source>Message</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Explanation by the AI</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Suggested fix</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Asked with the message, the mapping lines and the masked values of the record.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Asked with the message and the mapping lines, without record values.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Nothing was changed; change the mapping yourself.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Explain the failure of record %r</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Explain</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -993,6 +1033,22 @@
     </message>
     <message>
         <source>The 1.x scheduled import #%id is deleted.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The AI assist is not available: %reason</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The failed row was not found.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The AI assist could not answer: %error</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A run can be summarized when it has ended.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2186,6 +2242,34 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Suggest a class with AI</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Sends the field names and types and masked sample values.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Sends only the field names and types, no values.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Classes the AI suggests</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Confidence of the AI</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>In the form</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use this class</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Records choose their class by the field %field:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2278,6 +2362,34 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Suggest with AI</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Accept all</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The AI gets the attributes of the class, the field names and types and masked sample values (the option of the processing step).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The AI gets the attributes of the class and only the field names and types, no values.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Suggestions are only filled into the form when you accept them; save to keep them. A dry run is needed before the next real run.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%n suggestions of the AI</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%n left out (an attribute, field or transform that does not exist)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Transforms</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2287,6 +2399,10 @@
     </message>
     <message>
         <source>Required</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>AI suggestion</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2307,6 +2423,14 @@
     </message>
     <message>
         <source>%a is required</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Accept the suggestion for %a</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Accept</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2427,6 +2551,18 @@
     </message>
     <message>
         <source>Options of the handler</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Suggest a data table with AI</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Data tables the AI suggests</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use this table</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2563,6 +2699,18 @@
     </message>
     <message>
         <source>One per line; they get a mail with the counts, the first errors and the link to the run. Dry runs send no mail.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>AI assist</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Send sample values to the AI</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Off: the AI gets only the names and types of the fields. On: also a few sample values per field, and the values of a failed row it explains; e-mail addresses, phone numbers and IBAN-like values are masked before they are sent.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3090,6 +3238,30 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>The AI assist needs the fields of the sample, which could not be read.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The AI assist could not answer: %error</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The AI suggests %n lines. Accept the ones that fit, check them, then save.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The AI has no suggestion that fits the class and the fields.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The suggestions are no longer there. Ask the AI again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Accepted %n suggestions into the form. Check them, then save; nothing is saved before.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Unknown time zone.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3135,6 +3307,18 @@
     </message>
     <message>
         <source>The mapping is missing.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The AI assist is not available: %reason</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The data table %class is chosen in the form. Check it, then save; nothing is saved before.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The class %class is chosen in the form: map its attributes, then save; nothing is saved before.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

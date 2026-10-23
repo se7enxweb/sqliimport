@@ -632,6 +632,10 @@
         <translation>Diesen Lauf rückgängig machen? Was er angelegt hat, kommt in den Papierkorb; was er aktualisiert hat, erhält wieder die Version vor dem Lauf, sofern es seitdem niemand geändert hat.</translation>
     </message>
     <message>
+        <source>Summarize</source>
+        <translation>Zusammenfassen</translation>
+    </message>
+    <message>
         <source>Refresh</source>
         <translation>Aktualisieren</translation>
     </message>
@@ -658,6 +662,14 @@
     <message>
         <source>memory peak %m MB</source>
         <translation>Speicherspitze %m MB</translation>
+    </message>
+    <message>
+        <source>Summary by the AI</source>
+        <translation>Zusammenfassung der KI</translation>
+    </message>
+    <message>
+        <source>Made from the figures of the run, without record values; check it against them.</source>
+        <translation>Aus den Zahlen des Laufs erstellt, ohne Werte der Datensätze; prüfen Sie sie daran.</translation>
     </message>
     <message>
         <source>Outcomes</source>
@@ -706,6 +718,34 @@
     <message>
         <source>Message</source>
         <translation>Meldung</translation>
+    </message>
+    <message>
+        <source>Explanation by the AI</source>
+        <translation>Erklärung der KI</translation>
+    </message>
+    <message>
+        <source>Suggested fix</source>
+        <translation>Vorgeschlagene Korrektur</translation>
+    </message>
+    <message>
+        <source>Asked with the message, the mapping lines and the masked values of the record.</source>
+        <translation>Gefragt mit der Meldung, den Zeilen der Zuordnung und den maskierten Werten des Datensatzes.</translation>
+    </message>
+    <message>
+        <source>Asked with the message and the mapping lines, without record values.</source>
+        <translation>Gefragt mit der Meldung und den Zeilen der Zuordnung, ohne Werte des Datensatzes.</translation>
+    </message>
+    <message>
+        <source>Nothing was changed; change the mapping yourself.</source>
+        <translation>Es wurde nichts geändert; ändern Sie die Zuordnung selbst.</translation>
+    </message>
+    <message>
+        <source>Explain the failure of record %r</source>
+        <translation>Den Fehler von Datensatz %r erklären</translation>
+    </message>
+    <message>
+        <source>Explain</source>
+        <translation>Erklären</translation>
     </message>
     <message>
         <source>Field</source>
@@ -994,6 +1034,22 @@
     <message>
         <source>The 1.x scheduled import #%id is deleted.</source>
         <translation>Der geplante Import #%id von 1.x ist gelöscht.</translation>
+    </message>
+    <message>
+        <source>The AI assist is not available: %reason</source>
+        <translation>Die KI-Unterstützung ist nicht verfügbar: %reason</translation>
+    </message>
+    <message>
+        <source>The failed row was not found.</source>
+        <translation>Die fehlgeschlagene Zeile wurde nicht gefunden.</translation>
+    </message>
+    <message>
+        <source>The AI assist could not answer: %error</source>
+        <translation>Die KI-Unterstützung konnte nicht antworten: %error</translation>
+    </message>
+    <message>
+        <source>A run can be summarized when it has ended.</source>
+        <translation>Ein Lauf kann zusammengefasst werden, wenn er beendet ist.</translation>
     </message>
     <message>
         <source>There is no 1.x handler to schedule: the site lists none in sqliimport.ini [ImportSettings] AvailableSourceHandlers[]. Schedule a 2.x import in its editor instead.</source>
@@ -2186,6 +2242,34 @@
         <translation>Speichern Sie nach der Wahl einer neuen Klasse, um ihre Attribute zu sehen.</translation>
     </message>
     <message>
+        <source>Suggest a class with AI</source>
+        <translation>Eine Klasse mit KI vorschlagen</translation>
+    </message>
+    <message>
+        <source>Sends the field names and types and masked sample values.</source>
+        <translation>Sendet die Namen und Typen der Felder und maskierte Beispielwerte.</translation>
+    </message>
+    <message>
+        <source>Sends only the field names and types, no values.</source>
+        <translation>Sendet nur die Namen und Typen der Felder, keine Werte.</translation>
+    </message>
+    <message>
+        <source>Classes the AI suggests</source>
+        <translation>Klassen, die die KI vorschlägt</translation>
+    </message>
+    <message>
+        <source>Confidence of the AI</source>
+        <translation>Sicherheit der KI</translation>
+    </message>
+    <message>
+        <source>In the form</source>
+        <translation>Im Formular</translation>
+    </message>
+    <message>
+        <source>Use this class</source>
+        <translation>Diese Klasse verwenden</translation>
+    </message>
+    <message>
         <source>Records choose their class by the field %field:</source>
         <translation>Datensätze wählen ihre Klasse über das Feld %field:</translation>
     </message>
@@ -2278,6 +2362,34 @@
         <translation>Automatisch nach Namen zuordnen</translation>
     </message>
     <message>
+        <source>Suggest with AI</source>
+        <translation>Mit KI vorschlagen</translation>
+    </message>
+    <message>
+        <source>Accept all</source>
+        <translation>Alle übernehmen</translation>
+    </message>
+    <message>
+        <source>The AI gets the attributes of the class, the field names and types and masked sample values (the option of the processing step).</source>
+        <translation>Die KI erhält die Attribute der Klasse, die Namen und Typen der Felder und maskierte Beispielwerte (die Option des Schritts Verarbeitung).</translation>
+    </message>
+    <message>
+        <source>The AI gets the attributes of the class and only the field names and types, no values.</source>
+        <translation>Die KI erhält die Attribute der Klasse und nur die Namen und Typen der Felder, keine Werte.</translation>
+    </message>
+    <message>
+        <source>Suggestions are only filled into the form when you accept them; save to keep them. A dry run is needed before the next real run.</source>
+        <translation>Vorschläge kommen erst in das Formular, wenn Sie sie übernehmen; speichern Sie, um sie zu behalten. Vor dem nächsten echten Lauf ist ein Probelauf nötig.</translation>
+    </message>
+    <message>
+        <source>%n suggestions of the AI</source>
+        <translation>%n Vorschläge der KI</translation>
+    </message>
+    <message>
+        <source>%n left out (an attribute, field or transform that does not exist)</source>
+        <translation>%n weggelassen (ein Attribut, Feld oder eine Umwandlung, die es nicht gibt)</translation>
+    </message>
+    <message>
         <source>Transforms</source>
         <translation>Umwandlungen</translation>
     </message>
@@ -2288,6 +2400,10 @@
     <message>
         <source>Required</source>
         <translation>Pflicht</translation>
+    </message>
+    <message>
+        <source>AI suggestion</source>
+        <translation>Vorschlag der KI</translation>
     </message>
     <message>
         <source>required by the class</source>
@@ -2308,6 +2424,14 @@
     <message>
         <source>%a is required</source>
         <translation>%a ist ein Pflichtfeld</translation>
+    </message>
+    <message>
+        <source>Accept the suggestion for %a</source>
+        <translation>Den Vorschlag für %a übernehmen</translation>
+    </message>
+    <message>
+        <source>Accept</source>
+        <translation>Übernehmen</translation>
     </message>
     <message>
         <source>Translations by column</source>
@@ -2428,6 +2552,18 @@
     <message>
         <source>Options of the handler</source>
         <translation>Optionen des Handlers</translation>
+    </message>
+    <message>
+        <source>Suggest a data table with AI</source>
+        <translation>Eine Datentabelle mit KI vorschlagen</translation>
+    </message>
+    <message>
+        <source>Data tables the AI suggests</source>
+        <translation>Datentabellen, die die KI vorschlägt</translation>
+    </message>
+    <message>
+        <source>Use this table</source>
+        <translation>Diese Tabelle verwenden</translation>
     </message>
     <message>
         <source>Target</source>
@@ -2564,6 +2700,18 @@
     <message>
         <source>One per line; they get a mail with the counts, the first errors and the link to the run. Dry runs send no mail.</source>
         <translation>Eine je Zeile; sie erhalten eine E-Mail mit den Zahlen, den ersten Fehlern und dem Link zum Lauf. Probeläufe senden keine E-Mail.</translation>
+    </message>
+    <message>
+        <source>AI assist</source>
+        <translation>KI-Unterstützung</translation>
+    </message>
+    <message>
+        <source>Send sample values to the AI</source>
+        <translation>Beispielwerte an die KI senden</translation>
+    </message>
+    <message>
+        <source>Off: the AI gets only the names and types of the fields. On: also a few sample values per field, and the values of a failed row it explains; e-mail addresses, phone numbers and IBAN-like values are masked before they are sent.</source>
+        <translation>Aus: Die KI erhält nur die Namen und Typen der Felder. An: auch einige Beispielwerte je Feld und die Werte einer fehlgeschlagenen Zeile, die sie erklärt; E-Mail-Adressen, Telefonnummern und IBAN-ähnliche Werte werden vor dem Senden maskiert.</translation>
     </message>
     <message>
         <source>Mapping to %class</source>
@@ -3090,6 +3238,30 @@
         <translation>Die automatische Zuordnung hat %n Zeilen ausgefüllt. Prüfen Sie sie und speichern Sie dann.</translation>
     </message>
     <message>
+        <source>The AI assist needs the fields of the sample, which could not be read.</source>
+        <translation>Die KI-Unterstützung braucht die Felder der Stichprobe, die nicht gelesen werden konnte.</translation>
+    </message>
+    <message>
+        <source>The AI assist could not answer: %error</source>
+        <translation>Die KI-Unterstützung konnte nicht antworten: %error</translation>
+    </message>
+    <message>
+        <source>The AI suggests %n lines. Accept the ones that fit, check them, then save.</source>
+        <translation>Die KI schlägt %n Zeilen vor. Übernehmen Sie die passenden, prüfen Sie sie und speichern Sie dann.</translation>
+    </message>
+    <message>
+        <source>The AI has no suggestion that fits the class and the fields.</source>
+        <translation>Die KI hat keinen Vorschlag, der zur Klasse und zu den Feldern passt.</translation>
+    </message>
+    <message>
+        <source>The suggestions are no longer there. Ask the AI again.</source>
+        <translation>Die Vorschläge sind nicht mehr vorhanden. Fragen Sie die KI erneut.</translation>
+    </message>
+    <message>
+        <source>Accepted %n suggestions into the form. Check them, then save; nothing is saved before.</source>
+        <translation>%n Vorschläge in das Formular übernommen. Prüfen Sie sie und speichern Sie dann; vorher wird nichts gespeichert.</translation>
+    </message>
+    <message>
         <source>Unknown time zone.</source>
         <translation>Unbekannte Zeitzone.</translation>
     </message>
@@ -3136,6 +3308,18 @@
     <message>
         <source>The mapping is missing.</source>
         <translation>Die Zuordnung fehlt.</translation>
+    </message>
+    <message>
+        <source>The AI assist is not available: %reason</source>
+        <translation>Die KI-Unterstützung ist nicht verfügbar: %reason</translation>
+    </message>
+    <message>
+        <source>The data table %class is chosen in the form. Check it, then save; nothing is saved before.</source>
+        <translation>Die Datentabelle %class ist im Formular gewählt. Prüfen Sie sie und speichern Sie dann; vorher wird nichts gespeichert.</translation>
+    </message>
+    <message>
+        <source>The class %class is chosen in the form: map its attributes, then save; nothing is saved before.</source>
+        <translation>Die Klasse %class ist im Formular gewählt: Ordnen Sie ihre Attribute zu und speichern Sie dann; vorher wird nichts gespeichert.</translation>
     </message>
     <message>
         <source>Choose the mapping file (JSON) to load.</source>
