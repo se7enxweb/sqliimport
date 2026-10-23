@@ -27,8 +27,7 @@ if ( isset( $Params['Example'] ) && $Params['Example'] !== false && $Params['Exa
                     'xml' => 'application/xml', 'rss' => 'application/rss+xml', 'atom' => 'application/atom+xml', 'opml' => 'text/x-opml',
                     'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'ods' => 'application/vnd.oasis.opendocument.spreadsheet', 'sqlite' => 'application/vnd.sqlite3' );
     $extension = strtolower( pathinfo( $example, PATHINFO_EXTENSION ) );
-    while ( ob_get_level() > 0 )
-        ob_end_clean();
+    expImport::discardOutput();
     header( 'Content-Type: ' . ( isset( $types[$extension] ) ? $types[$extension] : 'application/octet-stream' ) );
     header( 'Content-Disposition: attachment; filename="' . $example . '"' );
     header( 'Content-Length: ' . filesize( $path ) );

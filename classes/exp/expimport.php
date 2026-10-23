@@ -125,6 +125,31 @@ class expImport
     }
 
     /**
+     * Throws away the output printed so far, for a view that answers with its own body (a download, JSON). Under
+     * Exponential Velocity a persistent worker keeps a buffer of its own under the script that cannot be removed: a
+     * loop on ob_get_level() never ends there and the request hangs until the server answers 504. The kernel's
+     * eZExecution::discardOutputBuffers() empties that buffer instead; on an older kernel a loop that stops when a
+     * buffer cannot be removed does the same.
+     */
+    public static function discardOutput()
+    {
+        if ( class_exists( 'eZExecution' ) && method_exists( 'eZExecution', 'discardOutputBuffers' ) )
+        {
+            eZExecution::discardOutputBuffers();
+            return;
+        }
+        $guard = 0;
+        while ( ob_get_level() > 0 && $guard++ < 64 )
+        {
+            if ( !@ob_end_clean() )
+            {
+                @ob_clean();
+                break;
+            }
+        }
+    }
+
+    /**
      * The extension's directory below the site's storage directory (var/<site>/storage/sqliimport/<sub>), created on
      * demand. Uploads, URL snapshots and reports live there, outside the web root's served paths.
      *

@@ -34,8 +34,7 @@ $page = $installed ? expImportStatistics::page( $params ) : array();
 
 if ( $installed && isset( $params['format'] ) && $params['format'] === 'csv' )
 {
-    while ( ob_get_level() > 0 )
-        ob_end_clean();
+    expImport::discardOutput();
     header( 'Content-Type: text/csv; charset=utf-8' );
     header( 'Content-Disposition: attachment; filename="' . expImportStatistics::csvFileName( $page['period'] ) . '"' );
     header( 'X-Content-Type-Options: nosniff' );

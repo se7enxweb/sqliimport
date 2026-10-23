@@ -14,8 +14,7 @@ $import = expImportSchema::installed() ? expImportDefinition::fetch( (int)$Param
 if ( !$import || !$import->mappingArray() )
     return $Module->handleError( eZError::KERNEL_NOT_AVAILABLE, 'kernel' );
 $json = json_encode( expImportEditor::mappingFile( $import ), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
-while ( ob_get_level() > 0 )
-    ob_end_clean();
+expImport::discardOutput();
 header( 'Content-Type: application/json; charset=utf-8' );
 header( 'Content-Disposition: attachment; filename="sqliimport-mapping-' . preg_replace( '/[^a-z0-9_-]+/i', '-', (string)$import->attribute( 'identifier' ) ) . '.json"' );
 header( 'X-Content-Type-Options: nosniff' );

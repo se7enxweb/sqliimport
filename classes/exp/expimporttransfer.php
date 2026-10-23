@@ -286,8 +286,7 @@ class expImportTransfer
     public static function send( array $document )
     {
         $json = self::encode( $document );
-        while ( ob_get_level() > 0 )
-            ob_end_clean();
+        expImport::discardOutput();
         header( 'Content-Type: application/json; charset=utf-8' );
         header( 'Content-Disposition: attachment; filename="' . self::filename( $document['imports'], expImport::now() ) . '"' );
         header( 'Content-Length: ' . strlen( $json ) );
