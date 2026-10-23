@@ -199,8 +199,9 @@ Some attributes read their value from a text with a fixed form. The transforms a
 | Object relation (list) | object IDs, separated by `\|` | `lookup(prefix=...)` or `media_object` |
 | Rich text (`ezxmltext`) | the XML of the rich text | `richtext` |
 
-A price without the `|VAT type|included` part is stored as 0: always use the template above for a price, and
-change the VAT type `1` and the last `1` (`0`: the price excludes VAT) to what your shop uses. See also
+A price without the `|VAT type|included` part gets the default VAT type and "price includes VAT" setting of the
+class attribute (before 2.0.0 it was stored as 0). To use other values, take the template above and change the VAT
+type `1` and the last `1` (`0`: the price excludes VAT) to what your shop uses. See also
 [troubleshooting.md](troubleshooting.md#prices-are-0-or-every-run-updates-every-price).
 
 ## Your own transform

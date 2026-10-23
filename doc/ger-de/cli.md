@@ -40,12 +40,12 @@ runuser -u alpha -- php ./console ext:sqliimport:<befehl> ... -s admin --allow-r
 
 - `./console` gibt zuerst die Zeile `▶  running ext:sqliimport:run  →  extension/sqliimport/bin/php/run.php` aus;
   sie fehlt unten.
-- **`-s <siteaccess>`** wählt den Siteaccess. Ist die Erweiterung nur im Siteaccess der Administration aktiv (wie auf
-  dem Server der Dokumentation), liest ein Befehl ohne `-s admin` die Einstellungen des Standard-Siteaccess, die die
-  Job-Typen von 7x SQLI Import nicht kennen: `run` stellt dann einen Lauf ein, der sofort scheitert mit „the run
-  could not be queued: unknown job type sqliimport.run: register it in expqueue.ini as [JobType_sqliimport.run]
-  Handler=<class>“. Befehle, die nur lesen (`list`, `status`), gehen so oder so. Aktivieren Sie die Erweiterung für
-  jeden Siteaccess oder geben Sie jedem Befehl `-s` mit.
+- **`-s <siteaccess>`** wählt den Siteaccess. Ohne ihn prüft ein Befehl, ob die Erweiterung für alle Siteaccesses
+  aktiv ist; ist sie nur in einigen aktiv (wie auf dem Server der Dokumentation nur im Siteaccess der Administration),
+  nimmt der Befehl den ersten davon, `admin` zuerst, und sagt es auf der Fehlerausgabe:
+  `NOTE 7x SQLI Import is not active in the default siteaccess; using -s admin`. Ist sie in keinem Siteaccess aktiv,
+  bricht der Befehl mit einer FAIL-Zeile ab. Vor 2.0.0 las ein Befehl ohne `-s admin` die Einstellungen des
+  Standard-Siteaccess, und `run` stellte einen Lauf ein, der sofort mit „unknown job type sqliimport.run“ scheiterte.
 - Auf der Kommandozeile gestartete Läufe werden mit dem Auslöser `cli` und dem anonymen Benutzer (`user_id` 10)
   gespeichert; die Seite Statistik zählt sie unter dem Benutzer *anonymous*.
 - `--allow-root-user` erlaubt einem Befehl, als root zu starten (er wechselt dann zum Benutzer der Website, wie oben
@@ -173,14 +173,15 @@ run #209 completed (import, cli): 100% of 2; created 2, updated 0, unchanged 0, 
 
 Mit `--wait` gibt derselbe Befehl die Textzeilen oben aus, kein JSON; nutzen Sie danach `status <ID> --json`.
 
-**Ohne `-s admin`** auf dem Server der Dokumentation:
+**Ohne `-s admin`** nimmt der Befehl auf dem Server der Dokumentation den Siteaccess der Administration und läuft wie
+oben, nach einer Zeile auf der Fehlerausgabe:
 
 ```
-FAIL the run could not be queued: unknown job type sqliimport.run: register it in expqueue.ini as [JobType_sqliimport.run] Handler=<class>
+NOTE 7x SQLI Import is not active in the default siteaccess; using -s admin
 ```
 
-(Exit-Code 1; der Lauf wird als fehlgeschlagen gespeichert, siehe
-[Die Befehle aufrufen](#die-befehle-aufrufen-benutzer-und-siteaccess)).
+Vor 2.0.0 scheiterte das mit „FAIL the run could not be queued: unknown job type sqliimport.run“ (Exit-Code 1, der
+Lauf als fehlgeschlagen gespeichert, wie Lauf #207 unten zeigt).
 
 ## status
 
@@ -215,7 +216,7 @@ run #209 completed (import, cli): 100% of 2; created 2, updated 0, unchanged 0, 
   18:43:41 info    run ended completed: 2 created, 0 updated, 0 unchanged, 0 skipped, 0 failed in 0s
 ```
 
-Der fehlgeschlagene Lauf #207 (der Lauf ohne `-s admin`) zeigt den Grund in seinem Protokoll:
+Der fehlgeschlagene Lauf #207 (ein Lauf ohne `-s admin`, bevor 2.0.0 den Siteaccess selbst wählte) zeigt den Grund in seinem Protokoll:
 
 ```
 run #207 failed (dry_run, cli): 0% of 0; created 0, updated 0, unchanged 0, skipped 0, failed 0; 0s, 0.0 MB

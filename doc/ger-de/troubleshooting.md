@@ -26,7 +26,7 @@ können.
   - [Ein Datenbanktreiber fehlt im Editor oder nur in den Läufen](#ein-datenbanktreiber-fehlt-im-editor-oder-nur-in-den-läufen)
 - [Häufige Fragen](#häufige-fragen)
   - [Wird die Live-Seite eines Laufs von Velocity oder einem Antwort-Cache zwischengespeichert?](#wird-die-live-seite-eines-laufs-von-velocity-oder-einem-antwort-cache-zwischengespeichert)
-  - [Warum schlagen in einem Probelauf eines Ordnerbaums die Kinder fehl?](#warum-schlagen-in-einem-probelauf-eines-ordnerbaums-die-kinder-fehl)
+  - [Was sagt ein Probelauf eines Ordnerbaums zu den Kindern?](#was-sagt-ein-probelauf-eines-ordnerbaums-zu-den-kindern)
   - [Ich habe die Datei korrigiert, aber Retry failed rows schlägt wieder fehl](#ich-habe-die-datei-korrigiert-aber-retry-failed-rows-schlägt-wieder-fehl)
   - [Preise sind 0, oder jeder Lauf aktualisiert jeden Preis](#prices-are-0-or-every-run-updates-every-price)
   - [Warum kann ein Import die eigene Datenbank der Website nicht lesen?](#warum-kann-ein-import-die-eigene-datenbank-der-website-nicht-lesen)
@@ -153,8 +153,9 @@ sehen. Typische Ursachen:
 - `the required attribute '...' has no value`: Geben Sie eine Vorgabe an oder lassen Sie den Datensatz bewusst
   fehlschlagen.
 - `the parent of the record does not exist (yet)`: Das Elternobjekt kommt später in der Quelle oder gar nicht.
-  Sortieren Sie die Quelle so, dass Elternobjekte zuerst kommen. In einem Probelauf ist diese Meldung für die Kinder
-  neuer Ordner zu erwarten ([siehe die häufigen Fragen](#warum-schlagen-in-einem-probelauf-eines-ordnerbaums-die-kinder-fehl)).
+  Sortieren Sie die Quelle so, dass Elternobjekte zuerst kommen. Ein Probelauf zählt die Elternobjekte mit, die er
+  selbst anlegen würde ([siehe die häufigen Fragen](#was-sagt-ein-probelauf-eines-ordnerbaums-zu-den-kindern)), die Meldung bedeutet in einem Probelauf
+  also dasselbe wie in einem Lauf.
 - `lookup: no object with the remote ID '...'`: Das verknüpfte Objekt wurde noch nicht importiert.
 
 Was zu tun ist, hängt davon ab, wo die Ursache liegt
@@ -255,20 +256,21 @@ Sekunden erneut versucht; danach bleibt die Seite, wie sie ist, und **Refresh** 
 Ein Lauf, der auf dieser Seite auf *Queued* bleibt, wartet auf einen Worker der Job-Warteschlange
 ([Ein Lauf bleibt in der Warteschlange](#ein-lauf-bleibt-in-der-warteschlange)); Neuladen ändert daran nichts.
 
-### Warum schlagen in einem Probelauf eines Ordnerbaums die Kinder fehl?
+### Was sagt ein Probelauf eines Ordnerbaums zu den Kindern?
 
 Ein Probelauf veröffentlicht nichts. Baut ein Import in einem Lauf einen Baum auf (Ordner vor ihren Dokumenten: die
 Dokumente eines ZIP, die Ordner eines Laufwerks, eine CSV mit Eltern-IDs), gibt es die Ordner, die der Probelauf
-anlegen würde, für die Datensätze darunter nicht, und diese schlagen mit „the parent of the record does not exist
-(yet)“ fehl.
+anlegen würde, für die Datensätze darunter nicht. Der Probelauf merkt sich die Objekte, die er anlegen würde, also
+wird ein Datensatz unter einem davon als **Created** gemeldet, mit der Meldung „dry run: would be created below
+<Remote-ID des Elternobjekts>, which this run would create“. Ein Datensatz, dessen Elternobjekt weder auf der Website
+existiert noch früher im Lauf angelegt wird, schlägt mit „the parent of the record does not exist (yet)“ fehl, im
+Probelauf wie im echten Lauf.
 
-Was zu erwarten ist: In einem Probelauf vor dem ersten echten Lauf sagen die obersten Datensätze „would be created“,
-und jeder Datensatz unter einem neuen Ordner schlägt fehl. Das durchgespielte Beispiel in
+Das durchgespielte Beispiel in
 [source-examples-platforms.md](source-examples-platforms.md#dokumente-eine-datei-oder-ein-ordner-als-zip-documents)
-zeigt es: Der Probelauf #162 hatte 1 angelegt und 4 fehlgeschlagen, der echte Lauf #163 legte alle 5 an. Der echte
-Lauf platziert sie, weil die Datensätze in ihrer Reihenfolge verarbeitet werden und ein Elternobjekt vor seinen
-Kindern veröffentlicht wird. Sobald der Baum existiert, zeigt ein Probelauf das wahre Bild (unverändert oder würde
-aktualisiert).
+zeigt es: Ein Probelauf einer frischen Kopie des Dokumenten-Imports meldet alle 5 Datensätze als angelegt. Vor 2.0.0
+schlugen die Kinder neuer Ordner im Probelauf fehl (der Probelauf #162 hatte 1 angelegt und 4 fehlgeschlagen),
+obwohl der echte Lauf #163 alle 5 anlegte.
 
 ### Ich habe die Datei korrigiert, aber Retry failed rows schlägt wieder fehl
 
@@ -292,27 +294,23 @@ Ein Handler von 1.x speichert keine Datensätze, seine Läufe haben also kein Re
 Der Datentyp `ezprice` (das Attribut `price` der Webshop-Klasse `product`) liest einen Wert in seiner Textform
 `Betrag|MwSt.-Typ|enthält MwSt.`, zum Beispiel `6.90|1|1`.
 
-**Eine bloße Zahl wird als 0 gespeichert.** Eine Zuordnungszeile, die `ezprice` nur `6.90` gibt, ergibt den Preis
-`0|1|1`. Der Probelauf eines solchen Imports zeigt es: Jedes Objekt hat den Preis `0|1|1`, und jeder Lauf würde den
-bloßen Betrag erneut setzen:
+**Eine bloße Zahl erhält die MwSt. des Attributs.** Eine Zuordnungszeile, die `ezprice` nur einen Betrag gibt
+(`6.90`, `6,90`, `1.234,50`), wird um den MwSt.-Typ und die Einstellung „Preis enthält MwSt.“ des Klassenattributs
+ergänzt: `6.90` wird zu `6.9|1|1`, wenn der vorgegebene MwSt.-Typ des Attributs 1 ist und Preise die MwSt. enthalten.
+Vor 2.0.0 wurde ein solcher Preis als 0 gespeichert; der Probelauf eines älteren Stands zeigte jedes Objekt mit dem
+Preis `0|1|1`.
 
-![Ein Probelauf eines Tee-Imports mit einer bloßen Zahl als Preis: jedes Objekt hat den Preis 0|1|1, und der neue Wert ist der bloße Betrag](../images/faq-price-plain-number-stored-as-zero.png)
+Für einen anderen MwSt.-Typ oder „ohne MwSt.“ als die Vorgabe des Attributs schreiben Sie die Textform selbst:
+`template(text="{price}|1|0")` (MwSt.-Typ 1, der Preis enthält keine MwSt.). Die Produktvorlage der Shop-Formate tut
+das ([sources.md](sources.md#die-produktvorlage)).
 
-Geben Sie der Preiszeile die Textform: `template(text="{price}|1|1")` (MwSt.-Typ 1, der Preis enthält die MwSt.)
-oder `template(text="{price}|1|0")` für einen Preis ohne MwSt. Die Produktvorlage der Shop-Formate tut das
-([sources.md](sources.md#die-produktvorlage)).
+**Ein unveränderter Preis bleibt unverändert.** `ezprice` speichert einen Betrag so, wie PHP die Zahl schreibt, und
+gibt ihn so zurück (`6.90` als `6.9|1|1`). Die Engine schreibt jeden Preis vor dem Vergleich in dieser Form, also sind
+`6.90` in der Quelle und `6.9` im Objekt derselbe Preis, und ein Lauf aktualisiert nur die Produkte, deren Preis sich
+wirklich geändert hat. Vor 2.0.0 galt jeder Preis, der auf eine Null endet, bei jedem Lauf als „aktualisiert“.
 
-**Jeder Lauf meldet den Preis als geändert.** Mit der Textform wird ein Preis wie `6.90` als `6.9|1|1` gespeichert
-und von `ezprice` so zurückgegeben. Die Engine vergleicht den Text, den sie schreiben würde, mit dem gespeicherten,
-also gelten `6.90|1|1` und `6.9|1|1` als verschieden, und jeder Lauf aktualisiert jedes Produkt, dessen Preis auf eine
-Null endet, obwohl sich nichts geändert hat:
-
-![Ein Probelauf, in dem jeder Preis aktualisiert würde, von 6.9|1|1 auf 6.90|1|1, von 9.8|1|1 auf 9.80|1|1 und so weiter, obwohl sich nur ein Preis geändert hat](../images/faq-price-trailing-zero-every-run-updated.png)
-
-Das ist ein bekanntes Problem. Bis der Vergleich Beträge als Zahlen behandelt, schreiben Sie den Betrag so, wie PHP
-die Zahl schreibt (`6.9`, `12.5`, `7`): mit einer eigenen Umwandlung, die ihn als `(string)(float)$amount`
-formatiert, wie es die Umwandlung `vat` in [handlers.md](handlers.md#writing-your-own-transform) tut, oder indem die
-Quelle Preise ohne Nullen am Ende liefert.
+Ein Wert, der keine Zahl ist (`free`, `auf Anfrage`), bleibt, wie er ist: Das Preisattribut lehnt ihn ab, und die Zeile
+des Datensatzes sagt es.
 
 ### Warum kann ein Import die eigene Datenbank der Website nicht lesen?
 

@@ -162,9 +162,11 @@ The folder `sq688doc-rt-2` is "Green tea" now, as version 2; the other two kept 
 and nothing else got a new version. Running the same file again gives **3 unchanged** (run #198). If the result is
 wrong, **Undo this run** on the run page publishes version 1 again ([runs.md](runs.md)).
 
-If you leave the match rule as the editor proposes it for a CSV without manifest (`xrowextract-folder-{name}`), the
-import does not find the exported folders and creates three new ones. Always check the dry run: it must say
-**Updated** or **Unchanged**, never **Created**, for objects you exported.
+For a CSV without manifest the editor proposes the remote ID pattern from the export's `remote-id` column
+(`{remote-id}`; before 2.0.0 it proposed `xrowextract-folder-{name}`, which did not find the exported folders and
+created three new ones). Columns of the export that are no attributes (`object-id`, `class`, `language` and the
+like) are left unmapped, and a header such as `short-description` is mapped to `short_description`. Always check the
+dry run: it must say **Updated** or **Unchanged**, never **Created**, for objects you exported.
 
 ## Worked example: CIE form submissions into articles
 

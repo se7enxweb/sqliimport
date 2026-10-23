@@ -403,13 +403,16 @@ Dokumente:
 
 ![Die Seite des Laufs des Dokumenten-Imports: fünf Datensätze angelegt, Handbook, Handbook/Policies und die drei Dokumente](../images/src-documents-run.png)
 
-**Ein Probelauf vor dem ersten Lauf meldet die Kinder als fehlgeschlagen.** Der Probelauf #162 veröffentlicht nichts,
-also gibt es die Ordner, die er anlegen würde, für ihre Kinder nicht, und die vier Datensätze unter `Handbook`
-schlagen mit "the parent of the record does not exist (yet)" fehl:
+**Ein Probelauf vor dem ersten Lauf zählt die Ordner mit, die er anlegen würde.** Ein Probelauf veröffentlicht
+nichts, also gibt es die Ordner, die er anlegen würde, noch nicht; er merkt sie sich, und die vier Datensätze unter
+`Handbook` sagen „would be created below <Remote-ID des Ordners>, which this run would create“. Das Bild ist ein
+Probelauf einer frischen Kopie des Imports mit neuen Remote-IDs (`sq688-drycheck-` statt `doc-`), Lauf #269, für diese
+Seite angelegt und wieder entfernt; alle fünf Datensätze würden angelegt:
 
-![Der Probelauf des Dokumenten-Imports, bevor ein Objekt existierte: einer angelegt, vier fehlgeschlagen, weil ihr Elternobjekt noch nicht existiert](../images/src-documents-dry-run-parents.png)
+![Der Probelauf einer frischen Kopie des Dokumenten-Imports: fünf Datensätze angelegt, die vier unter Handbook würden unter dem Ordner angelegt, den dieser Lauf anlegen würde, 0 fehlgeschlagen](../images/src-documents-dry-run-parents.png)
 
-Der echte Lauf platziert sie alle. Um Ordnern ihre eigene Klasse zu geben, eine Klasse je Datensatz hinzufügen:
+Vor 2.0.0 ließ der Probelauf #162 diese vier Datensätze mit „the parent of the record does not exist (yet)“
+fehlschlagen. Der echte Lauf platziert sie alle. Um Ordnern ihre eigene Klasse zu geben, eine Klasse je Datensatz hinzufügen:
 `class_from` `kind` mit der Variante `folder` in die Klasse `folder` ([mappings.md](mappings.md#eine-klasse-je-datensatz)).
 
 ### Dokumente von Adressen (`document_urls`)

@@ -205,8 +205,8 @@ Prüfen und ergänzen Sie die Zeilen:
 | Price (`price`) | `price` | `number \| template(text="{value}\|1\|1")` | |
 
 Der Preis braucht einen eigenen Text: Der Preis-Datentyp liest `Betrag|MwSt.-Typ|Preis enthält MwSt.`, also liest die
-Kette zuerst die Zahl und schreibt dann `6.95|1|1` (MwSt.-Typ 1, der Preis enthält die MwSt.). Ein Preis ohne diese
-Form wird als 0 gespeichert ([transforms.md](transforms.md#datentypen-die-einen-besonderen-text-brauchen)).
+Kette zuerst die Zahl und schreibt dann `6.95|1|1` (MwSt.-Typ 1, der Preis enthält die MwSt.). Ein bloßer Betrag ohne
+diese Form erhält die vorgegebene MwSt. des Klassenattributs ([transforms.md](transforms.md#datentypen-die-einen-besonderen-text-brauchen)).
 
 ![Das fertige Zuordnungsraster: name mit trim und Required, Produktnummer aus code, Kurzbeschreibung aus description mit richtext, Preis aus price mit number und der Vorlage für den Preistext](../images/gs-mapping-grid.png)
 

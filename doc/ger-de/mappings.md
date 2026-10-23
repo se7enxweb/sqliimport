@@ -313,13 +313,17 @@ Was veröffentlicht wurde:
 ```
 docs-map-tree-shelf-a: object 56651, class folder, "Shelf A"; node 55029 (main) below "Map: tree"
 docs-map-tree-shelf-b: object 56652, class folder, "Shelf B"; node 55030 (main) below "Map: tree"
-docs-map-tree-tea-1: object 56653, class folder, "Sencha"; node 55031 (main) below "Shelf A"
+docs-map-tree-tea-1: object 56653, class folder, "Sencha"; node 55031 (main) below "Shelf A", node 55046 below "Shelf B"
 docs-map-tree-tea-2: object 56654, class folder, "Assam"; node 55032 (main) below "Shelf B"
 ```
 
-Sencha sollte auch eine zweite Platzierung unter Shelf B haben (aus `also_in`). **In der getesteten Version (2.0-dev,
-22.10.2026) bekam es keine: ein bekanntes Problem** von `extra_parents_from` bei neuen Objekten, das zur Behebung
-gemeldet ist. Bis dahin fügen Sie die weiteren Platzierungen in der Verwaltung hinzu (Reiter Locations des Objekts).
+Sencha hat eine zweite Platzierung unter Shelf B, aus `also_in`. Die weiteren Platzierungen werden gleich nach dem
+Veröffentlichen hinzugefügt, bei einem neuen und bei einem schon vorhandenen Objekt, und ein Lauf, der nur eine
+Platzierung hinzufügt, zählt das Objekt als aktualisiert („1 more location(s) added“ in seiner Zeile). Sie werden als
+der Import hinzugefügt, wer auch immer den Lauf startet (auch ein Lauf der Kommandozeile, der keinen Benutzer hat).
+Rückgängig entfernt die Platzierungen, die ein Lauf hinzugefügt hat; die Hauptplatzierung bleibt. Lauf #219 dieses
+Beispiels entstand, bevor das behoben war, und gab Sencha keine zweite Platzierung; der spätere Lauf #264 fügte sie
+hinzu (Knoten 55046).
 
 <a id="eine-klasse-je-datensatz-durchgespielt"></a>
 

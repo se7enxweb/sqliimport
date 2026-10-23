@@ -55,7 +55,7 @@ imports** (`sqliimport/run`).
 3. **Grant full access** gives Run imports for every import. **Grant limited access** opens step 3, the
    limitation `SQLIImport_Type` (see the next section):
 
-   ![Step 3 of the policy wizard: Module sqliimport and Function run done, Limitations with the list SQLIImport_Type, which offers only Any on the test installation, and the buttons OK, Go back to step two, Go back to step one and Cancel](images/perm-wizard-limitation.png)
+   ![Step 3 of the policy wizard: Module sqliimport and Function run done, Limitations with the list SQLIImport_Type offering Any, Mapping to a content class (no code) (mapping) and Rows of a data table (a persistent class) (datatable), and the buttons OK, Go back to step two, Go back to step one and Cancel](images/perm-wizard-limitation.png)
 
 4. **OK** adds the policy to the draft; **Save** on the role applies it to everyone who has the role. The users see
    the Imports tab after their next sign-in.
@@ -76,10 +76,11 @@ With it, a user may run or manage only the imports that use those handlers:
   limitation;
 - the Run imports policy with the limitation `mapping` allows running the no-code imports only.
 
-What the policy wizard offers: the list of values of `SQLIImport_Type` is filled from the 1.x setting
-`sqliimport.ini [ImportSettings] AvailableSourceHandlers[]`, so it names the 1.x handlers of the site. The 2.x
-handlers (`mapping`, `datatable` and the handlers of extensions) are not in that list yet; on an installation without
-1.x handlers it offers only **Any**, as in the picture above. A policy without the limitation covers every handler.
+What the policy wizard offers: the list of values of `SQLIImport_Type` names `mapping` first, then the other 2.x
+handlers (`datatable` and the handlers of extensions), then the 1.x handlers of
+`sqliimport.ini [ImportSettings] AvailableSourceHandlers[]`, as in the picture above. Before 2.0.0 it held only the
+1.x handlers, so an installation without them offered only **Any**. A policy without the limitation covers every
+handler.
 
 ## How 1.x policies count
 

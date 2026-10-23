@@ -393,13 +393,16 @@ Mapping: the preset above (`title`, `summary`, `html`), match `doc-{id}`, parent
 
 ![The run page of the documents import: five records created, Handbook, Handbook/Policies and the three documents](images/src-documents-run.png)
 
-**A dry run before the first run reports the children as failed.** The dry run #162 publishes nothing, so the
-folders it would create do not exist for their children, and the four records below `Handbook` fail with "the parent
-of the record does not exist (yet)":
+**A dry run before the first run counts the folders it would create.** A dry run publishes nothing, so the folders
+it would create do not exist yet; it remembers them, and the four records below `Handbook` say "would be created
+below <the folder's remote ID>, which this run would create". The picture is a dry run of a fresh copy of the import
+with new remote IDs (`sq688-drycheck-` instead of `doc-`), run #269, made for this page and removed again; all five
+records would be created:
 
-![The dry run of the documents import before any object existed: one created, four failed because their parent does not exist yet](images/src-documents-dry-run-parents.png)
+![The dry run of a fresh copy of the documents import: five records created, the four below Handbook would be created below the folder this run would create, 0 failed](images/src-documents-dry-run-parents.png)
 
-The real run places them all. To give folders their own class, add a class per record: `class_from` `kind` with the
+Before 2.0.0 the dry run #162 failed those four records with "the parent of the record does not exist (yet)". The
+real run places them all. To give folders their own class, add a class per record: `class_from` `kind` with the
 variant `folder` to the class `folder` ([mappings.md](mappings.md#a-class-per-record)).
 
 ### Documents from URLs (`document_urls`)

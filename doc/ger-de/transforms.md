@@ -213,9 +213,9 @@ Manche Attribute lesen ihren Wert aus einem Text in fester Form. Die Umwandlunge
 | Objektbeziehung (Liste) | Objekt-IDs, durch `\|` getrennt | `lookup(prefix=...)` oder `media_object` |
 | Rich Text (`ezxmltext`) | das XML des Rich Texts | `richtext` |
 
-Ein Preis ohne den Teil `|MwSt.-Typ|enthalten` wird als 0 gespeichert: Nutzen Sie für einen Preis immer die Vorlage
-oben und ändern Sie den MwSt.-Typ `1` und die letzte `1` (`0`: der Preis enthält keine MwSt.) auf das, was Ihr Shop
-verwendet. Siehe auch [troubleshooting.md](troubleshooting.md#preise-sind-0-oder-jeder-lauf-aktualisiert-jeden-preis).
+Ein Preis ohne den Teil `|MwSt.-Typ|enthalten` erhält den vorgegebenen MwSt.-Typ und die Einstellung „Preis enthält
+MwSt.“ des Klassenattributs (vor 2.0.0 wurde er als 0 gespeichert). Für andere Werte nehmen Sie die Vorlage oben und
+ändern den MwSt.-Typ `1` und die letzte `1` (`0`: der Preis enthält keine MwSt.) auf das, was Ihr Shop verwendet. Siehe auch [troubleshooting.md](troubleshooting.md#preise-sind-0-oder-jeder-lauf-aktualisiert-jeden-preis).
 
 ## Eine eigene Umwandlung
 

@@ -305,13 +305,16 @@ What was published:
 ```
 docs-map-tree-shelf-a: object 56651, class folder, "Shelf A"; node 55029 (main) below "Map: tree"
 docs-map-tree-shelf-b: object 56652, class folder, "Shelf B"; node 55030 (main) below "Map: tree"
-docs-map-tree-tea-1: object 56653, class folder, "Sencha"; node 55031 (main) below "Shelf A"
+docs-map-tree-tea-1: object 56653, class folder, "Sencha"; node 55031 (main) below "Shelf A", node 55046 below "Shelf B"
 docs-map-tree-tea-2: object 56654, class folder, "Assam"; node 55032 (main) below "Shelf B"
 ```
 
-Sencha should also have a second location below Shelf B (from `also_in`). **In the build that was tested
-(2.0-dev, 2026-10-22) it did not get one: a known issue** of `extra_parents_from` for new objects, reported for a
-fix. Until then, add the extra locations in the administration (Locations tab of the object).
+Sencha has a second location below Shelf B, from `also_in`. The more locations are added right after the object is
+published, for a new object and for one that exists already, and a run that only adds a location counts the object
+as updated ("1 more location(s) added" in its row). The locations are added as the import, whoever starts the run
+(also a run of the command line, which has no user). Undo removes the locations a run added; the main location stays.
+Run #219 of this example was made before this was fixed and gave Sencha no second location; the later run #264 added
+it (node 55046).
 
 <a id="a-class-per-record-worked-example"></a>
 

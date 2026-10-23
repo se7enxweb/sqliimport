@@ -25,7 +25,7 @@ asked questions** explains behavior that looks like a fault but is how the engin
   - [A database driver is missing in the editor, or only in the runs](#a-database-driver-is-missing-in-the-editor-or-only-in-the-runs)
 - [Frequently asked questions](#frequently-asked-questions)
   - [Is the live run page cached by Velocity or a response cache?](#is-the-live-run-page-cached-by-velocity-or-a-response-cache)
-  - [Why does a dry run of a folder tree fail the children?](#why-does-a-dry-run-of-a-folder-tree-fail-the-children)
+  - [What does a dry run of a folder tree say about the children?](#what-does-a-dry-run-of-a-folder-tree-say-about-the-children)
   - [I fixed the file, but Retry failed rows fails again](#i-fixed-the-file-but-retry-failed-rows-fails-again)
   - [Prices are 0, or every run updates every price](#prices-are-0-or-every-run-updates-every-price)
   - [Why can an import not read this site's own database?](#why-can-an-import-not-read-this-sites-own-database)
@@ -143,8 +143,8 @@ Filter the run page by **Failed** (`sqliimport/run/<id>/(outcome)/failed`) to se
   field names; CSV headers are case sensitive.
 - `the required attribute '...' has no value`: give a default, or let the record fail on purpose.
 - `the parent of the record does not exist (yet)`: the parent comes later in the source, or not at all. Sort the
-  source so parents come first. In a dry run this message is expected for the children of new folders
-  ([see the FAQ](#why-does-a-dry-run-of-a-folder-tree-fail-the-children)).
+  source so parents come first. A dry run counts the parents it would create itself
+  ([see the FAQ](#what-does-a-dry-run-of-a-folder-tree-say-about-the-children)), so this message in a dry run means the same as in a run.
 - `lookup: no object with the remote ID '...'`: the related object was not imported yet.
 
 What to do depends on where the cause is ([see the FAQ](#i-fixed-the-file-but-retry-failed-rows-fails-again)):
@@ -237,18 +237,20 @@ network) is tried again up to five times, five seconds apart; then the page stay
 A run that stays *Queued* on this page is waiting for a worker of the job queue
 ([A run stays queued](#a-run-stays-queued)); reloading the page does not change that.
 
-### Why does a dry run of a folder tree fail the children?
+### What does a dry run of a folder tree say about the children?
 
 A dry run publishes nothing. When an import builds a tree in one run (folders before their documents: the documents
 of a ZIP, the folders of a drive, a CSV with parent IDs), the folders the dry run would create do not exist for the
-records below them, and those records fail with "the parent of the record does not exist (yet)".
+records below them. The dry run remembers the objects it would create, so a record below one of them is reported as
+**Created** with the message "dry run: would be created below <remote ID of the parent>, which this run would
+create". A record whose parent is neither in the site nor created earlier in the run fails with "the parent of the
+record does not exist (yet)", in the dry run as in the real run.
 
-What to expect: in a dry run before the first real run, the top records say "would be created" and every record
-below a new folder fails. The worked example in
+The worked example in
 [source-examples-platforms.md](source-examples-platforms.md#documents-one-file-or-a-folder-as-zip-documents) shows
-it: the dry run #162 had 1 created and 4 failed, and the real run #163 created all 5. The real run places them,
-because records are processed in their order and a parent is published before its children. Once the tree exists, a
-dry run shows the true picture (unchanged, or would be updated).
+it: a dry run of a fresh copy of the documents import reports all 5 records as created. Before 2.0.0 the children of
+new folders failed in a dry run (the dry run #162 had 1 created and 4 failed), although the real run #163 created
+all 5.
 
 ### I fixed the file, but Retry failed rows fails again
 
@@ -270,26 +272,22 @@ A 1.x handler stores no records, so its runs have no Retry; run the import again
 The datatype `ezprice` (the attribute `price` of the webshop's class `product`) reads a value in its text form
 `amount|VAT type|includes VAT`, for example `6.90|1|1`.
 
-**A plain number is stored as 0.** A mapping line that gives `ezprice` only `6.90` gets the price `0|1|1`. The dry
-run of such an import shows it: every object has the price `0|1|1`, and every run would set the bare amount again:
+**A plain number gets the attribute's VAT.** A mapping line that gives `ezprice` only an amount (`6.90`, `6,90`,
+`1.234,50`) is completed with the VAT type and the "price includes VAT" setting of the class attribute: `6.90` becomes
+`6.9|1|1` when the attribute's default VAT type is 1 and prices include VAT. Before 2.0.0 such a price was stored as 0;
+the dry run of an older build showed every object with the price `0|1|1`.
 
-![A dry run of a tea import with a plain number for the price: each object has the price 0|1|1, and the new value is the bare amount](images/faq-price-plain-number-stored-as-zero.png)
+To give another VAT type or "without VAT" than the attribute's default, write the text form yourself:
+`template(text="{price}|1|0")` (VAT type 1, the price does not include VAT). The product preset of the shop formats
+does this ([sources.md](sources.md#the-product-preset)).
 
-Give the price line the text form: `template(text="{price}|1|1")` (VAT type 1, the price includes VAT), or
-`template(text="{price}|1|0")` for a price without VAT. The product preset of the shop formats does this
-([sources.md](sources.md#the-product-preset)).
+**An unchanged price stays unchanged.** `ezprice` stores and gives back an amount the way PHP prints the number
+(`6.90` as `6.9|1|1`). The engine writes every price in that form before it compares, so `6.90` in the source and
+`6.9` in the object are the same price, and a run updates only the products whose price really changed. Before
+2.0.0 every price ending in a zero was "updated" on every run.
 
-**Every run reports the price as changed.** With the text form, a price such as `6.90` is stored, and given back by
-`ezprice`, as `6.9|1|1`. The engine compares the text it would write with the stored text, so `6.90|1|1` and
-`6.9|1|1` count as different, and every run updates every product whose price ends in a zero, although nothing
-changed:
-
-![A dry run in which every price would be updated from 6.9|1|1 to 6.90|1|1, 9.8|1|1 to 9.80|1|1 and so on, although only one price changed](images/faq-price-trailing-zero-every-run-updated.png)
-
-This is a known issue. Until the comparison treats amounts as numbers, write the amount the way PHP writes the
-number (`6.9`, `12.5`, `7`): with a transform of your own that formats it as `(string)(float)$amount`, as the `vat`
-transform of [handlers.md](handlers.md#writing-your-own-transform) does, or by delivering prices from the source
-without trailing zeros.
+A value that is no number (`free`, `on request`) is left as it is: the price attribute refuses it and the row of the
+record says so.
 
 ### Why can an import not read this site's own database?
 

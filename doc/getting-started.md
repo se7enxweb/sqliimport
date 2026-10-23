@@ -196,8 +196,8 @@ Check and complete the lines:
 | Price (`price`) | `price` | `number \| template(text="{value}\|1\|1")` | |
 
 The price needs its own text: the price datatype reads `amount|VAT type|price includes VAT`, so the chain first
-reads the number and then writes `6.95|1|1` (VAT type 1, price includes VAT). A price without this form is stored
-as 0 ([transforms.md](transforms.md#datatypes-that-need-a-special-text)).
+reads the number and then writes `6.95|1|1` (VAT type 1, price includes VAT). A plain amount without this form gets the
+default VAT of the class attribute ([transforms.md](transforms.md#datatypes-that-need-a-special-text)).
 
 ![The completed mapping grid: name with trim and Required, product number from code, short description from description with richtext, price from price with number and the template for the price text](images/gs-mapping-grid.png)
 

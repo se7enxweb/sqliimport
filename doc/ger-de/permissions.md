@@ -56,7 +56,7 @@ Richtlinie **Run imports** (`sqliimport/run`).
 3. **Grant full access** gibt Run imports für jeden Import. **Grant limited access** öffnet Schritt 3, die
    Einschränkung `SQLIImport_Type` (siehe den nächsten Abschnitt):
 
-   ![Schritt 3 des Assistenten für Richtlinien: Module sqliimport und Function run erledigt, Limitations mit der Liste SQLIImport_Type, die auf der Testinstallation nur Any anbietet, und die Schaltflächen OK, Go back to step two, Go back to step one und Cancel](../images/perm-wizard-limitation.png)
+   ![Schritt 3 des Assistenten für Richtlinien: Module sqliimport und Function run erledigt, Limitations mit der Liste SQLIImport_Type, die Any, Mapping to a content class (no code) (mapping) und Rows of a data table (a persistent class) (datatable) anbietet, und die Schaltflächen OK, Go back to step two, Go back to step one und Cancel](../images/perm-wizard-limitation.png)
 
 4. **OK** fügt die Richtlinie dem Entwurf hinzu; **Save** an der Rolle wendet sie auf alle an, die die Rolle haben.
    Die Benutzer sehen den Reiter Importe nach ihrer nächsten Anmeldung.
@@ -79,11 +79,11 @@ Handler von 1.x). Mit ihr darf ein Benutzer nur die Importe ausführen oder verw
 - die Richtlinie Run imports mit der Einschränkung `mapping` erlaubt nur, die Importe ohne Programmierung
   auszuführen.
 
-Was der Assistent für Richtlinien anbietet: Die Liste der Werte von `SQLIImport_Type` wird aus der Einstellung von
-1.x `sqliimport.ini [ImportSettings] AvailableSourceHandlers[]` gefüllt und nennt also die Handler von 1.x der
-Website. Die Handler von 2.x (`mapping`, `datatable` und die Handler von Erweiterungen) stehen noch nicht in dieser
-Liste; auf einer Installation ohne Handler von 1.x bietet sie nur **Any** an, wie im Bild oben. Eine Richtlinie ohne
-die Einschränkung gilt für jeden Handler.
+Was der Assistent für Richtlinien anbietet: Die Liste der Werte von `SQLIImport_Type` nennt zuerst `mapping`, dann
+die anderen Handler von 2.x (`datatable` und die Handler von Erweiterungen), dann die Handler von 1.x aus
+`sqliimport.ini [ImportSettings] AvailableSourceHandlers[]`, wie im Bild oben. Vor 2.0.0 enthielt sie nur die Handler
+von 1.x, eine Installation ohne sie bot also nur **Any** an. Eine Richtlinie ohne die Einschränkung gilt für jeden
+Handler.
 
 ## Wie Richtlinien von 1.x zählen
 

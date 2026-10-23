@@ -176,9 +176,12 @@ wurde verdoppelt, und nichts sonst bekam eine neue Version. Läuft dieselbe Date
 unchanged** (Lauf #198). Stimmt das Ergebnis nicht, veröffentlicht **Undo this run** auf der Seite des Laufs wieder
 Version 1 ([runs.md](runs.md)).
 
-Lassen Sie die Abgleichsregel so, wie der Editor sie für eine CSV-Datei ohne Manifest vorschlägt
-(`xrowextract-folder-{name}`), findet der Import die exportierten Ordner nicht und legt drei neue an. Prüfen Sie immer
-den Probelauf: Für Objekte, die Sie exportiert haben, muss er **Updated** oder **Unchanged** sagen, nie **Created**.
+Für eine CSV-Datei ohne Manifest schlägt der Editor das Muster der Remote-ID aus der Spalte `remote-id` des Exports
+vor (`{remote-id}`; vor 2.0.0 schlug er `xrowextract-folder-{name}` vor, das die exportierten Ordner nicht fand und
+drei neue anlegte). Spalten des Exports, die keine Attribute sind (`object-id`, `class`, `language` und ähnliche),
+bleiben ohne Zuordnung, und eine Überschrift wie `short-description` wird `short_description` zugeordnet. Prüfen Sie
+immer den Probelauf: Für Objekte, die Sie exportiert haben, muss er **Updated** oder **Unchanged** sagen, nie
+**Created**.
 
 ## Beispiel: CIE-Formulareinsendungen als Artikel
 
