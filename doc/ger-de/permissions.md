@@ -22,6 +22,7 @@ Jede der beiden Richtlinien öffnet den Reiter Importe: die Übersicht (`sqliimp
 | Duplicate, Enable, Disable, Delete | | ja |
 | Pause, Resume, Edit und Delete eines Zeitplans | | ja |
 | Settings, Export und Import von Importdefinitionen | | ja |
+| Download as JSON, Export selected, Import definitions, Copy to …, Save as template, New import from a template | | ja |
 
 Die Funktionen `view`, `edit`, `rollback`, `ai` und `settings` der Version 2.0.0-alpha.1 gibt es nicht mehr. Eine
 Rolle, die noch eine davon hat, erhält dadurch nichts; geben Sie ihr stattdessen `manage` oder `run`.
@@ -73,5 +74,7 @@ expqueue. Der Block „Imports“ auf dem Dashboard der Administration erscheint
   Formular-Token.
 - Der Lauf wird als der Benutzer verarbeitet, der ihn gestartet hat, oder als Robot-Benutzer des Imports. Dieser
   Benutzer braucht die Inhaltsrichtlinien, um die Objekte des Imports anzulegen und zu bearbeiten.
-- Ein Export von Importdefinitionen enthält keine Läufe und keinen Dateiinhalt, wohl aber die Adressen und Optionen
-  der Quellen. Behandeln Sie die Datei wie die Einstellungen der Website.
+- Ein Export von Importdefinitionen enthält keine Läufe, keine hochgeladene Datei, keinen API-Schlüssel, kein
+  Signatursalz und keinen geheimen Wert (nur die Namen von Geheimnissen), wohl aber die Adressen, Abfragen und
+  Optionen der Quellen. Behandeln Sie die Datei wie die Einstellungen der Website; der Export verlangt Manage imports
+  ([definitions.md](definitions.md)).

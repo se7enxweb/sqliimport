@@ -71,6 +71,12 @@ Der Webhook-/API-Auslöser der Importe ([triggers.md](triggers.md)).
 |---|---|---|
 | `ListLimit` | `25` | Zeilen pro Seite der Listen (mindestens 5) |
 
+## [TemplateSettings]
+
+| Einstellung | Vorgabe | Bedeutung |
+|---|---|---|
+| `Templates[]` | `sqliimport` | Woher die Vorlagen von „New import from a template“ neben denen dieser Site (`var/<site>/storage/sqliimport/templates/`) kommen: der Name einer Erweiterung (deren `share/templates/*.json`) oder eine JSON-Datei relativ zum Wurzelverzeichnis der Installation ([definitions.md](definitions.md)) |
+
 ## Einstellungen von 1.x, die weiter gelten
 
 | Einstellung | Bedeutung in 2.x |
@@ -115,47 +121,21 @@ einem Siteaccess, wie oben beschrieben.
 
 ### Export import definitions (Importdefinitionen exportieren)
 
-Kreuzen Sie die zu exportierenden Importe an (keiner angekreuzt: alle) und wählen Sie **Export**. Der Browser
-speichert eine JSON-Datei mit dem Namen `sqliimport-definitions-<datum>-<uhrzeit>.json`:
-
-```json
-{
-    "format": "sqliimport-definitions",
-    "version": 1,
-    "exported": "2026-10-22T09:30:00+02:00",
-    "imports": [
-        {
-            "identifier": "news_feed",
-            "name": "News from the partner feed",
-            "description": "",
-            "source_type": "rss",
-            "source": { "origin": "url", "url": "https://www.example.com/news.rss" },
-            "handler": "mapping",
-            "mapping": { "class": "article", "match": { "type": "remote_id", "pattern": "partner-news-{id}" }, "fields": [] },
-            "target": { "parent_node_id": 2, "section_id": 0, "language": "", "owner_id": 0 },
-            "behaviour": { "chunk_size": 200, "update_policy": "update" },
-            "options": {}
-        }
-    ]
-}
-```
-
-(Zuordnung und Verhalten sind hier gekürzt.) Ein Export enthält Quelle, Verarbeitung, Zuordnung, Ziel, Verhalten
-und Optionen jedes Imports. Er enthält keine Läufe, keine Zeitpläne und keinen Dateiinhalt: **Hochgeladene
-Quelldateien gehören nicht zu einem Export.**
+Kreuzen Sie die zu exportierenden Importe an (keiner angekreuzt: alle, die Sie verwalten dürfen) und wählen Sie
+**Export**. Der Browser speichert eine Definitionsdatei (Format `sqliimport-definitions`, Version 2): Quelle,
+Verarbeitung, Zuordnung, Ziel (mit Remote-IDs neben den Knoten-IDs), Verhalten, Optionen, Zeitpläne und
+Trigger-Einstellungen jedes Imports sowie die Namen der Geheimnisse, die sie brauchen. Sie enthält keine Läufe, keine
+hochgeladene Datei, keinen API-Schlüssel, kein Signatursalz und keinen geheimen Wert. Dieselbe Datei entsteht mit
+**Download as JSON** eines Imports und **Export selected** der Übersicht; [definitions.md](definitions.md) beschreibt
+sie Feld für Feld.
 
 ### Import import definitions (Importdefinitionen importieren)
 
-Wählen Sie eine exportierte Datei (höchstens 10 MB) und **Import**:
+**Import definitions** (`sqliimport/transfer`) liest eine solche Datei, auch eine der Version 1: Die Seite zeigt je
+Import, was sie hier anlegen würde (neu oder ein vergebener Bezeichner, die Klasse und der Elternknoten, zu denen die
+Referenzen führen, fehlende Geheimnisse, Klassen, Attribute oder Knoten), lässt Sie anlegen, ersetzen oder
+überspringen wählen und legt die gewählten Importe deaktiviert an, ihre Zeitpläne pausiert und ihren Trigger
+ausgeschaltet ([definitions.md](definitions.md)).
 
-- ein Import mit demselben Bezeichner wird aktualisiert und bleibt so aktiviert oder deaktiviert, wie er war;
-- die anderen Importe werden deaktiviert angelegt;
-- ein Eintrag ohne Bezeichner oder Namen wird übersprungen und gemeldet.
-
-Die Seite meldet, wie viele Importe angelegt und aktualisiert wurden. Öffnen Sie danach jeden importierten Import im
-Editor: Ein Import, der eine hochgeladene Datei las, braucht die Datei im Schritt Quelle erneut, sonst schlagen
-seine Läufe mit „the uploaded source file is missing; upload it again“ fehl. Fügen Sie Zeitpläne im Schritt Zeitplan
-hinzu und aktivieren Sie den Import im Schritt Prüfung.
-
-So kommen Importe von einer Staging-Installation auf die Live-Installation. Der Export enthält die Adressen und
-Optionen der Quellen; bewahren Sie die Datei daher so sicher auf wie die Einstellungen der Website.
+So kommen Importe von einer Staging-Installation auf die Live-Installation. Die Datei enthält die Adressen und
+Optionen der Quellen; bewahren Sie sie daher so sicher auf wie die Einstellungen der Website.

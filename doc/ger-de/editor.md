@@ -164,6 +164,7 @@ nennt außerdem, was noch fehlt, bevor der Import laufen kann, etwa eine Zuordnu
 - **Save** speichert den Import und kehrt zur Übersicht zurück.
 - **Save and run** speichert den aktivierten Import, startet sofort einen Lauf und öffnet dessen Seite
   ([runs.md](runs.md)).
+- Unter dem Formular: **Download as JSON**, **Copy to …** und **Save as template** ([definitions.md](definitions.md)).
 
 ## Ändern, kopieren und löschen
 
@@ -175,6 +176,10 @@ Die Liste der Importe auf der Übersicht hat diese Aktionen:
 | Dry run | run oder manage | Startet einen Lauf, der nichts veröffentlicht (nicht für Handler von 1.x) |
 | Edit | manage | Öffnet den Editor |
 | More > Duplicate | manage | Legt eine deaktivierte Kopie „Copy of ...“ mit Quelle, Verarbeitung und Zuordnung an, ohne Zeitpläne und Läufe, und öffnet sie im Editor |
+| More > Download as JSON | manage | Speichert den Import als Definitionsdatei für eine andere Installation, ohne Datei, Schlüssel oder geheime Werte ([definitions.md](definitions.md)) |
+| More > Copy to … | manage | Eine deaktivierte Kopie mit Name und Bezeichner Ihrer Wahl, auf Wunsch mit ihren Zeitplänen (pausiert), nie mit Trigger oder Schlüsseln |
+| More > Save as template | manage | Bewahrt den Import ohne Quelldaten als Vorlage für neue Importe auf |
+| Export selected (JSON) | manage | Eine Definitionsdatei mit den angekreuzten Importen |
 | More > Enable / Disable | manage | Schaltet den Import ein oder aus |
 | More > Delete | manage | Entfernt den Import mit seiner Zuordnung und seinen Zeitplänen nach einer Rückfrage. Seine Läufe bleiben im Verlauf, bis sie bereinigt werden. Ein Import, der gerade läuft, lässt sich nicht löschen; brechen Sie den Lauf zuerst ab. |
 

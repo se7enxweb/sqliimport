@@ -4,7 +4,8 @@
  *
  * 2.x views: list (the dashboard: figures, charts, imports, runs), statistics (the run history: trends, a table per
  * import, comparison of two periods, suggestions, CSV), run (one run: progress, counters, rows, log), edit (the
- * import editor), schedules, catalogue, settings (export and import of definitions) and action
+ * import editor), schedules, catalogue, settings (export and import of definitions), transfer (import definitions
+ * from a file: plan, choose, create disabled), templates (templates of imports, New import from a template) and action
  * (every change: run, dry run, cancel, retry failed rows; POST only, checked by ezformtoken) and trigger (the webhook
  * / API trigger of an import for other systems: no session, a signature or an API key; doc/triggers.md).
  * The 1.x requests and scheduled imports are part of these pages (expImportLegacy): the dashboard lists the 1.x
@@ -107,6 +108,23 @@ $ViewList['catalogue'] = array(
 $ViewList['settings'] = array(
     'script' => 'settings.php',
     'params' => array(),
+    'default_navigation_part' => 'sqliimportnavigationpart',
+    'functions' => array( 'manage or manageimports' ),
+);
+
+// "Import definitions": a definitions file (Download as JSON, Export selected) read, planned and applied
+$ViewList['transfer'] = array(
+    'script' => 'transfer.php',
+    'params' => array(),
+    'default_navigation_part' => 'sqliimportnavigationpart',
+    'functions' => array( 'manage or manageimports' ),
+);
+
+// The templates of imports and "New import from a template"
+$ViewList['templates'] = array(
+    'script' => 'templates.php',
+    'params' => array(),
+    'unordered_params' => array( 'format' => 'Format', 'use' => 'Use' ),
     'default_navigation_part' => 'sqliimportnavigationpart',
     'functions' => array( 'manage or manageimports' ),
 );

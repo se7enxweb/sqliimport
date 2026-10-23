@@ -58,6 +58,8 @@ $tpl->setVariable( 'data_tables', $dataTables );
 $tpl->setVariable( 'handlers', $registry->handlers() );
 $tpl->setVariable( 'transforms', expImportTransforms::catalogue() );
 $tpl->setVariable( 'can_manage', expImportAdmin::can( 'edit' ) );
+// the templates of each format ("From a template" on its card)
+$tpl->setVariable( 'template_counts', expImportAdmin::can( 'manage' ) ? expImportTemplates::countBySource() : array() );
 // the drivers each format can use here and in the job queue's workers
 $sourceDrivers = array();
 foreach ( $sources as $sid => $s )

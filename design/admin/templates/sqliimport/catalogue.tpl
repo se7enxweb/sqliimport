@@ -38,6 +38,7 @@
 {/foreach}
 {foreach $s.examples as $e}{if and( is_unset( $e.url ), is_set( $e.options ), is_set( $s.origins ) )}{if $s.origins|contains( 'remote' )}<p class="a4-help">{'Example'|i18n( 'extension/sqliimport' )}: {$e.label|wash}</p>{/if}{/if}{/foreach}
 {if and( $can_manage, eq( $s.status, 'enabled' ) )}<a class="a4-btn a4-btn-primary" href={concat( '/sqliimport/edit/new/(source)/', $id )|ezurl}><span class="a4-icon a4-bi-plus-lg" aria-hidden="true"></span> {'New import'|i18n( 'extension/sqliimport' )}</a>{/if}
+{if and( eq( $s.status, 'enabled' ), is_set( $template_counts[$id] ) )}<a class="a4-btn" href={concat( '/sqliimport/templates/(format)/', $id )|ezurl}>{'From a template (%n)'|i18n( 'extension/sqliimport',, hash( '%n', $template_counts[$id] ) )}<span class="a4-sr-only"> {$s.label|wash}</span></a>{/if}
 </div>
 </article>
 {/foreach}

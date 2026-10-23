@@ -36,7 +36,9 @@
 <button type="submit" class="a4-btn a4-btn-primary"><span class="a4-icon a4-bi-play-fill" aria-hidden="true"></span> {'Run now'|i18n( 'extension/sqliimport' )}</button>
 </form>
 {/if}
-{if $can_edit}<a class="a4-btn" href={'/sqliimport/edit/new'|ezurl}><span class="a4-icon a4-bi-plus-lg" aria-hidden="true"></span> {'New import'|i18n( 'extension/sqliimport' )}</a>{/if}
+{if $can_edit}<a class="a4-btn" href={'/sqliimport/edit/new'|ezurl}><span class="a4-icon a4-bi-plus-lg" aria-hidden="true"></span> {'New import'|i18n( 'extension/sqliimport' )}</a>
+<a class="a4-btn a4-btn-ghost" href={'/sqliimport/templates'|ezurl}>{'New import from a template'|i18n( 'extension/sqliimport' )}</a>
+<a class="a4-btn a4-btn-ghost" href={'/sqliimport/transfer'|ezurl}><span class="a4-icon a4-bi-upload" aria-hidden="true"></span> {'Import definitions'|i18n( 'extension/sqliimport' )}</a>{/if}
 {if or( $legacy_count|gt( 0 ), $legacy_handlers|count|gt( 0 ) )}<a class="a4-btn a4-btn-ghost" href="#a4-sqliimport-legacy">{'1.x import requests'|i18n( 'extension/sqliimport' )}{if gt( $figures.legacy_pending, 0 )} <span class="a4-badge is-info">{$figures.legacy_pending}</span>{/if}</a>{/if}
 <a class="a4-btn a4-btn-ghost" href={'/expqueue/dashboard'|ezurl}>{'Job queue'|i18n( 'extension/sqliimport' )}</a>
 </div>
@@ -63,6 +65,7 @@
 <div class="a4-sqliimport-scroll" tabindex="0" role="region" aria-labelledby="a4-sqliimport-imports-title">
 <table class="a4-table">
 <thead><tr>
+{if $can_edit}<th scope="col"><span class="a4-sr-only">{'Select'|i18n( 'extension/sqliimport' )}</span></th>{/if}
 <th>{'Import'|i18n( 'extension/sqliimport' )}</th>
 <th>{'Source'|i18n( 'extension/sqliimport' )}</th>
 <th class="a4-sqliimport-hide-narrow">{'Processing'|i18n( 'extension/sqliimport' )}</th>
@@ -73,6 +76,7 @@
 <tbody>
 {foreach $imports as $i}
 <tr>
+{if $can_edit}<td>{if $i.can_edit}<input type="checkbox" id="sq-sel-{$i.import.id}" name="ImportIDs[]" value="{$i.import.id}" form="sq-export-selected" /><label class="a4-sr-only" for="sq-sel-{$i.import.id}">{'Select %name'|i18n( 'extension/sqliimport',, hash( '%name', $i.import.name ) )|wash}</label>{/if}</td>{/if}
 <td class="a4-sqliimport-name"><a href={concat( '/sqliimport/list/(import)/', $i.import.id )|ezurl}>{$i.import.name|wash}</a><br /><span class="a4-meta">{$i.import.identifier|wash}</span>{if $i.import.is_enabled|not} <span class="a4-badge">{'disabled'|i18n( 'extension/sqliimport' )}</span>{/if}</td>
 <td>{if $i.import.is_legacy}<span class="a4-badge is-info">{'1.x handler'|i18n( 'extension/sqliimport' )}</span>{else}{$i.import.source_type|upcase|wash}{/if}</td>
 <td class="a4-sqliimport-hide-narrow">{if eq( $i.import.handler, 'mapping' )}{'Mapping'|i18n( 'extension/sqliimport' )}{else}{$i.import.handler|wash}{/if}</td>
@@ -84,6 +88,14 @@
 </tbody>
 </table>
 </div>
+{if $can_edit}
+<form id="sq-export-selected" class="a4-toolbar a4-sqliimport-selection" method="post" action={'/sqliimport/action'|ezurl}>
+<input type="hidden" name="Action" value="export" />
+<input type="hidden" name="RedirectURI" value="{$here|wash}" />
+<button type="submit" class="a4-btn a4-btn-small"><span class="a4-icon a4-bi-download" aria-hidden="true"></span> {'Export selected (JSON)'|i18n( 'extension/sqliimport' )}</button>
+<span class="a4-help">{'One file with the ticked imports: no source file, no key, the names of their secrets only.'|i18n( 'extension/sqliimport' )}</span>
+</form>
+{/if}
 {/if}
 </section>
 
