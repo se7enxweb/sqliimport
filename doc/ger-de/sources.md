@@ -35,6 +35,8 @@ Datensatz mit demselben Schlüssel wird also nicht verarbeitet.
 
 ## CSV, TSV und Text mit Trennzeichen (`csv`, `tsv`)
 
+Durchgespieltes Beispiel: [source-examples-files.md#csv-csv](source-examples-files.md#csv-csv)
+
 Dateiendungen: `csv`, `tsv`, `txt`. Die Datei wird als Datenstrom gelesen, ein Datensatz pro Zeile (ein Feld in
 Anführungszeichen darf über mehrere Zeilen gehen). Die Felder jedes Datensatzes sind nach der Kopfzeile benannt.
 
@@ -51,6 +53,8 @@ Kopfzeile heißen die Spalten `0`, `1`, `2` und so weiter.
 
 ## XML (`xml`)
 
+Durchgespieltes Beispiel: [source-examples-files.md#xml-xml](source-examples-files.md#xml-xml)
+
 Dateiendung: `xml`. Die Datei wird mit XMLReader als Datenstrom gelesen. Externe Entitäten werden nie geladen.
 
 | Option | Bedeutung |
@@ -64,6 +68,8 @@ Liste und der Text eines Elements, das auch Attribute oder Kinder hat, als `#tex
 `<book id="7"><title>Dune</title></book>` lauten die Pfade `@id` und `title`.
 
 ## RSS / Atom (`rss`)
+
+Durchgespieltes Beispiel: [source-examples-feeds-web.md#rss-und-atom-rss](source-examples-feeds-web.md#rss-und-atom-rss)
 
 Dateiendungen: `xml`, `rss`, `atom`. RSS 2.0 und Atom werden an der Datei erkannt. Jeder Eintrag ist ein Datensatz
 mit denselben Feldern in beiden Formaten, sodass eine Zuordnung für beide passt:
@@ -85,6 +91,8 @@ Die einzige Option ist `key` (Vorgabe `id`). Diese Quelle ersetzt den RSS-Beispi
 
 ## JSON und JSON Lines (`json`, `ndjson`)
 
+Durchgespieltes Beispiel: [source-examples-files.md#json-lines-ndjson](source-examples-files.md#json-lines-ndjson)
+
 Dateiendungen: `json`, `ndjson`, `jsonl`.
 
 | Option | Werte | Vorgabe |
@@ -97,6 +105,8 @@ Eine JSON-Datei wird ganz gelesen. NDJSON wird als Datenstrom gelesen; liefern S
 NDJSON.
 
 ## Tabellen (`spreadsheet`)
+
+Durchgespieltes Beispiel: [source-examples-files.md#tabellen-xlsx-und-ods-spreadsheet](source-examples-files.md#tabellen-xlsx-und-ods-spreadsheet)
 
 Dateiendungen: `xlsx` (Excel) und `ods` (OpenDocument, wie LibreOffice speichert). Das Format wird aus der Datei
 erkannt. Beide sind ZIP-Dateien aus XML, die die Quelle als Datenstrom liest, ohne Bibliothek für Tabellen. Sie
@@ -126,6 +136,8 @@ Die Werte kommen so, wie sie in der Datei gespeichert sind:
 Eine sehr große Tabelle wird schneller gelesen, wenn sie als CSV gespeichert ist.
 
 ## iCalendar (`ical`)
+
+Durchgespieltes Beispiel: [source-examples-files.md#icalendar-ical](source-examples-files.md#icalendar-ical)
 
 Gruppe: Inhalte. Dateiendungen: `ics`, `ical`, `ifb`, `txt`. Kalenderdateien (RFC 5545), wie Kalender-Apps,
 Buchungssysteme und Veranstaltungsseiten sie veröffentlichen, als Upload oder über eine Abonnement-Adresse. Die Datei
@@ -169,6 +181,8 @@ Vorlage: Klasse `event` der Standardinstallation, Remote-ID `ical-{id}`: `summar
 
 ## vCard (`vcard`)
 
+Durchgespieltes Beispiel: [source-examples-files.md#vcard-vcard](source-examples-files.md#vcard-vcard)
+
 Gruppe: Inhalte. Dateiendungen: `vcf`, `vcard`, `txt`. Kontakte, wie Adressbücher, Telefone und Mailprogramme sie
 exportieren: vCard 4.0 und 3.0, und von 2.1 das Übliche (bloße Typen wie `TEL;WORK`, Quoted-Printable-Werte mit
 `CHARSET`). Jedes `BEGIN:VCARD` ... `END:VCARD` ist ein Datensatz, als Datenstrom gelesen wie bei iCalendar.
@@ -196,6 +210,8 @@ Daten: Importieren Sie sie nur, wenn die genannten Personen zugestimmt haben.
 
 ## Google-Merchant-Feed (`google_merchant`)
 
+Durchgespieltes Beispiel: [source-examples-platforms.md#google-merchant-feed-google_merchant](source-examples-platforms.md#google-merchant-feed-google_merchant)
+
 Gruppe: Handel. Dateiendungen: `xml`, `rss`. Der Produkt-Feed, den Shops für das Google Merchant Center und
 Preisvergleichsseiten erstellen: RSS 2.0 (oder Atom) mit dem Namensraum `g:`, als Datenstrom gelesen wie XML, externe
 Entitäten werden nie geladen. Jeder Eintrag ist ein Produkt. Felder werden mit dem Präfix `g:` und ohne es gefunden
@@ -220,6 +236,8 @@ Die einzige Option ist `key` (Vorgabe `id`). Vorlage: siehe [die Produktvorlage]
 `gmc-{id}`, Artikelnummer aus `id`.
 
 ## Shopify-Produkt-CSV (`shopify`)
+
+Durchgespieltes Beispiel: [source-examples-platforms.md#shopify-produkt-csv-shopify](source-examples-platforms.md#shopify-produkt-csv-shopify)
 
 Gruppe: Handel. Dateiendung: `csv`. Der Produktexport eines Shopify-Shops (Produkte, Exportieren). Die Zeilen mit
 demselben `Handle` sind ein Produkt: Die erste Zeile enthält das Produkt, weitere Zeilen fügen Varianten und Bilder
@@ -249,6 +267,8 @@ Zeile des nächsten Produkts. Beispiel: `share/examples/products-shopify.csv`.
 Vorlage: [die Produktvorlage](#die-produktvorlage), Remote-ID `shopify-{id}`, Artikelnummer aus `sku`.
 
 ## WooCommerce-Produkt-CSV (`woocommerce`)
+
+Durchgespieltes Beispiel: [source-examples-platforms.md#woocommerce-produkt-csv-woocommerce](source-examples-platforms.md#woocommerce-produkt-csv-woocommerce)
 
 Gruppe: Handel. Dateiendung: `csv`. Der Produktexport von WooCommerce (Produkte, Exportieren) mit den englischen
 Spaltennamen. Eine Zeile ist ein Produkt. Beispiel: `share/examples/products-woocommerce.csv`.
@@ -293,6 +313,8 @@ importieren. Ein Produkt mit leerem Preis schlägt fehl, weil `ezprice` einen Be
 
 ## OPML (`opml`)
 
+Durchgespieltes Beispiel: [source-examples-files.md#opml-opml](source-examples-files.md#opml-opml)
+
 Dateiendungen: `opml`, `xml`. Das Gliederungsformat, in dem Feedreader und Podcast-Apps ihre Abonnements
 exportieren. Jedes `<outline>` ist ein Datensatz:
 
@@ -326,6 +348,8 @@ Importe dann. Ein zweiter Aufruf legt nur die Importe an, deren Kennungen es noc
 
 ## WordPress-Export (`wxr`)
 
+Durchgespieltes Beispiel: [source-examples-files.md#wordpress-export-wxr](source-examples-files.md#wordpress-export-wxr)
+
 Dateiendungen: `xml`, `wxr`. Die Exportdatei von WordPress (Werkzeuge, Daten exportieren). Die Option `records`
 bestimmt, was ein Datensatz ist:
 
@@ -348,6 +372,8 @@ und, wo die Klasse sie hat, Veröffentlichungsdatum, Bild und Schlagwörter). `f
 Adressen, die die Umwandlung `image` herunterlädt.
 
 ## Markdown-Dateien (`markdown`)
+
+Durchgespieltes Beispiel: [source-examples-files.md#ein-ordner-mit-markdown-dateien-markdown](source-examples-files.md#ein-ordner-mit-markdown-dateien-markdown)
 
 Gruppe: Inhalte. Dateiendungen: `zip`, `md`, `markdown`. Eine Markdown-Datei oder ein Ordner als ZIP: eine
 Jekyll- oder Hugo-Site, ein Obsidian-Vault, ein Dokumentationsordner. Jede `.md`- / `.markdown`-Datei ist ein
@@ -384,6 +410,8 @@ Zusammenfassung, Text aus dem HTML und, wo die Klasse sie hat, Veröffentlichung
 
 ## Mediendateien (`media`)
 
+Durchgespieltes Beispiel: [source-examples-files.md#fotos-in-einem-zip-mit-exif-und-iptc-media](source-examples-files.md#fotos-in-einem-zip-mit-exif-und-iptc-media)
+
 Gruppe: Medien. Dateiendungen: `zip`, `jpg`, `jpeg`, `png`, `gif`, `webp`, `tif`, `tiff`, `pdf`, `mp3`, `mp4`.
 Fotos, Dokumente, Audio und Video, eine Datei oder ein Ordner als ZIP. Jede Datei ist ein Datensatz:
 
@@ -412,6 +440,8 @@ wird keine Datei geschrieben. Eine Datei im ZIP über 256 MB wird abgelehnt.
 
 ## Podcast-Feeds (`podcast`) und YouTube- oder Vimeo-Kanal-Feeds (`video_feed`)
 
+Durchgespieltes Beispiel: [source-examples-feeds-web.md#podcast-feed-podcast](source-examples-feeds-web.md#podcast-feed-podcast)
+
 Gruppe: Medien. Beide sind die RSS-Quelle (`rss`) mit einer eigenen Vorlage; jeder RSS- und Atom-Datensatz hat auch
 diese Felder:
 
@@ -430,6 +460,8 @@ Umwandlung `file`). Die Video-Vorlage speichert ein Video als `link` (Name, Besc
 (eine Playlist: `?playlist_id=`), der eines Vimeo-Nutzers `https://vimeo.com/<Nutzer>/videos/rss`.
 
 ## YouTube Data API (`youtube`)
+
+Durchgespieltes Beispiel: [source-examples-feeds-web.md#youtube-data-api-youtube](source-examples-feeds-web.md#youtube-data-api-youtube)
 
 Gruppe: Medien. Die Videos eines YouTube-Kanals, einer Playlist oder einer Suche über die YouTube Data API v3 unter
 `https://www.googleapis.com/youtube/v3/` (der Host ist fest). Anders als der Kanal-Feed (`video_feed`, die letzten 15
@@ -496,6 +528,8 @@ den Verbrauch. **Was der Server braucht:** die PHP-Erweiterung openssl und `allo
 
 ## YouTube-Kanal- oder Playlist-Seite (`youtube_page`, Opt-in)
 
+Durchgespieltes Beispiel: [source-examples-feeds-web.md#scraper-für-youtubecom-seiten-youtube_page-opt-in](source-examples-feeds-web.md#scraper-für-youtubecom-seiten-youtube_page-opt-in)
+
 Gruppe: Medien. **Das maschinelle Lesen von youtube.com-Seiten verstößt gegen die Nutzungsbedingungen von YouTube, und
 diese Quelle kann brechen, sobald YouTube seine Seiten ändert.** Nur dort nutzen, wo es erlaubt ist, und besser die Data
 API (`youtube`) oder den Kanal-Feed (`video_feed`) verwenden. Sie ist standardmäßig **aus**: Bis ein Administrator
@@ -530,6 +564,8 @@ die Seite und meldet, wie viele Videos sie listet.
 
 ## YAML- und TOML-Datendateien (`yaml`, `toml`)
 
+Durchgespieltes Beispiel: [source-examples-files.md#yaml-yaml](source-examples-files.md#yaml-yaml)
+
 Gruppe: Daten. Dateiendungen: `yaml`, `yml`, `toml`. Die Liste der Datensätze steht ganz oben oder unter
 `record_path` (`teas`, `data.items`); in TOML meist ein Array von Tabellen (`[[teas]]`). Eine Zuordnung von
 Zuordnungen ist auch eine Liste: ihre Schlüssel werden zum Feld `_key`. Verschachtelte Werte werden über ihren Pfad
@@ -544,6 +580,8 @@ nicht gelesen. Das Front Matter von Markdown-Dateien nutzt denselben Parser.
 | `key` | das Schlüsselfeld | leer |
 
 ## Apache Avro (`avro`) und Apache Arrow oder Feather (`arrow`)
+
+Durchgespieltes Beispiel: [source-examples-files.md#apache-avro-avro-und-apache-arrow-arrow](source-examples-files.md#apache-avro-avro-und-apache-arrow-arrow)
 
 Gruppe: Daten. Herkunft `upload`, `url` und `path` wie die anderen Dateien. Beide werden allein in PHP gelesen; für die
 üblichen Dateien muss nichts installiert werden.
@@ -598,12 +636,16 @@ Arrow-Datei mit einem Struct, einer Liste, einer Wörterbuch-Spalte und zwei Rec
 
 ## Google Sheets (`google_sheets`)
 
+Durchgespieltes Beispiel: [source-examples-apis.md#google-sheets-über-den-link-google_sheets](source-examples-apis.md#google-sheets-über-den-link-google_sheets)
+
 Gruppe: Daten. Eine Tabelle, die bei jedem Lauf über ihren Link gelesen wird: teilen Sie sie so, dass jeder mit dem
 Link sie ansehen kann (oder veröffentlichen Sie sie im Web), und geben Sie den Link als Adresse an. Der Link wird zum
 CSV-Export der Tabelle, mit dem Tabellenblatt des Links (`#gid=`); die erste Zeile benennt die Spalten. Die Optionen
 sind die von CSV, mit Komma und UTF-8.
 
 ## SQL-Datenbank oder -Abfrage (`sql`)
+
+Durchgespieltes Beispiel: [source-examples-databases.md#sql-datenbanken-sql](source-examples-databases.md#sql-datenbanken-sql)
 
 Gruppe: Plattformen. Herkunft: `remote`. Die Zeilen einer SQL-Abfrage an eine MySQL- oder MariaDB-, PostgreSQL-,
 SQLite-, Oracle- oder Microsoft-SQL-Server-Datenbank (eine Datenbank im Intranet, die Datenbank einer anderen Anwendung): Ein Datensatz ist eine Zeile,
@@ -773,6 +815,8 @@ Definition.
 
 ## Elasticsearch- oder OpenSearch-Index (`elasticsearch`)
 
+Durchgespieltes Beispiel: [source-examples-databases.md#elasticsearch-oder-opensearch-elasticsearch](source-examples-databases.md#elasticsearch-oder-opensearch-elasticsearch)
+
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Dokumente eines Elasticsearch- oder OpenSearch-Index, eines Alias oder eines
 Index-Musters, gelesen über die Such-API per HTTP. Ein Datensatz ist ein Dokument: sein `_source`, verschachtelte
 Objekte zu Feldnamen mit Punkt aufgelöst (`author.name`, `author.address.city`), eine Liste einfacher Werte bleibt eine
@@ -833,6 +877,8 @@ schreibt. Eine Abfrage der veröffentlichten Artikel, die neuesten zuerst:
 ```
 
 ## DuckDB-Abfrage über Dateien (`duckdb`)
+
+Durchgespieltes Beispiel: [source-examples-databases.md#duckdb](source-examples-databases.md#duckdb)
 
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Zeilen einer DuckDB-Abfrage über Dateien auf dem Server: Parquet-, CSV- oder
 JSON-Dateien (eine, mehrere oder ein Muster wie `var/import/exports/*.parquet`) oder eine DuckDB-Datenbankdatei. Ein
@@ -904,6 +950,8 @@ SELECT id, name, origin, kind, price FROM data WHERE kind <> 'herbal' ORDER BY i
 
 ## E-Mail-Postfach über IMAP (`imap`)
 
+Durchgespieltes Beispiel: [source-examples-platforms.md#ein-postfach-über-imap-mit-seinen-anhängen-imap](source-examples-platforms.md#ein-postfach-über-imap-mit-seinen-anhängen-imap)
+
 Gruppe: Inhalte. Herkunft: `remote`. Die Nachrichten eines IMAP-Postfachs (ein Presse-Postfach, eine Adresse für
 Einsendungen): Ein Datensatz ist eine Nachricht. Einmal pro Lauf liest die Quelle die passenden Nachrichten in das
 Verzeichnis des Laufs, eine pro Zeile; die Stichprobe des Editors liest die neuesten.
@@ -955,6 +1003,8 @@ wird (bei langen IDs mit einem Hash gekürzt): Titel aus `subject`, Einleitung a
 als Rich Text), Veröffentlichungsdatum aus `date`.
 
 ## MongoDB-Collection (`mongodb`)
+
+Durchgespieltes Beispiel: [source-examples-databases.md#mongodb-mongodb](source-examples-databases.md#mongodb-mongodb)
 
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Dokumente einer MongoDB-Collection (die Datenbank einer anderen Anwendung,
 ein Produkt- oder Ereignisspeicher): Ein Datensatz ist ein Dokument. Einmal pro Lauf liest die Quelle die passenden
@@ -1046,6 +1096,8 @@ Konfigurationen.
 
 ## Redis-Schlüssel (`redis`)
 
+Durchgespieltes Beispiel: [source-examples-databases.md#redis-redis](source-examples-databases.md#redis-redis)
+
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Schlüssel einer Redis-Datenbank, die zu einem Muster passen (ein Cache mit
 Produktdaten, der Speicher einer anderen Anwendung): Ein Datensatz ist ein Schlüssel. Einmal pro Lauf durchläuft die
 Quelle die Schlüssel mit `SCAN` und schreibt sie in das Verzeichnis des Laufs, ein JSON-Objekt pro Zeile.
@@ -1113,6 +1165,8 @@ Hashes, eine JSON-Zeichenkette und eine Menge), um eine Zuordnung auszuprobieren
 
 ## CouchDB-Datenbank (`couchdb`)
 
+Durchgespieltes Beispiel: [source-examples-databases.md#couchdb-couchdb-und-couchbase-couchbase](source-examples-databases.md#couchdb-couchdb-und-couchbase-couchbase)
+
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Dokumente einer CouchDB-Datenbank (auch IBM Cloudant und andere
 Server, die die CouchDB-API sprechen), über HTTP gelesen: alle Dokumente (`_all_docs`), die Zeilen einer View eines
 Design-Dokuments oder die Antwort einer Mango-Abfrage (`_find`). Ein Datensatz ist ein Dokument mit `_id` und `_rev`.
@@ -1176,6 +1230,8 @@ Dokumente, flachgeklopft).
 
 ## Couchbase-Abfrage (`couchbase`)
 
+Durchgespieltes Beispiel: [source-examples-databases.md#couchdb-couchdb-und-couchbase-couchbase](source-examples-databases.md#couchdb-couchdb-und-couchbase-couchbase)
+
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Ergebnisse einer SQL++-Abfrage (N1QL) von Couchbase Server oder
 Couchbase Capella, gelesen über die REST-API des Query-Dienstes: `POST /query/service` auf Port 8093, mit TLS 18093.
 Ein Datensatz ist ein Ergebnis: ein Objekt, zu Punktnamen flachgeklopft (`stock.store`), ein einfacher Wert
@@ -1227,6 +1283,8 @@ Query-Dienstes mit seinem Code (`12003: Keyspace not found ...`), maskiert.
 **Beispiel:** `share/examples/couchbase-products.ndjson` ist, was ein Lauf aus einer Abfrage von Produkten liest.
 
 ## Azure-Cosmos-DB-Container (`cosmosdb`)
+
+Durchgespieltes Beispiel: [source-examples-databases.md#azure-cosmos-db-cosmosdb](source-examples-databases.md#azure-cosmos-db-cosmosdb)
 
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Elemente eines Azure-Cosmos-DB-Containers der API für NoSQL
 (früher SQL-API), die eine Abfrage auswählt, gelesen über die REST-API und mit Fortsetzungstokens geblättert. Ein
@@ -1286,6 +1344,8 @@ Kontos (`Unauthorized`, `NotFound`, `BadRequest: ...`), maskiert.
 **Beispiel:** `share/examples/cosmosdb-orders.ndjson` ist, was ein Lauf aus einem Container mit Bestellungen liest.
 
 ## Amazon-DynamoDB-Tabelle (`dynamodb`)
+
+Durchgespieltes Beispiel: [source-examples-databases.md#amazon-dynamodb-dynamodb](source-examples-databases.md#amazon-dynamodb-dynamodb)
 
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Items einer DynamoDB-Tabelle oder eines ihrer Indizes, gelesen mit
 `Scan` oder `Query` über die HTTPS-API von DynamoDB: Ein Datensatz ist ein Item. Die Anfragen werden mit AWS Signature
@@ -1376,6 +1436,8 @@ das Dienstkonto darf, entscheiden seine IAM-Rollen: Geben Sie ihm nur die unten 
 
 ### Firestore-Collection (`firestore`)
 
+Durchgespieltes Beispiel: [source-examples-databases.md#firestore-firestore](source-examples-databases.md#firestore-firestore)
+
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Dokumente einer Collection, einer Subcollection oder einer
 Collection-Gruppe einer Firestore-Datenbank (nativer Modus), gelesen über die Firestore-REST-API v1: Ein Datensatz ist
 ein Dokument.
@@ -1429,6 +1491,8 @@ Werte des letzten Dokuments einer Seite (oder mit `offset`, langsamer bei große
 
 ### BigQuery-Abfrage (`bigquery`)
 
+Durchgespieltes Beispiel: [source-examples-databases.md#bigquery-bigquery](source-examples-databases.md#bigquery-bigquery)
+
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Zeilen einer GoogleSQL-Abfrage (Standard-SQL), ausgeführt über die
 BigQuery-REST-API v2 (`jobs.query` mit `useLegacySql=false`): Ein Datensatz ist eine Zeile.
 
@@ -1480,6 +1544,8 @@ auch die Token-Anfrage signiert, im PHP des Webservers und der Worker der Job-Wa
 
 ## Firebase Realtime Database (`firebase_rtdb`)
 
+Durchgespieltes Beispiel: [source-examples-apis.md#firebase-realtime-database-firebase_rtdb](source-examples-apis.md#firebase-realtime-database-firebase_rtdb)
+
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Kinder eines Pfads einer Firebase Realtime Database, gelesen über
 ihre REST-API: Ein Datensatz ist ein Kind, `_key` mit seinem Wert; verschachtelte Objekte werden zu Namen mit Punkten
 aufgelöst (`author.name`), Arrays sind JSON oder verbunden, und ein Kind, das ein einfacher Wert ist, ergibt `_key` und
@@ -1521,6 +1587,8 @@ maskierte Fehler.
 **Beispiel:** `share/examples/firebase-articles.ndjson` ist, was ein Lauf aus `/articles` liest.
 
 ## Cassandra- oder ScyllaDB-Abfrage (`cassandra`)
+
+Durchgespieltes Beispiel: [source-examples-databases.md#cassandra-oder-scylladb-cassandra](source-examples-databases.md#cassandra-oder-scylladb-cassandra)
 
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Zeilen eines CQL-`SELECT` gegen Apache Cassandra oder ScyllaDB: Ein
 Datensatz ist eine Zeile. Einmal pro Lauf blättert die Quelle durch das Ergebnis und schreibt die Zeilen in das
@@ -1606,6 +1674,8 @@ Laufs, ein JSON-Objekt pro Zeile. Gemeinsam ist ihnen:
 
 ### Neo4j und Memgraph (`neo4j`)
 
+Durchgespieltes Beispiel: [source-examples-databases.md#neo4j-oder-memgraph-neo4j](source-examples-databases.md#neo4j-oder-memgraph-neo4j)
+
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Zeilen einer Cypher-Abfrage. Ein Knoten sind seine Eigenschaften mit
 `_labels` (eine Liste) und `_element_id`; eine Beziehung ihre Eigenschaften mit `_type`, `_element_id`, `_start` und
 `_end`; ein Pfad das JSON seiner Knoten und Beziehungen in ihrer Reihenfolge; Zeitwerte ISO 8601 (`2026-03-02`,
@@ -1675,6 +1745,8 @@ ORDER BY a.id
 
 ### ArangoDB (`arangodb`)
 
+Durchgespieltes Beispiel: [source-examples-databases.md#arangodb-arangodb](source-examples-databases.md#arangodb-arangodb)
+
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Ergebnisse einer AQL-Abfrage über die HTTP-Cursor-API. Ein Dokument
 wird aufgelöst, `_key`, `_id` und `_rev` (und `_from`, `_to` einer Kante) zuerst; ein Ergebnis, das kein Objekt ist
 (eine Zahl, eine Zeichenkette, eine Liste), wird zum Feld `value`.
@@ -1712,6 +1784,8 @@ FOR a IN articles
 ```
 
 ### ClickHouse (`clickhouse`)
+
+Durchgespieltes Beispiel: [source-examples-databases.md#clickhouse-clickhouse](source-examples-databases.md#clickhouse-clickhouse)
 
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Zeilen eines `SELECT` über die HTTP-Schnittstelle (Port 8123, oder
 8443 mit TLS) im Format `JSONEachRow`. Die Typen sind so, wie ClickHouse sie in JSON schreibt: `Int64`, `UInt64` und
@@ -1755,6 +1829,8 @@ SELECT path, sum(views) AS views FROM page_views WHERE day >= today() - 7 GROUP 
 
 ### Snowflake (`snowflake`)
 
+Durchgespieltes Beispiel: [source-examples-databases.md#snowflake-snowflake](source-examples-databases.md#snowflake-snowflake)
+
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Zeilen einer Abfrage über die SQL API v2
 (`POST /api/v2/statements`) mit **Schlüsselpaar-Authentifizierung**: Die Quelle signiert ein JWT mit dem privaten
 RSA-Schlüssel des Benutzers (RS256, openssl von PHP); sein Aussteller ist `<ACCOUNT>.<USER>.SHA256:<Fingerabdruck>`,
@@ -1796,6 +1872,8 @@ signiert auch das Token).
 **Beispiel:** `share/examples/snowflake-orders.ndjson`, drei Bestellungen, wie die Quelle sie schreibt.
 
 ### InfluxDB (`influxdb`)
+
+Durchgespieltes Beispiel: [source-examples-databases.md#influxdb-influxdb](source-examples-databases.md#influxdb-influxdb)
 
 Gruppe: NoSQL-Datenbanken. Herkunft: `remote`. Die Zeilen einer **Flux**-Abfrage (InfluxDB 2, InfluxDB Cloud;
 `POST /api/v2/query`, die Antwort als annotiertes CSV) oder einer **InfluxQL**-Abfrage (InfluxDB 1 und die
@@ -1851,6 +1929,8 @@ from(bucket: "sensors")
 ```
 
 ## LDAP-Verzeichnis (`ldap`)
+
+Durchgespieltes Beispiel: [source-examples-databases.md#ldap-oder-active-directory-ldap](source-examples-databases.md#ldap-oder-active-directory-ldap)
 
 Gruppe: Daten. Herkunft: `remote`. Die Einträge eines LDAP-Verzeichnisses (OpenLDAP, Active Directory, 389 Directory
 Server und ähnliche): Ein Datensatz ist ein Eintrag einer Suche, seine Felder sind der DN (`dn`) und die Attribute des
@@ -1967,6 +2047,8 @@ author=xpath://span[@itemprop='author']
 
 ### `sitemap`
 
+Durchgespieltes Beispiel: [source-examples-feeds-web.md#seiten-einer-website-über-ihre-sitemap-sitemap](source-examples-feeds-web.md#seiten-einer-website-über-ihre-sitemap-sitemap)
+
 Die Seiten, die eine Sitemap aufführt (`sitemap.xml`, mit gzip komprimiert oder nicht, oder eine Textdatei mit
 Adressen), auch über einen Sitemap-Index; für die Wurzel einer Website (`https://example.org/`) oder ihre
 `robots.txt` die Zeilen `Sitemap:` der robots.txt (sonst `/sitemap.xml`). Gelesen werden nur Seiten und Sitemaps
@@ -1991,6 +2073,8 @@ Seiten; eine lokale Sitemap-Datei führt ihre Seiten auf, ohne sie zu lesen) und
 Momentaufnahme eines Durchlaufs: drei Seiten gelesen, eine von robots.txt abgelehnt).
 
 ### `webpage`
+
+Durchgespieltes Beispiel: [source-examples-feeds-web.md#webseiten-scraper-webpage](source-examples-feeds-web.md#webseiten-scraper-webpage)
 
 Eine Seite oder eine Liste von Adressen (Option `urls`). Mit einem Selektor `item` wird jedes Element, das er auf
 einer Seite findet (ein Produkt einer Liste, ein Termin eines Kalenders), ein eigener Datensatz, und die Picks gelten
@@ -2032,6 +2116,8 @@ liest. Der Probelauf des Editors liest nur so viele Datensätze, wie er zeigt. E
 
 ### Drupal (`drupal`)
 
+Durchgespieltes Beispiel: [source-examples-platforms.md#drupal-jsonapi-drupal](source-examples-platforms.md#drupal-jsonapi-drupal)
+
 Gruppe: Plattformen. Inhalte einer Drupal-Website über die JSON:API des Drupal-Kerns (ab Drupal 8.7). Die Quelle
 fragt `<Website>/jsonapi/<Entitätstyp>/<Bundle>` ab und folgt `links.next` Seite für Seite.
 
@@ -2059,6 +2145,8 @@ sie hat, Veröffentlichungsdatum (`created`), Bild (`image_url`, heruntergeladen
 Bildobjekt) und Schlagwörter. Die Remote-ID ist `drupal-<UUID>`, sodass ein späterer Lauf die Objekte aktualisiert.
 
 ### Eine andere Exponential-Website (`exponential_site`)
+
+Durchgespieltes Beispiel: [source-examples-platforms.md#eine-andere-exponential-website-über-rest-exponential_site](source-examples-platforms.md#eine-andere-exponential-website-über-rest-exponential_site)
 
 Gruppe: Plattformen. Inhalte einer anderen Exponential-Website über ihre REST-API v1 (die Erweiterung ezprestapi, die
 Schnittstelle der mobilen Anwendungen): Die Quelle fragt
@@ -2124,6 +2212,8 @@ gilt:
 
 ### Airtable (`airtable`)
 
+Durchgespieltes Beispiel: [source-examples-apis.md#airtable-airtable](source-examples-apis.md#airtable-airtable)
+
 Gruppe: Plattformen. Die Datensätze einer Airtable-Tabelle über die Airtable Web API (v0): Die Quelle fragt
 `https://api.airtable.com/v0/<Base>/<Tabelle>` ab und folgt dem `offset` jeder Antwort.
 
@@ -2158,6 +2248,8 @@ Tabelle `Events`; der Katalog zeigt außerdem eine Konfiguration für die veröf
 Ansicht.
 
 ### Notion (`notion`)
+
+Durchgespieltes Beispiel: [source-examples-apis.md#notion-notion](source-examples-apis.md#notion-notion)
 
 Gruppe: Plattformen. Die Seiten einer Notion-Datenbank über die Notion-API (Version `2022-06-28`): Die Quelle fragt
 `POST https://api.notion.com/v1/databases/<ID>/query` mit Filter und Sortierung des Imports ab und folgt
@@ -2206,6 +2298,8 @@ zuerst, mit dem Inhalt als HTML.
 
 ### Supabase oder PostgREST (`supabase`)
 
+Durchgespieltes Beispiel: [source-examples-apis.md#supabase-oder-postgrest-supabase](source-examples-apis.md#supabase-oder-postgrest-supabase)
+
 Gruppe: Plattformen. Die Zeilen einer Tabelle oder Sicht eines Supabase-Projekts über seine REST-API, oder eines
 beliebigen PostgREST-Servers: Die Quelle fragt `GET <Basis>/<Tabelle>?select=...&<Filter>&order=...` Seite für Seite
 ab. Bei einer Adresse auf `supabase.co` wird der Pfad `/rest/v1` ergänzt; jeder andere Server wird mit dem angegebenen
@@ -2248,6 +2342,8 @@ PostgREST sie liefert: Text, Zahlen, Wahrheitswerte, Zeitstempel in ISO 8601, wi
 
 ### Baserow (`baserow`)
 
+Durchgespieltes Beispiel: [source-examples-apis.md#baserow-baserow](source-examples-apis.md#baserow-baserow)
+
 Gruppe: Plattformen. Die Zeilen einer Baserow-Tabelle über ihre REST-API, auf baserow.io oder selbst betrieben: Die
 Quelle fragt `GET <Basis>/api/database/rows/table/<ID>/?user_field_names=true&size=...&page=...` ab, solange die
 Antwort ein `next` hat.
@@ -2282,6 +2378,8 @@ verloren geht); eine leere Liste als `[]`. Verbindung testen liest eine Zeile un
 **Beispiel:** `share/examples/baserow-events.ndjson` (drei erfundene Veranstaltungen).
 
 ### Salesforce (`salesforce`)
+
+Durchgespieltes Beispiel: [source-examples-apis.md#salesforce-soql-salesforce](source-examples-apis.md#salesforce-soql-salesforce)
 
 Gruppe: Plattformen. Die Datensätze einer SOQL-Abfrage über die Salesforce-REST-API: Die Quelle meldet sich mit einer
 Connected App an, führt `GET <Instanz>/services/data/<Version>/query?q=...` aus (oder `queryAll`, das auch gelöschte
@@ -2327,6 +2425,8 @@ sich an, liest einen Datensatz und die `totalSize`.
 
 ### HubSpot (`hubspot`)
 
+Durchgespieltes Beispiel: [source-examples-apis.md#hubspot-hubspot](source-examples-apis.md#hubspot-hubspot)
+
 Gruppe: Plattformen. Die Objekte eines HubSpot-CRM-Objekttyps über die CRM-API v3 unter `https://api.hubapi.com`:
 `contacts`, `companies`, `deals`, `tickets`, `products`, `line_items` oder ein eigenes Objekt (`2-1234567`,
 `p_<Name>`).
@@ -2369,6 +2469,8 @@ die Gesamtzahl einer Suche).
 **Beispiel:** `share/examples/hubspot-companies.ndjson` (drei erfundene Firmen mit den IDs ihrer Kontakte).
 
 ## Beliebige JSON-REST-API (`rest_api`)
+
+Durchgespieltes Beispiel: [source-examples-apis.md#beliebige-json-rest-api-rest_api](source-examples-apis.md#beliebige-json-rest-api-rest_api)
 
 Gruppe: Daten. Herkunft: `remote`. Die Datensätze einer beliebigen REST-API, die mit JSON antwortet (die Produkt-API
 eines Shops, ein Veranstaltungskalender, die Inhalts-API eines CMS, ein interner Dienst): Einmal pro Lauf fragt die
@@ -2491,6 +2593,8 @@ und Kategorien).
 
 ### Joomla-Beiträge (`joomla`)
 
+Durchgespieltes Beispiel: [source-examples-platforms.md#joomla-beiträge-csv-oder-xml-joomla](source-examples-platforms.md#joomla-beiträge-csv-oder-xml-joomla)
+
 Gruppe: Plattformen. Dateiendungen: `csv`, `xml`. Beiträge einer Joomla-Website (com_content), exportiert als CSV
 mit den Spalten der Beitragstabelle (`id`, `title`, `alias`, `introtext`, `fulltext`, `catid` oder `category_title`,
 `state`, `created`, `publish_up`, `language`, `metadesc`, `metakey`, `images` …) oder als XML: J2XML (Beiträge als
@@ -2517,6 +2621,8 @@ Die Vorlage bildet einen Beitrag auf einen `article` ab (Titel, Einleitung, Text
 Veröffentlichungsdatum, Bild und Schlüsselwörter als Schlagwörter), mit der Remote-ID `joomla-<id>`.
 
 ### Exponential-Pakete (`ezpkg`)
+
+Durchgespieltes Beispiel: [source-examples-platforms.md#exponential-pakete-ezpkg](source-examples-platforms.md#exponential-pakete-ezpkg)
 
 Gruppe: Plattformen. Dateiendungen: `ezpkg`, `tgz`. Ein Inhaltspaket einer Exponential-Website (Einrichtung, Pakete,
 der Export eines Pakets mit Inhaltsobjekten). Jedes Inhaltsobjekt ist ein Datensatz. Das Archiv wird mit PharData

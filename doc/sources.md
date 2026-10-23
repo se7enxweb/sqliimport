@@ -34,6 +34,8 @@ key is not processed.
 
 ## CSV, TSV and delimited text (`csv`, `tsv`)
 
+Worked example: [source-examples-files.md#csv-csv](source-examples-files.md#csv-csv)
+
 File name extensions: `csv`, `tsv`, `txt`. The file is read as a stream, one record per line (a quoted field may
 span lines). Each record is keyed by the header line.
 
@@ -50,6 +52,8 @@ columns are named `0`, `1`, `2` and so on.
 
 ## XML (`xml`)
 
+Worked example: [source-examples-files.md#xml-xml](source-examples-files.md#xml-xml)
+
 File name extension: `xml`. The file is read as a stream with XMLReader. External entities are never loaded.
 
 | Option | Meaning |
@@ -63,6 +67,8 @@ the text of an element that also has attributes or children as `#text`. Example:
 `<book id="7"><title>Dune</title></book>` the paths are `@id` and `title`.
 
 ## RSS / Atom (`rss`)
+
+Worked example: [source-examples-feeds-web.md#rss-and-atom-rss](source-examples-feeds-web.md#rss-and-atom-rss)
 
 File name extensions: `xml`, `rss`, `atom`. RSS 2.0 and Atom are detected from the file. Each item or entry is one
 record with the same fields in both formats, so one mapping fits both:
@@ -84,6 +90,8 @@ The only option is `key` (default `id`). This source replaces the RSS sample han
 
 ## JSON and JSON Lines (`json`, `ndjson`)
 
+Worked example: [source-examples-files.md#json-lines-ndjson](source-examples-files.md#json-lines-ndjson)
+
 File name extensions: `json`, `ndjson`, `jsonl`.
 
 | Option | Values | Default |
@@ -95,6 +103,8 @@ File name extensions: `json`, `ndjson`, `jsonl`.
 A JSON file is read whole. NDJSON is read as a stream, so deliver very large exports as NDJSON.
 
 ## Spreadsheets (`spreadsheet`)
+
+Worked example: [source-examples-files.md#spreadsheets-xlsx-and-ods-spreadsheet](source-examples-files.md#spreadsheets-xlsx-and-ods-spreadsheet)
 
 File name extensions: `xlsx` (Excel) and `ods` (OpenDocument, as LibreOffice saves it). The format is detected from
 the file. Both are ZIP files of XML, which the source reads as streams, without a spreadsheet library. It needs the
@@ -123,6 +133,8 @@ Values come as they are stored in the file:
 A very large spreadsheet is read faster when it is saved as CSV.
 
 ## iCalendar (`ical`)
+
+Worked example: [source-examples-files.md#icalendar-ical](source-examples-files.md#icalendar-ical)
 
 Group: content. File name extensions: `ics`, `ical`, `ifb`, `txt`. Calendar files (RFC 5545) as calendar apps,
 booking systems and event sites publish them, from an upload or a subscription address. The file is read as a
@@ -164,6 +176,8 @@ to `text` (rich text), `categories` to `category` (keywords, joined), `start_tim
 
 ## vCard (`vcard`)
 
+Worked example: [source-examples-files.md#vcard-vcard](source-examples-files.md#vcard-vcard)
+
 Group: content. File name extensions: `vcf`, `vcard`, `txt`. Contacts as address books, phones and mail programs
 export them: vCard 4.0 and 3.0, and of 2.1 what is common (bare types such as `TEL;WORK`, quoted-printable values
 with `CHARSET`). Every `BEGIN:VCARD` ... `END:VCARD` is one record, read as a stream like iCalendar. Example:
@@ -191,6 +205,8 @@ names agreed to it.
 
 ## Google Merchant feed (`google_merchant`)
 
+Worked example: [source-examples-platforms.md#google-merchant-feed-google_merchant](source-examples-platforms.md#google-merchant-feed-google_merchant)
+
 Group: commerce. File name extensions: `xml`, `rss`. The product feed shops make for Google Merchant Center and
 price comparison sites: RSS 2.0 (or Atom) with the `g:` namespace, read as a stream like XML, external entities
 never loaded. Every item is one product. Fields are found with the prefix `g:` and without it (`<title>` and
@@ -215,6 +231,8 @@ The only option is `key` (default `id`). Preset: see [the product preset](#the-p
 `gmc-{id}`, product number from `id`.
 
 ## Shopify product CSV (`shopify`)
+
+Worked example: [source-examples-platforms.md#shopify-product-csv-shopify](source-examples-platforms.md#shopify-product-csv-shopify)
 
 Group: commerce. File name extension: `csv`. The product export of a Shopify store (Products, Export). The rows
 that share a `Handle` are one product: the first row holds the product, further rows add variants and images. The
@@ -244,6 +262,8 @@ Example: `share/examples/products-shopify.csv`.
 Preset: [the product preset](#the-product-preset), remote ID `shopify-{id}`, product number from `sku`.
 
 ## WooCommerce product CSV (`woocommerce`)
+
+Worked example: [source-examples-platforms.md#woocommerce-product-csv-woocommerce](source-examples-platforms.md#woocommerce-product-csv-woocommerce)
 
 Group: commerce. File name extension: `csv`. The product export of WooCommerce (Products, Export) with the English
 column names. One row is one product. Example: `share/examples/products-woocommerce.csv`.
@@ -287,6 +307,8 @@ refuses an amount that is not a number.
 
 ## OPML (`opml`)
 
+Worked example: [source-examples-files.md#opml-opml](source-examples-files.md#opml-opml)
+
 File name extensions: `opml`, `xml`. The outline format feed readers and podcast apps export their subscriptions
 in. Every `<outline>` is a record:
 
@@ -320,6 +342,8 @@ the imports whose identifiers do not exist yet.
 
 ## WordPress export (`wxr`)
 
+Worked example: [source-examples-files.md#wordpress-export-wxr](source-examples-files.md#wordpress-export-wxr)
+
 File name extensions: `xml`, `wxr`. The export file of WordPress (Tools, Export). The option `records` chooses what a
 record is:
 
@@ -342,6 +366,8 @@ has them, publish date, image and tags). `featured_image` and `images` are addre
 downloads.
 
 ## Markdown files (`markdown`)
+
+Worked example: [source-examples-files.md#a-folder-of-markdown-files-markdown](source-examples-files.md#a-folder-of-markdown-files-markdown)
 
 Group: content. File name extensions: `zip`, `md`, `markdown`. One Markdown file, or a folder as ZIP: a Jekyll or
 Hugo site, an Obsidian vault, a documentation folder. Every `.md` / `.markdown` file is a record. Front matter in
@@ -378,6 +404,8 @@ and, where the class has them, publish date and tags).
 
 ## Media files (`media`)
 
+Worked example: [source-examples-files.md#photos-in-a-zip-with-exif-and-iptc-media](source-examples-files.md#photos-in-a-zip-with-exif-and-iptc-media)
+
 Group: media. File name extensions: `zip`, `jpg`, `jpeg`, `png`, `gif`, `webp`, `tif`, `tiff`, `pdf`, `mp3`, `mp4`.
 Photos, documents, audio and video, one file or a folder as ZIP. Every file is a record:
 
@@ -406,6 +434,8 @@ ZIP larger than 256 MB is refused.
 
 ## Podcast feeds (`podcast`) and YouTube or Vimeo channel feeds (`video_feed`)
 
+Worked example: [source-examples-feeds-web.md#podcast-feed-podcast](source-examples-feeds-web.md#podcast-feed-podcast)
+
 Group: media. Both are the RSS source (`rss`) with a preset of their own; every RSS and Atom record also has these
 fields:
 
@@ -424,6 +454,8 @@ transform `file`). The video preset stores a video as a `link` (name, descriptio
 (a playlist: `?playlist_id=`), a Vimeo user's `https://vimeo.com/<user>/videos/rss`.
 
 ## YouTube Data API (`youtube`)
+
+Worked example: [source-examples-feeds-web.md#youtube-data-api-youtube](source-examples-feeds-web.md#youtube-data-api-youtube)
 
 Group: media. The videos of a YouTube channel, of a playlist or of a search through the YouTube Data API v3 at
 `https://www.googleapis.com/youtube/v3/` (the host is fixed). Unlike the channel feed (`video_feed`, the last 15
@@ -488,6 +520,8 @@ video for a search without a channel, so a test never costs the 100 units of a s
 
 ## YouTube channel or playlist page (`youtube_page`, opt-in)
 
+Worked example: [source-examples-feeds-web.md#youtubecom-page-scraper-youtube_page-opt-in](source-examples-feeds-web.md#youtubecom-page-scraper-youtube_page-opt-in)
+
 Group: media. **Reading youtube.com pages with a program is against YouTube's Terms of Service, and this source may
 break whenever YouTube changes its pages.** Use it only where you may, and prefer the Data API (`youtube`) or the
 channel feed (`video_feed`). It is **off** by default: until an administrator sets `sqliimport.ini [YouTubeSettings]
@@ -520,6 +554,8 @@ the page and reports how many videos it lists.
 
 ## YAML and TOML data files (`yaml`, `toml`)
 
+Worked example: [source-examples-files.md#yaml-yaml](source-examples-files.md#yaml-yaml)
+
 Group: data. File name extensions: `yaml`, `yml`, `toml`. The list of records is at the top or at `record_path`
 (`teas`, `data.items`); in TOML usually an array of tables (`[[teas]]`). A mapping of mappings is a list too: its
 keys become the field `_key`. Nested values are mapped by their path (`price.amount`). The file is read whole, by
@@ -533,6 +569,8 @@ the extension's own parser: a file reads the same on every server, with or witho
 | `key` | the key field | empty |
 
 ## Apache Avro (`avro`) and Apache Arrow or Feather (`arrow`)
+
+Worked example: [source-examples-files.md#apache-avro-avro-and-apache-arrow-arrow](source-examples-files.md#apache-avro-avro-and-apache-arrow-arrow)
 
 Group: data. Origins `upload`, `url` and `path`, like the other files. Both are read in PHP alone; nothing has to be
 installed for the usual files.
@@ -586,11 +624,15 @@ dictionary column and two record batches).
 
 ## Google Sheets (`google_sheets`)
 
+Worked example: [source-examples-apis.md#google-sheets-by-its-link-google_sheets](source-examples-apis.md#google-sheets-by-its-link-google_sheets)
+
 Group: data. A spreadsheet read at every run from its link: share it so that anyone with the link can view it (or
 publish it to the web) and give the link as the address. The link is turned into the sheet's CSV export, keeping the
 tab of the link (`#gid=`); the first row names the columns. The options are those of CSV, with a comma and UTF-8.
 
 ## SQL database or query (`sql`)
+
+Worked example: [source-examples-databases.md#sql-databases-sql](source-examples-databases.md#sql-databases-sql)
 
 Group: platforms. Origin: `remote`. The rows of an SQL query against a MySQL or MariaDB, PostgreSQL, SQLite, Oracle or
 Microsoft SQL Server database (an intranet database, the database of another application): one record is one row, its fields the
@@ -748,6 +790,8 @@ error, and never goes into the import, a run, a log or an exported definition.
 
 ## Elasticsearch or OpenSearch index (`elasticsearch`)
 
+Worked example: [source-examples-databases.md#elasticsearch-or-opensearch-elasticsearch](source-examples-databases.md#elasticsearch-or-opensearch-elasticsearch)
+
 Group: NoSQL databases. Origin: `remote`. The documents of an Elasticsearch or OpenSearch index, alias or index pattern, read
 through the search API over HTTP. One record is one document: its `_source` with nested objects flattened to dotted
 field names (`author.name`, `author.address.city`), a list of plain values kept as a list (`tags`), a list of objects
@@ -805,6 +849,8 @@ for the published articles, newest first:
 ```
 
 ## DuckDB query over files (`duckdb`)
+
+Worked example: [source-examples-databases.md#duckdb](source-examples-databases.md#duckdb)
 
 Group: NoSQL databases. Origin: `remote`. The rows of a DuckDB query over files on the server: Parquet, CSV or JSON files (one,
 several, or a pattern such as `var/import/exports/*.parquet`), or a DuckDB database file. One record is one row, its
@@ -870,6 +916,8 @@ SELECT id, name, origin, kind, price FROM data WHERE kind <> 'herbal' ORDER BY i
 
 ## E-mail inbox via IMAP (`imap`)
 
+Worked example: [source-examples-platforms.md#a-mailbox-over-imap-with-its-attachments-imap](source-examples-platforms.md#a-mailbox-over-imap-with-its-attachments-imap)
+
 Group: content. Origin: `remote`. The messages of an IMAP mailbox (a press inbox, a submissions address): one record
 is one message. Once per run the source reads the matching messages into the run's directory, one per line; the
 editor's sample reads the newest ones.
@@ -920,6 +968,8 @@ when it is long): title from `subject`, intro from `summary`, body from `body` (
 `date`.
 
 ## MongoDB collection (`mongodb`)
+
+Worked example: [source-examples-databases.md#mongodb-mongodb](source-examples-databases.md#mongodb-mongodb)
 
 Group: NoSQL databases. Origin: `remote`. The documents of a MongoDB collection (the database of another application, a product
 or event store): one record is one document. Once per run the source reads the matching documents page by page and
@@ -1006,6 +1056,8 @@ documents, flattened), to try a mapping; the catalogue's other examples are conf
 
 ## Redis keys (`redis`)
 
+Worked example: [source-examples-databases.md#redis-redis](source-examples-databases.md#redis-redis)
+
 Group: NoSQL databases. Origin: `remote`. The keys of a Redis database that match a pattern (a cache of product data, the store
 of another application): one record is one key. Once per run the source walks the keys with `SCAN` and writes them
 into the run's directory, one JSON object per line.
@@ -1066,6 +1118,8 @@ install redis`; Debian: `php-redis`); without it, a small client of the extensio
 string and a set), to try a mapping.
 
 ## CouchDB database (`couchdb`)
+
+Worked example: [source-examples-databases.md#couchdb-couchdb-and-couchbase-couchbase](source-examples-databases.md#couchdb-couchdb-and-couchbase-couchbase)
 
 Group: NoSQL databases. Origin: `remote`. The documents of a CouchDB database (also IBM Cloudant and other servers
 that speak the CouchDB API), read over HTTP: all documents (`_all_docs`), the rows of a view of a design document, or
@@ -1128,6 +1182,8 @@ documents, flattened).
 
 ## Couchbase query (`couchbase`)
 
+Worked example: [source-examples-databases.md#couchdb-couchdb-and-couchbase-couchbase](source-examples-databases.md#couchdb-couchdb-and-couchbase-couchbase)
+
 Group: NoSQL databases. Origin: `remote`. The results of a SQL++ (N1QL) query of Couchbase Server or Couchbase Capella,
 read through the REST API of the Query service: `POST /query/service` on port 8093, or 18093 with TLS. One record is
 one result: an object flattened to dotted names (`stock.store`), a plain value (`SELECT RAW`) as `value`.
@@ -1177,6 +1233,8 @@ service with its code (`12003: Keyspace not found ...`), masked.
 **Example:** `share/examples/couchbase-products.ndjson` is what a run reads from a query of products.
 
 ## Azure Cosmos DB container (`cosmosdb`)
+
+Worked example: [source-examples-databases.md#azure-cosmos-db-cosmosdb](source-examples-databases.md#azure-cosmos-db-cosmosdb)
 
 Group: NoSQL databases. Origin: `remote`. The items of an Azure Cosmos DB container of the API for NoSQL (formerly the
 SQL API) that a query selects, read through the REST API and paged with continuation tokens. One record is one item,
@@ -1233,6 +1291,8 @@ unless `AllowPrivateHosts=enabled` or it is listed in `[CosmosDbSourceSettings] 
 **Example:** `share/examples/cosmosdb-orders.ndjson` is what a run reads from a container of orders.
 
 ## Amazon DynamoDB table (`dynamodb`)
+
+Worked example: [source-examples-databases.md#amazon-dynamodb-dynamodb](source-examples-databases.md#amazon-dynamodb-dynamodb)
 
 Group: NoSQL databases. Origin: `remote`. The items of a DynamoDB table or one of its indexes, read with `Scan` or
 `Query` through the DynamoDB HTTPS API: one record is one item. The requests are signed with AWS Signature Version 4
@@ -1321,6 +1381,8 @@ limits the requests of a run.
 
 ### Firestore collection (`firestore`)
 
+Worked example: [source-examples-databases.md#firestore-firestore](source-examples-databases.md#firestore-firestore)
+
 Group: NoSQL databases. Origin: `remote`. The documents of a collection, a subcollection or a collection group of a
 Firestore database (native mode), read through the Firestore REST API v1: one record is one document.
 
@@ -1372,6 +1434,8 @@ last document of a page (or with `offset`, slower for large collections); a list
 
 ### BigQuery query (`bigquery`)
 
+Worked example: [source-examples-databases.md#bigquery-bigquery](source-examples-databases.md#bigquery-bigquery)
+
 Group: NoSQL databases. Origin: `remote`. The rows of a GoogleSQL (standard SQL) query, run through the BigQuery REST
 API v2 (`jobs.query` with `useLegacySql=false`): one record is one row.
 
@@ -1422,6 +1486,8 @@ signs the token request, in the web server's PHP and in the job queue's workers.
 
 ## Firebase Realtime Database (`firebase_rtdb`)
 
+Worked example: [source-examples-apis.md#firebase-realtime-database-firebase_rtdb](source-examples-apis.md#firebase-realtime-database-firebase_rtdb)
+
 Group: NoSQL databases. Origin: `remote`. The children of a path of a Firebase Realtime Database, read through its REST
 API: one record is one child, `_key` with its value; nested objects are flattened into dotted names (`author.name`),
 arrays are JSON or joined, and a child that is a plain value gives `_key` and `value`. A path that holds a plain value
@@ -1461,6 +1527,8 @@ then each page reads its keys with `startAt` and `endAt`, so no request download
 **Example:** `share/examples/firebase-articles.ndjson` is what a run reads from `/articles`.
 
 ## Cassandra or ScyllaDB query (`cassandra`)
+
+Worked example: [source-examples-databases.md#cassandra-or-scylladb-cassandra](source-examples-databases.md#cassandra-or-scylladb-cassandra)
 
 Group: NoSQL databases. Origin: `remote`. The rows of a CQL `SELECT` against Apache Cassandra or ScyllaDB: one record
 is one row. Once per run the source pages through the result and writes the rows into the run's directory.
@@ -1541,6 +1609,8 @@ JSON object per line. They have in common:
 
 ### Neo4j and Memgraph (`neo4j`)
 
+Worked example: [source-examples-databases.md#neo4j-or-memgraph-neo4j](source-examples-databases.md#neo4j-or-memgraph-neo4j)
+
 Group: NoSQL databases. Origin: `remote`. The rows of a Cypher query. A node is its properties with `_labels` (a list)
 and `_element_id`; a relationship its properties with `_type`, `_element_id`, `_start` and `_end`; a path the JSON of
 its nodes and relationships in order; temporal values ISO 8601 (`2026-03-02`, `2026-03-02T10:00:00.5+01:00`,
@@ -1606,6 +1676,8 @@ ORDER BY a.id
 
 ### ArangoDB (`arangodb`)
 
+Worked example: [source-examples-databases.md#arangodb-arangodb](source-examples-databases.md#arangodb-arangodb)
+
 Group: NoSQL databases. Origin: `remote`. The results of an AQL query through the HTTP cursor API. A document is
 flattened with `_key`, `_id` and `_rev` (and `_from`, `_to` of an edge) first; a result that is not an object (a
 number, a string, a list) becomes the field `value`.
@@ -1642,6 +1714,8 @@ FOR a IN articles
 ```
 
 ### ClickHouse (`clickhouse`)
+
+Worked example: [source-examples-databases.md#clickhouse-clickhouse](source-examples-databases.md#clickhouse-clickhouse)
 
 Group: NoSQL databases. Origin: `remote`. The rows of a `SELECT` through the HTTP interface (port 8123, or 8443 with
 TLS) in the format `JSONEachRow`. Types are as ClickHouse writes them in JSON: `Int64`, `UInt64` and larger integers
@@ -1683,6 +1757,8 @@ SELECT path, sum(views) AS views FROM page_views WHERE day >= today() - 7 GROUP 
 
 ### Snowflake (`snowflake`)
 
+Worked example: [source-examples-databases.md#snowflake-snowflake](source-examples-databases.md#snowflake-snowflake)
+
 Group: NoSQL databases. Origin: `remote`. The rows of a query through the SQL API v2 (`POST /api/v2/statements`) with
 **key-pair authentication**: the source signs a JWT with the user's RSA private key (RS256, PHP's openssl); its
 issuer is `<ACCOUNT>.<USER>.SHA256:<fingerprint>`, the fingerprint computed from the public key exactly as
@@ -1721,6 +1797,8 @@ again every second until it ends or `[SnowflakeSourceSettings] StatementTimeout`
 **Example:** `share/examples/snowflake-orders.ndjson`, three orders as the source writes them.
 
 ### InfluxDB (`influxdb`)
+
+Worked example: [source-examples-databases.md#influxdb-influxdb](source-examples-databases.md#influxdb-influxdb)
 
 Group: NoSQL databases. Origin: `remote`. The rows of a **Flux** query (InfluxDB 2, InfluxDB Cloud; `POST
 /api/v2/query`, the answer in annotated CSV) or of an **InfluxQL** query (InfluxDB 1 and the 1.x compatibility API of
@@ -1772,6 +1850,8 @@ from(bucket: "sensors")
 ```
 
 ## LDAP directory (`ldap`)
+
+Worked example: [source-examples-databases.md#ldap-or-active-directory-ldap](source-examples-databases.md#ldap-or-active-directory-ldap)
 
 Group: data. Origin: `remote`. The entries of an LDAP directory (OpenLDAP, Active Directory, 389 Directory Server and
 the like): one record is one entry of a search, its fields the DN (`dn`) and the entry's attributes by name. Once per
@@ -1882,6 +1962,8 @@ author=xpath://span[@itemprop='author']
 
 ### `sitemap`
 
+Worked example: [source-examples-feeds-web.md#pages-of-a-site-by-its-sitemap-sitemap](source-examples-feeds-web.md#pages-of-a-site-by-its-sitemap-sitemap)
+
 The pages listed by a sitemap (`sitemap.xml`, gzip-compressed or not, or a text file of addresses), followed
 through a sitemap index; for a site's root (`https://example.org/`) or its `robots.txt`, the `Sitemap:` lines of
 robots.txt (else `/sitemap.xml`). Only pages and sitemaps of the sitemap's own site are read (its host, with or without `www.`). One record per page:
@@ -1905,6 +1987,8 @@ sitemap file lists its pages without reading them) and `sitemap-crawl.ndjson` (t
 read, one refused by robots.txt).
 
 ### `webpage`
+
+Worked example: [source-examples-feeds-web.md#web-page-scraper-webpage](source-examples-feeds-web.md#web-page-scraper-webpage)
 
 One page or a list of addresses (option `urls`). With an `item` selector, every element it finds on a page (a
 product of a list, an event of a calendar) is a record of its own and the picks are relative to it (`@data-sku` alone
@@ -1945,6 +2029,8 @@ editor reads only as many records as it shows. Their rules:
 
 ### Drupal (`drupal`)
 
+Worked example: [source-examples-platforms.md#drupal-jsonapi-drupal](source-examples-platforms.md#drupal-jsonapi-drupal)
+
 Group: platforms. Content of a Drupal site through the JSON:API of Drupal core (Drupal 8.7 and later). The source
 requests `<site>/jsonapi/<entity type>/<bundle>` and follows `links.next` page by page.
 
@@ -1972,6 +2058,8 @@ publish date (`created`), image (`image_url`, downloaded; an object relation get
 remote ID is `drupal-<UUID>`, so a later run updates the objects.
 
 ### Another Exponential site (`exponential_site`)
+
+Worked example: [source-examples-platforms.md#another-exponential-site-over-rest-exponential_site](source-examples-platforms.md#another-exponential-site-over-rest-exponential_site)
 
 Group: platforms. Content of another Exponential site through its REST API v1 (the extension ezprestapi, the API of
 the mobile applications): the source requests
@@ -2034,6 +2122,8 @@ the editor's dry run reads only as many records as it shows. They share these ru
 
 ### Airtable (`airtable`)
 
+Worked example: [source-examples-apis.md#airtable-airtable](source-examples-apis.md#airtable-airtable)
+
 Group: platforms. The records of an Airtable table through the Airtable Web API (v0): the source requests
 `https://api.airtable.com/v0/<base>/<table>` and follows the `offset` of every answer.
 
@@ -2065,6 +2155,8 @@ a few hours, so the files are downloaded by the run that reads them.
 the catalogue also shows a configuration for the published events of a view.
 
 ### Notion (`notion`)
+
+Worked example: [source-examples-apis.md#notion-notion](source-examples-apis.md#notion-notion)
 
 Group: platforms. The pages of a Notion database through the Notion API (version `2022-06-28`): the source queries
 `POST https://api.notion.com/v1/databases/<id>/query` with the import's filter and sorts, and follows `next_cursor`
@@ -2112,6 +2204,8 @@ HTML.
 
 ### Supabase or PostgREST (`supabase`)
 
+Worked example: [source-examples-apis.md#supabase-or-postgrest-supabase](source-examples-apis.md#supabase-or-postgrest-supabase)
+
 Group: platforms. The rows of a table or view of a Supabase project through its REST API, or of any PostgREST server:
 the source requests `GET <base>/<table>?select=...&<filters>&order=...` page by page. For an address on
 `supabase.co` the path `/rest/v1` is added; any other server is used with the path given.
@@ -2151,6 +2245,8 @@ joined list, `bytea` as `\x...` hex text. **Test connection** reads one row and,
 
 ### Baserow (`baserow`)
 
+Worked example: [source-examples-apis.md#baserow-baserow](source-examples-apis.md#baserow-baserow)
+
 Group: platforms. The rows of a Baserow table through its REST API, on baserow.io or self-hosted: the source requests
 `GET <base>/api/database/rows/table/<id>/?user_field_names=true&size=...&page=...` while the answer has a `next`.
 
@@ -2182,6 +2278,8 @@ the name; dates in ISO 8601 as Baserow gives them; booleans as `true` and `false
 **Example:** `share/examples/baserow-events.ndjson` (three invented events).
 
 ### Salesforce (`salesforce`)
+
+Worked example: [source-examples-apis.md#salesforce-soql-salesforce](source-examples-apis.md#salesforce-soql-salesforce)
 
 Group: platforms. The records of a SOQL query through the Salesforce REST API: the source signs in with a connected
 app, runs `GET <instance>/services/data/<version>/query?q=...` (or `queryAll`, which also gives deleted and archived
@@ -2225,6 +2323,8 @@ leads, users) are **personal data**. Test connection signs in, reads one record 
 
 ### HubSpot (`hubspot`)
 
+Worked example: [source-examples-apis.md#hubspot-hubspot](source-examples-apis.md#hubspot-hubspot)
+
 Group: platforms. The objects of a HubSpot CRM object type through the CRM API v3 at `https://api.hubapi.com`:
 `contacts`, `companies`, `deals`, `tickets`, `products`, `line_items` or a custom object (`2-1234567`, `p_<name>`).
 
@@ -2263,6 +2363,8 @@ numbers): map only what the site needs. Test connection reads one object (and th
 **Example:** `share/examples/hubspot-companies.ndjson` (three invented companies with their contacts' IDs).
 
 ## Any JSON REST API (`rest_api`)
+
+Worked example: [source-examples-apis.md#any-json-rest-api-rest_api](source-examples-apis.md#any-json-rest-api-rest_api)
 
 Group: data. Origin: `remote`. The records of any REST API that answers with JSON (a shop's product API, an event
 calendar, a CMS's content API, an internal service): once per run the source requests the address, follows its paging
@@ -2379,6 +2481,8 @@ categories).
 
 ### Joomla articles (`joomla`)
 
+Worked example: [source-examples-platforms.md#joomla-articles-csv-or-xml-joomla](source-examples-platforms.md#joomla-articles-csv-or-xml-joomla)
+
 Group: platforms. File name extensions: `csv`, `xml`. Articles of a Joomla site (com_content) exported as CSV, with
 the columns of the articles table (`id`, `title`, `alias`, `introtext`, `fulltext`, `catid` or `category_title`,
 `state`, `created`, `publish_up`, `language`, `metadesc`, `metakey`, `images` ...), or as XML: J2XML (articles as
@@ -2405,6 +2509,8 @@ The preset maps an article to an `article` (title, intro, body, and, where the c
 and keywords as tags), with the remote ID `joomla-<id>`.
 
 ### Exponential packages (`ezpkg`)
+
+Worked example: [source-examples-platforms.md#exponential-packages-ezpkg](source-examples-platforms.md#exponential-packages-ezpkg)
 
 Group: platforms. File name extensions: `ezpkg`, `tgz`. A content package of an Exponential site (Setup, Packages,
 the export of a package with content objects). Every content object is a record. The archive is read with PharData
