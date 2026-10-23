@@ -129,7 +129,7 @@
 <summary>{'The transforms'|i18n( 'extension/sqliimport/edit' )}</summary>
 <p class="a4-help">{'One line per attribute, steps separated by a vertical bar, arguments in parentheses, for example:'|i18n( 'extension/sqliimport/edit' )} <code>trim | date(format=d.m.Y, timezone=Europe/Berlin) | map(table={ldelim}"D":"Germany"{rdelim})</code></p>
 <table class="a4-table is-compact"><thead><tr><th>{'Name'|i18n( 'extension/sqliimport/edit' )}</th><th>{'What it does'|i18n( 'extension/sqliimport/edit' )}</th><th>{'Arguments'|i18n( 'extension/sqliimport/edit' )}</th></tr></thead>
-<tbody>{foreach $transforms as $tname => $t}<tr><td><code>{$tname|wash}</code></td><td>{$t.label|wash}</td><td>{foreach $t.schema as $an => $ad}<code>{$an|wash}</code>{delimiter}, {/delimiter}{/foreach}</td></tr>{/foreach}</tbody></table>
+<tbody>{foreach $transforms as $tname => $t}<tr><td><code>{$tname|wash}</code></td><td>{$t.label|i18n( 'extension/sqliimport/catalogue' )|wash}</td><td>{foreach $t.schema as $an => $ad}<code>{$an|wash}</code>{delimiter}, {/delimiter}{/foreach}</td></tr>{/foreach}</tbody></table>
 </details>
 </section>
 {/if}

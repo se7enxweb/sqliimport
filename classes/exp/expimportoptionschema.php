@@ -70,7 +70,7 @@ class expImportOptionSchema
         foreach ( $schema as $name => $def )
         {
             $type = isset( $def['type'] ) ? $def['type'] : 'string';
-            $label = isset( $def['label'] ) ? $def['label'] : $name;
+            $label = isset( $def['label'] ) ? self::tr( $def['label'] ) : $name;
             $given = array_key_exists( $name, $input ) ? $input[$name] : null;
             $empty = $given === null || $given === '' || ( is_array( $given ) && !$given );
             if ( $empty && $type === 'bool' && array_key_exists( $name, $input ) )
@@ -79,7 +79,7 @@ class expImportOptionSchema
             {
                 if ( !empty( $def['required'] ) )
                 {
-                    $errors[$name] = "$label is required";
+                    $errors[$name] = self::tr( '%label is required', array( '%label' => $label ) );
                     continue;
                 }
                 $values[$name] = array_key_exists( 'default', $def ) ? $def['default'] : self::emptyValue( $type );
@@ -87,11 +87,24 @@ class expImportOptionSchema
             }
             list( $value, $error ) = self::convert( $type, $given, $def );
             if ( $error !== null )
-                $errors[$name] = "$label: $error";
+                $errors[$name] = self::tr( '%label: %error', array( '%label' => $label, '%error' => $error ) );
             else
                 $values[$name] = $value;
         }
         return array( $values, $errors );
+    }
+
+    /**
+     * A text of the option forms in the user's language: the labels, help texts and enum labels of the schemas (the
+     * form translates them too, parts/option_fields.tpl) and the messages of validate().
+     *
+     * @param string $text
+     * @param array $args %name => value
+     * @return string
+     */
+    public static function tr( $text, array $args = array() )
+    {
+        return expImport::tr( 'extension/sqliimport/options', (string)$text, $args );
     }
 
     /** @return mixed the value of a type when nothing is given and there is no default */
@@ -124,15 +137,15 @@ class expImportOptionSchema
             case 'int':
             case 'node':
                 if ( is_bool( $given ) || !preg_match( '/^-?\d+$/', trim( (string)$given ) ) )
-                    return array( null, 'a whole number is expected' );
+                    return array( null, self::tr( 'a whole number is expected' ) );
                 $value = (int)trim( (string)$given );
                 if ( $type === 'node' && $value < 1 )
-                    return array( null, 'a node ID is expected' );
+                    return array( null, self::tr( 'a node ID is expected' ) );
                 return self::bounds( $value, $def );
             case 'float':
                 $text = str_replace( ',', '.', trim( (string)$given ) );
                 if ( !is_numeric( $text ) )
-                    return array( null, 'a number is expected' );
+                    return array( null, self::tr( 'a number is expected' ) );
                 return self::bounds( (float)$text, $def );
             case 'bool':
                 if ( is_bool( $given ) )
@@ -142,26 +155,26 @@ class expImportOptionSchema
                     return array( true, null );
                 if ( in_array( $text, array( '0', 'false', 'no', 'off', 'disabled', '' ), true ) )
                     return array( false, null );
-                return array( null, 'yes or no is expected' );
+                return array( null, self::tr( 'yes or no is expected' ) );
             case 'enum':
                 $text = (string)$given;
                 if ( !array_key_exists( $text, $def['values'] ) )
-                    return array( null, 'one of ' . implode( ', ', array_keys( $def['values'] ) ) . ' is expected' );
+                    return array( null, self::tr( 'one of %values is expected', array( '%values' => implode( ', ', array_keys( $def['values'] ) ) ) ) );
                 return array( $text, null );
             case 'url':
                 $text = trim( (string)$given );
                 if ( !preg_match( '#^https?://[^\s/$.?\#][^\s]*$#i', $text ) )
-                    return array( null, 'an http or https address is expected' );
+                    return array( null, self::tr( 'an http or https address is expected' ) );
                 return array( $text, null );
             case 'path':
                 $text = trim( (string)$given );
                 if ( strpos( $text, "\0" ) !== false || preg_match( '#(^|/)\.\.(/|$)#', $text ) )
-                    return array( null, 'a path without ".." is expected' );
+                    return array( null, self::tr( 'a path without ".." is expected' ) );
                 return array( $text, null );
             case 'class':
                 $text = trim( (string)$given );
                 if ( !preg_match( '/^[a-z0-9_]+$/i', $text ) )
-                    return array( null, 'a class identifier is expected' );
+                    return array( null, self::tr( 'a class identifier is expected' ) );
                 return array( $text, null );
             case 'list':
                 $items = is_array( $given ) ? $given : preg_split( '/\r\n|\r|\n/', (string)$given );
@@ -172,12 +185,12 @@ class expImportOptionSchema
                     return array( $given, null );
                 $data = json_decode( (string)$given, true );
                 if ( !is_array( $data ) )
-                    return array( null, 'a JSON object or list is expected' );
+                    return array( null, self::tr( 'a JSON object or list is expected' ) );
                 return array( $data, null );
             case 'secret':
                 $text = trim( (string)$given );
                 if ( !preg_match( '/^[A-Za-z0-9_.:-]+$/', $text ) )
-                    return array( null, 'the name of a secret in the settings is expected, never the secret itself' );
+                    return array( null, self::tr( 'the name of a secret in the settings is expected, never the secret itself' ) );
                 return array( $text, null );
             case 'text':
                 return array( str_replace( array( "\r\n", "\r" ), "\n", (string)$given ), null );
@@ -185,9 +198,9 @@ class expImportOptionSchema
                 // raw: spaces at the ends count (a prefix, a separator, a text to replace)
                 $text = !empty( $def['raw'] ) ? (string)$given : trim( (string)$given );
                 if ( strpos( $text, "\n" ) !== false )
-                    return array( null, 'one line is expected' );
+                    return array( null, self::tr( 'one line is expected' ) );
                 if ( isset( $def['pattern'] ) && !preg_match( $def['pattern'], $text ) )
-                    return array( null, 'the value has not the expected form' );
+                    return array( null, self::tr( 'the value does not have the expected form' ) );
                 return self::bounds( $text, $def );
         }
     }
@@ -197,9 +210,9 @@ class expImportOptionSchema
     {
         $measure = is_string( $value ) ? ( function_exists( 'mb_strlen' ) ? mb_strlen( $value ) : strlen( $value ) ) : $value;
         if ( isset( $def['min'] ) && $measure < $def['min'] )
-            return array( null, is_string( $value ) ? "at least {$def['min']} characters" : "at least {$def['min']}" );
+            return array( null, is_string( $value ) ? self::tr( 'at least %min characters', array( '%min' => $def['min'] ) ) : self::tr( 'at least %min', array( '%min' => $def['min'] ) ) );
         if ( isset( $def['max'] ) && $measure > $def['max'] )
-            return array( null, is_string( $value ) ? "at most {$def['max']} characters" : "at most {$def['max']}" );
+            return array( null, is_string( $value ) ? self::tr( 'at most %max characters', array( '%max' => $def['max'] ) ) : self::tr( 'at most %max', array( '%max' => $def['max'] ) ) );
         return array( $value, null );
     }
 

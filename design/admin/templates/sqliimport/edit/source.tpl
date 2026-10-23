@@ -35,8 +35,8 @@
 <h3 class="a4-h3">{$g.label|wash}</h3>
 <div class="a4-radios">
 {foreach $g.sources as $id => $s}{if eq( $s.status, 'enabled' )}
-<label><input type="radio" name="SourceType" value="{$id|wash}"{if eq( $source_type, $id )} checked="checked"{/if} /> {$s.label|wash} <span class="a4-meta">{$s.extensions|implode( ', ' )|wash}</span></label>
-{if is_set( $s.notice )}{if ne( $s.notice, '' )}<p class="a4-notice is-warn" role="note">{$s.notice|wash}</p>{/if}{/if}
+<label><input type="radio" name="SourceType" value="{$id|wash}"{if eq( $source_type, $id )} checked="checked"{/if} /> {$s.label|i18n( 'extension/sqliimport/catalogue' )|wash} <span class="a4-meta">{$s.extensions|implode( ', ' )|wash}</span></label>
+{if is_set( $s.notice )}{if ne( $s.notice, '' )}<p class="a4-notice is-warn" role="note">{$s.notice|i18n( 'extension/sqliimport/catalogue' )|wash}</p>{/if}{/if}
 {/if}{/foreach}
 </div>
 </div>
@@ -94,7 +94,7 @@
 {foreach $sources as $sq_sid => $sq_s}
 {if and( eq( $sq_s.status, 'enabled' ), $sq_s.schema|count|gt( 0 ) )}
 <fieldset class="a4-field a4-field-wide a4-sqliimport-source-options" data-sq-source-options="{$sq_sid|wash}"{if ne( $sq_sid, $source_type )} hidden="hidden"{/if}>
-<legend>{'Options of the source (%type)'|i18n( 'extension/sqliimport/edit',, hash( '%type', $sq_s.label ) )|wash}</legend>
+<legend>{'Options of the source (%type)'|i18n( 'extension/sqliimport/edit',, hash( '%type', $sq_s.label|i18n( 'extension/sqliimport/catalogue' ) ) )|wash}</legend>
 <div class="a4-form is-wide a4-sqliimport-options">
 {include uri='design:sqliimport/parts/option_fields.tpl' schema=$sq_s.schema values=$source_option_values[$sq_sid] prefix=concat( 'SourceOptions[', $sq_sid, ']' ) errors=$errors idprefix=concat( 'sq-so-', $sq_sid )}
 </div>

@@ -13,7 +13,7 @@
 <legend>{'How the records are processed'|i18n( 'extension/sqliimport/edit' )}</legend>
 <div class="a4-radios">
 {foreach $handlers as $hid => $h}{if and( $h.legacy|not, eq( $h.status, 'enabled' ) )}
-<label><input type="radio" name="Handler" value="{$hid|wash}"{if eq( $handler_choice, $hid )} checked="checked"{/if} /> {$h.label|wash}{if ne( $hid, 'mapping' )} <span class="a4-meta">{$hid|wash}</span>{/if}</label>
+<label><input type="radio" name="Handler" value="{$hid|wash}"{if eq( $handler_choice, $hid )} checked="checked"{/if} /> {$h.label|i18n( 'extension/sqliimport/catalogue' )|wash}{if ne( $hid, 'mapping' )} <span class="a4-meta">{$hid|wash}</span>{/if}</label>
 {/if}{/foreach}
 </div>
 </fieldset>

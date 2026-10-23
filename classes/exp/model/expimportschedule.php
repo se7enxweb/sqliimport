@@ -98,22 +98,25 @@ class expImportSchedule extends eZPersistentObject
         catch ( Exception $e )
         {
         }
+        $time = $at->format( 'H:i' );
         switch ( $this->attribute( 'kind' ) )
         {
             case 'once':
-                return 'once at ' . $at->format( 'Y-m-d H:i' ) . " ($zone)";
+                return expImport::tr( 'extension/sqliimport/schedule', 'once at %datetime (%zone)', array( '%datetime' => $at->format( 'Y-m-d H:i' ), '%zone' => $zone ) );
             case 'interval':
-                return 'every ' . (int)$this->attribute( 'interval_minutes' ) . ' minutes';
+                return expImport::tr( 'extension/sqliimport/schedule', 'every %n minutes', array( '%n' => (int)$this->attribute( 'interval_minutes' ) ) );
             case 'hourly':
-                return 'hourly at minute ' . $at->format( 'i' );
+                return expImport::tr( 'extension/sqliimport/schedule', 'hourly at minute %minute', array( '%minute' => $at->format( 'i' ) ) );
             case 'daily':
-                return 'daily at ' . $at->format( 'H:i' ) . " ($zone)";
+                return expImport::tr( 'extension/sqliimport/schedule', 'daily at %time (%zone)', array( '%time' => $time, '%zone' => $zone ) );
             case 'weekly':
-                return 'weekly on ' . $at->format( 'l' ) . ' at ' . $at->format( 'H:i' ) . " ($zone)";
+                $days = array( expImport::tr( 'extension/sqliimport/schedule', 'Sunday' ), expImport::tr( 'extension/sqliimport/schedule', 'Monday' ), expImport::tr( 'extension/sqliimport/schedule', 'Tuesday' ), expImport::tr( 'extension/sqliimport/schedule', 'Wednesday' ),
+                               expImport::tr( 'extension/sqliimport/schedule', 'Thursday' ), expImport::tr( 'extension/sqliimport/schedule', 'Friday' ), expImport::tr( 'extension/sqliimport/schedule', 'Saturday' ) );
+                return expImport::tr( 'extension/sqliimport/schedule', 'weekly on %day at %time (%zone)', array( '%day' => $days[(int)$at->format( 'w' )], '%time' => $time, '%zone' => $zone ) );
             case 'monthly':
-                return 'monthly on day ' . $at->format( 'j' ) . ' at ' . $at->format( 'H:i' ) . " ($zone)";
+                return expImport::tr( 'extension/sqliimport/schedule', 'monthly on day %day at %time (%zone)', array( '%day' => $at->format( 'j' ), '%time' => $time, '%zone' => $zone ) );
             case 'cron':
-                return 'cron ' . $this->attribute( 'cron_expr' ) . " ($zone)";
+                return expImport::tr( 'extension/sqliimport/schedule', 'cron %expression (%zone)', array( '%expression' => $this->attribute( 'cron_expr' ), '%zone' => $zone ) );
         }
         return (string)$this->attribute( 'kind' );
     }

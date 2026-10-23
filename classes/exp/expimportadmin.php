@@ -147,7 +147,20 @@ class expImportAdmin
      */
     public static function label( $group, $code )
     {
-        $labels = array(
+        $labels = self::labels();
+        if ( !isset( $labels[$group][$code] ) )
+            return (string)$code;
+        return expImport::tr( 'extension/sqliimport/' . $group, $labels[$group][$code] );
+    }
+
+    /**
+     * The English words of the codes; label() translates them in the context extension/sqliimport/<group>.
+     *
+     * @return array group => code => text
+     */
+    public static function labels()
+    {
+        return array(
             'status' => array( 'queued' => 'Queued', 'running' => 'Running', 'completed' => 'Completed', 'completed_with_errors' => 'Completed with errors',
                                'failed' => 'Failed', 'cancelled' => 'Cancelled', 'active' => 'Running or queued' ),
             'kind' => array( 'import' => 'Import', 'dry_run' => 'Dry run', 'retry' => 'Retry of failed rows', 'undo' => 'Undo' ),
@@ -157,9 +170,18 @@ class expImportAdmin
             'group' => array( 'data' => 'Data', 'nosql' => 'NoSQL databases', 'content' => 'Content', 'platform' => 'Platforms', 'commerce' => 'Commerce', 'media' => 'Media',
                               'other' => 'Other' ),
         );
-        if ( !isset( $labels[$group][$code] ) )
-            return (string)$code;
-        return ezpI18n::tr( 'extension/sqliimport/' . $group, $labels[$group][$code] );
+    }
+
+    /**
+     * A text of the catalogue (the label, description or notice of a format, a handler or a transform) in the user's
+     * language, as the templates translate it (context extension/sqliimport/catalogue).
+     *
+     * @param string $text
+     * @return string
+     */
+    public static function catalogueText( $text )
+    {
+        return expImport::tr( 'extension/sqliimport/catalogue', (string)$text );
     }
 
     /** @return string the badge modifier of a run status (is-ok, is-bad, is-warn, is-accent or '') */
