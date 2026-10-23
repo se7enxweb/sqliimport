@@ -1,14 +1,25 @@
 # Permissions
 
 The module `sqliimport` has two policies in 2.x and keeps the two functions of 1.x, so roles made for 1.x keep
-working.
+working. This page lists what each policy allows, shows how a policy is given to a role, and ends with typical roles.
+
+German: [ger-de/permissions.md](ger-de/permissions.md).
+
+## Table of contents
+
+- [The two policies](#the-two-policies)
+- [Worked example: a role that may run imports](#worked-example-a-role-that-may-run-imports)
+- [The handler limitation](#the-handler-limitation)
+- [How 1.x policies count](#how-1x-policies-count)
+- [Typical roles](#typical-roles)
+- [Security notes](#security-notes)
 
 ## The two policies
 
 | Function | Name | Limitation | Allows |
 |---|---|---|---|
 | `manage` | Manage imports | `SQLIImport_Type` | Everything: create, edit, copy, enable, disable and delete imports, change and pause their schedules, the Settings page with the export and import of definitions, and everything `run` allows |
-| `run` | Run imports | `SQLIImport_Type` | Looking at the Imports tab and running imports: Run now, Dry run, Cancel and Retry failed rows |
+| `run` | Run imports | `SQLIImport_Type` | Looking at the Imports tab and running imports: Run now, Dry run, Cancel, Retry failed rows and Undo this run |
 
 Either policy opens the Imports tab: the dashboard (`sqliimport/list`), the run pages (`sqliimport/run`), the
 Schedules page (`sqliimport/schedules`) and the Catalogue (`sqliimport/catalogue`). The editor (`sqliimport/edit`)
@@ -17,11 +28,39 @@ and the Settings page (`sqliimport/settings`) need `manage`.
 | Page or action | `run` | `manage` |
 |---|---|---|
 | Dashboard, run pages, Schedules, Catalogue (looking) | yes | yes |
-| Run now, Dry run, Cancel, Retry failed rows | yes | yes |
+| Run now, Dry run, Cancel, Retry failed rows, Undo this run | yes | yes |
+| Download results (CSV), the Statistics page, the bell's notices | yes | yes |
 | New import, Edit (the editor) | | yes |
 | Duplicate, Enable, Disable, Delete | | yes |
 | Pause, Resume, Edit and Delete of a schedule | | yes |
 | Settings, export and import of import definitions | | yes |
+| The trigger of an import (switch on, keys, secret) | | yes |
+| More > New data table from its fields | | yes, and `setup/setup` |
+
+A run started by the trigger runs as the trigger's run user, who needs `run` or `manage` for the import's handler
+([triggers.md](triggers.md)).
+
+## Worked example: a role that may run imports
+
+Goal: the editors of the news desk may start and follow imports, but not change them. They get the policy **Run
+imports** (`sqliimport/run`).
+
+1. **Users, Roles**: open the role the editors have (or create a role for them), then **Edit**. Exponential edits a
+   draft of the role; nothing reaches its users until **Save**.
+2. **New policy**. In the policy wizard, choose the module `sqliimport` and the function `run`:
+
+   ![Step 1 of the policy wizard for a role: Module sqliimport, Function run, and the buttons Grant access to all functions, Grant full access and Grant limited access](images/perm-wizard-function.png)
+
+3. **Grant full access** gives Run imports for every import. **Grant limited access** opens step 3, the
+   limitation `SQLIImport_Type` (see the next section):
+
+   ![Step 3 of the policy wizard: Module sqliimport and Function run done, Limitations with the list SQLIImport_Type, which offers only Any on the test installation, and the buttons OK, Go back to step two, Go back to step one and Cancel](images/perm-wizard-limitation.png)
+
+4. **OK** adds the policy to the draft; **Save** on the role applies it to everyone who has the role. The users see
+   the Imports tab after their next sign-in.
+
+The screenshots come from the test installation, where the wizard was opened on a role and left with **Cancel**:
+no role was changed. For a role that may also create and change imports, choose the function `manage` instead.
 
 The 2.x functions `view`, `edit`, `rollback`, `ai` and `settings` of release 2.0.0-alpha.1 are gone. A role that
 still holds one of them grants nothing through it; give it `manage` or `run` instead.
@@ -35,6 +74,11 @@ With it, a user may run or manage only the imports that use those handlers:
 - the editor opens only imports of the allowed handlers, and the processing step refuses a handler outside the
   limitation;
 - the Run imports policy with the limitation `mapping` allows running the no-code imports only.
+
+What the policy wizard offers: the list of values of `SQLIImport_Type` is filled from the 1.x setting
+`sqliimport.ini [ImportSettings] AvailableSourceHandlers[]`, so it names the 1.x handlers of the site. The 2.x
+handlers (`mapping`, `datatable` and the handlers of extensions) are not in that list yet; on an installation without
+1.x handlers it offers only **Any**, as in the picture above. A policy without the limitation covers every handler.
 
 ## How 1.x policies count
 

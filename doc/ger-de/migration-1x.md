@@ -101,6 +101,115 @@ Imports `legacy-<handler>`.
   verschiedene Importe parallel aus und jeden Import einmal gleichzeitig.
 - **`sqlidoimport.php` und die Cron-Teile von 1.x bleiben erhalten**, sind aber veraltet.
 
+## Durchgespieltes Beispiel: ein Handler von 1.x in der Engine von 2.x
+
+Dieses Beispiel nimmt einen Handler, der so geschrieben ist wie Handler von 1.x: den Fixture-Handler der Tests der
+Erweiterung (`tests/fixtures/legacy/sqlifixturecsvhandler.php`, Klasse `SQLIFixtureCSVHandler`). Er liest eine CSV
+mit den Spalten `id` und `name` über `SQLICSVDoc` und veröffentlicht je Zeile einen Ordner mit `SQLIContent` und
+`SQLIContentPublisher`. Eine Zeile mit dem Namen `FAIL` wirft eine Ausnahme, wie es ein fehlerhafter Datensatz täte.
+Das Beispiel zeigt die Einstellungen des Handlers, was der Katalog listet, seine Optionen als `name=value`-Zeilen, die
+Zeilen eines Laufs und den Migrationsbericht. Alles unten lief auf dem Server der Dokumentation, mit den
+Einstellungen nur für diesen einen Prozess; die Ausgaben sind echt (der Pfad der CSV ist gekürzt, Knoten 54916 ist der
+versteckte Ordner, in den das Beispiel veröffentlichte).
+
+**Die Einstellungen**, wie eine Website von 1.x sie in `settings/override/sqliimport.ini.append.php` (oder in der
+`sqliimport.ini.append.php` einer Erweiterung) hat:
+
+```ini
+[ImportSettings]
+AvailableSourceHandlers[]=fixturecsv
+
+[fixturecsv-HandlerSettings]
+Enabled=true
+Name=Fixture CSV handler (1.x style)
+ClassName=SQLIFixtureCSVHandler
+DefaultParentNodeID=54916
+CSVFile=var/import/legacy-folders.csv
+```
+
+Die CSV:
+
+```
+id,name
+1,Spring news
+2,FAIL
+3,Autumn news
+```
+
+**Was der Katalog listet.** **Importe, Katalog**, Abschnitt *Handlers*, listet jeden Handler mit Klasse, Optionen und
+Status. Ein Handler von 1.x ist eine eigene Zeile mit dem Kennzeichen **1.x handler**, und seine Spalte Optionen sagt
+*free name=value options*. Auf dem Server der Dokumentation ist kein Handler von 1.x eingerichtet, die Tabelle zeigt
+also nur die beiden Handler von 2.x:
+
+![Die Tabelle Handlers des Katalogs: der Zuordnungs-Handler und der Datentabellen-Handler, beide aktiviert](../images/dev-catalogue-handlers-table.png)
+
+Mit den Einstellungen oben ergab die Registry hinter dieser Tabelle:
+
+```
+mapping      Mapping to a content class (no code) 2.x    enabled
+datatable    Rows of a data table (a persistent class) 2.x    enabled
+fixturecsv   Fixture CSV handler (1.x style)    legacy enabled
+```
+
+**Der Import und seine Optionen.** `migrate-1x --apply` legt den Import `legacy-fixturecsv` an (oder man legt ihn im
+Editor an: *Source type*, *A 1.x handler that reads its own source*, und der Handler). Die Optionen eines Handlers von
+1.x sind der `name=value`-Text von 1.x, eine Option pro Zeile, im Schritt Verarbeitung:
+
+```
+csv=var/import/legacy-folders.csv
+```
+
+Der Handler liest sie wie bisher über seine `SQLIImportHandlerOptions` (`$this->options->attribute( 'csv' )`), und
+seinen Einstellungsblock als `handlerConfArray`. Ein Import eines Handlers von 1.x hat keinen Schritt Zuordnung und
+keine Vorschau: Ein Handler von 1.x kann nicht laufen, ohne zu veröffentlichen.
+
+**Ein Lauf.** Die Engine umhüllt den Handler mit `expImportLegacyHandlerAdapter`. Sie ruft `initialize()`,
+`getProcessLength()`, `getNextRow()` und für jede Zeile `process()` auf, dann `cleanup()`, in einem einzigen
+Abschnitt, weil ein Handler von 1.x nicht mittendrin beginnen kann. Die Zeilen des Laufs:
+
+```
+handler class: expImportLegacyHandlerAdapter, resumable: false
+count(): 3
+#1   processed     record {"id":"1","name":"Spring news"}
+#2   failed     the fixture line 2 fails on purpose   record {"id":"2","name":"FAIL"}
+#3   processed     record {"id":"3","name":"Autumn news"}
+fixturecsv-1: object 56640 "Spring news", node 55019
+fixturecsv-3: object 56641 "Autumn news", node 55020
+```
+
+- Die Zeilen heißen nach ihrer Position (`#1`, `#2` ...), und der gezeigte Datensatz ist eine lesbare Kopie der Zeile
+  von 1.x.
+- Das Ergebnis ist `processed`: Die Engine weiß nicht, ob `process()` ein Objekt angelegt, aktualisiert oder in Ruhe
+  gelassen hat, also behauptet sie es nicht. Der Filter *Processed (1.x)* der Seite des Laufs listet diese Zeilen.
+- Die Ausnahme von Zeile 2 lässt nur diese Zeile fehlschlagen, mit ihrer Meldung; der Lauf geht weiter.
+- Was der Handler aus `getProgressionNotes()` zurückgibt, kommt in das Protokoll des Laufs (`line 3: Autumn news`).
+- **Retry failed rows** gilt nicht, und **Undo** hat nichts rückgängig zu machen: Die Zeilen tragen keinen Datensatz
+  und kein Objekt, das die Engine angelegt hätte. Die Daten korrigieren und den Import erneut laufen lassen.
+
+**Der Migrationsbericht.** `./console ext:sqliimport:migrate-1x` ohne `--apply` berichtet nur. Auf dem Server der
+Dokumentation, der keinen Handler, keinen Zeitplan und keine Historie von 1.x hat, gab er aus:
+
+```
+history   WOULD the 1.x history is migrated
+PASS dry run: nothing was changed (--apply to migrate)
+```
+
+Mit dem Handler oben eingerichtet ergab derselbe Bericht (`expImportMigration::run()` ohne Anwenden):
+
+```
+handlers  WOULD fixturecsv (Fixture CSV handler (1.x style)): becomes the import legacy-fixturecsv
+history   WOULD the 1.x history is migrated
+```
+
+Jede Zeile eines Probelaufs beginnt mit `WOULD`, auch eine, die nichts zu tun hat: "the 1.x history is migrated"
+heißt, dass keine Historie mehr zu migrieren ist. Ein geplanter Import von 1.x fügt eine Zeile hinzu wie `schedules
+WOULD scheduled import #4 "Nightly products" (products): becomes an import with the schedule daily`.
+
+**Umzug auf eine Zuordnung.** Dieser Handler kopiert nur zwei CSV-Spalten in einen Ordner und ist damit ein Kandidat
+für den nächsten Abschnitt: die CSV-Quelle mit dem Schlüssel `id`, die Klasse `folder`, die Zeile `name` nach `name`
+und das Zuordnen über die Remote-ID `fixturecsv-{id}`, das Muster, das der Handler nutzte. Die bestehenden Ordner
+werden dann aktualisiert und nicht neu angelegt.
+
 ## Behobene Fehler von 1.x
 
 Unter Exponential 6 behebt Version 2 diese Fehler von 1.x:

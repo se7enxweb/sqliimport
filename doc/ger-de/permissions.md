@@ -1,14 +1,26 @@
 # Berechtigungen
 
 Das Modul `sqliimport` hat in 2.x zwei Richtlinien und behält die beiden Funktionen von 1.x, sodass für 1.x
-angelegte Rollen weiter funktionieren.
+angelegte Rollen weiter funktionieren. Diese Seite nennt, was jede Richtlinie erlaubt, zeigt, wie eine Richtlinie einer
+Rolle gegeben wird, und endet mit typischen Rollen.
+
+English: [../permissions.md](../permissions.md).
+
+## Inhalt
+
+- [Die beiden Richtlinien](#die-beiden-richtlinien)
+- [Beispiel: eine Rolle, die Importe ausführen darf](#beispiel-eine-rolle-die-importe-ausführen-darf)
+- [Die Handler-Einschränkung](#die-handler-einschränkung)
+- [Wie Richtlinien von 1.x zählen](#wie-richtlinien-von-1x-zählen)
+- [Typische Rollen](#typische-rollen)
+- [Hinweise zur Sicherheit](#hinweise-zur-sicherheit)
 
 ## Die beiden Richtlinien
 
 | Funktion | Name | Einschränkung | Erlaubt |
 |---|---|---|---|
 | `manage` | Manage imports | `SQLIImport_Type` | Alles: Importe anlegen, bearbeiten, kopieren, aktivieren, deaktivieren und löschen, ihre Zeitpläne ändern und anhalten, die Seite Settings mit Export und Import der Definitionen, und alles, was `run` erlaubt |
-| `run` | Run imports | `SQLIImport_Type` | Den Reiter Importe ansehen und Importe ausführen: Run now, Dry run, Cancel und Retry failed rows (ausführen, Probelauf, abbrechen, fehlgeschlagene Zeilen wiederholen) |
+| `run` | Run imports | `SQLIImport_Type` | Den Reiter Importe ansehen und Importe ausführen: Run now, Dry run, Cancel, Retry failed rows und Undo this run (ausführen, Probelauf, abbrechen, fehlgeschlagene Zeilen wiederholen, rückgängig machen) |
 
 Jede der beiden Richtlinien öffnet den Reiter Importe: die Übersicht (`sqliimport/list`), die Seiten der Läufe
 (`sqliimport/run`), die Seite Schedules (`sqliimport/schedules`) und den Katalog (`sqliimport/catalogue`). Der Editor
@@ -17,11 +29,40 @@ Jede der beiden Richtlinien öffnet den Reiter Importe: die Übersicht (`sqliimp
 | Seite oder Aktion | `run` | `manage` |
 |---|---|---|
 | Übersicht, Seiten der Läufe, Schedules, Catalogue (ansehen) | ja | ja |
-| Run now, Dry run, Cancel, Retry failed rows | ja | ja |
+| Run now, Dry run, Cancel, Retry failed rows, Undo this run | ja | ja |
+| Download results (CSV), die Seite Statistics, die Hinweise der Glocke | ja | ja |
 | New import, Edit (der Editor) | | ja |
 | Duplicate, Enable, Disable, Delete | | ja |
 | Pause, Resume, Edit und Delete eines Zeitplans | | ja |
 | Settings, Export und Import von Importdefinitionen | | ja |
+| Der Auslöser eines Imports (einschalten, Schlüssel, Geheimnis) | | ja |
+| More > New data table from its fields | | ja, und `setup/setup` |
+
+Ein Lauf, den der Auslöser startet, läuft als Laufbenutzer des Auslösers; dieser braucht `run` oder `manage` für den
+Handler des Imports ([triggers.md](triggers.md)).
+
+## Beispiel: eine Rolle, die Importe ausführen darf
+
+Ziel: Die Redaktion des Nachrichtenressorts darf Importe starten und verfolgen, aber nicht ändern. Sie bekommt die
+Richtlinie **Run imports** (`sqliimport/run`).
+
+1. **Users, Roles**: Öffnen Sie die Rolle der Redaktion (oder legen Sie eine Rolle für sie an), dann **Edit**.
+   Exponential bearbeitet einen Entwurf der Rolle; nichts erreicht ihre Benutzer vor **Save**.
+2. **New policy**. Wählen Sie im Assistenten für Richtlinien das Modul `sqliimport` und die Funktion `run`:
+
+   ![Schritt 1 des Assistenten für Richtlinien einer Rolle: Module sqliimport, Function run und die Schaltflächen Grant access to all functions, Grant full access und Grant limited access](../images/perm-wizard-function.png)
+
+3. **Grant full access** gibt Run imports für jeden Import. **Grant limited access** öffnet Schritt 3, die
+   Einschränkung `SQLIImport_Type` (siehe den nächsten Abschnitt):
+
+   ![Schritt 3 des Assistenten für Richtlinien: Module sqliimport und Function run erledigt, Limitations mit der Liste SQLIImport_Type, die auf der Testinstallation nur Any anbietet, und die Schaltflächen OK, Go back to step two, Go back to step one und Cancel](../images/perm-wizard-limitation.png)
+
+4. **OK** fügt die Richtlinie dem Entwurf hinzu; **Save** an der Rolle wendet sie auf alle an, die die Rolle haben.
+   Die Benutzer sehen den Reiter Importe nach ihrer nächsten Anmeldung.
+
+Die Screenshots stammen von der Testinstallation, wo der Assistent an einer Rolle geöffnet und mit **Cancel**
+verlassen wurde: Keine Rolle wurde geändert. Für eine Rolle, die Importe auch anlegen und ändern darf, wählen Sie
+stattdessen die Funktion `manage`.
 
 Die Funktionen `view`, `edit`, `rollback`, `ai` und `settings` der Version 2.0.0-alpha.1 gibt es nicht mehr. Eine
 Rolle, die noch eine davon hat, erhält dadurch nichts; geben Sie ihr stattdessen `manage` oder `run`.
@@ -36,6 +77,12 @@ Handler von 1.x). Mit ihr darf ein Benutzer nur die Importe ausführen oder verw
   der Einschränkung ab;
 - die Richtlinie Run imports mit der Einschränkung `mapping` erlaubt nur, die Importe ohne Programmierung
   auszuführen.
+
+Was der Assistent für Richtlinien anbietet: Die Liste der Werte von `SQLIImport_Type` wird aus der Einstellung von
+1.x `sqliimport.ini [ImportSettings] AvailableSourceHandlers[]` gefüllt und nennt also die Handler von 1.x der
+Website. Die Handler von 2.x (`mapping`, `datatable` und die Handler von Erweiterungen) stehen noch nicht in dieser
+Liste; auf einer Installation ohne Handler von 1.x bietet sie nur **Any** an, wie im Bild oben. Eine Richtlinie ohne
+die Einschränkung gilt für jeden Handler.
 
 ## Wie Richtlinien von 1.x zählen
 

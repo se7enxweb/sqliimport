@@ -402,7 +402,7 @@ access to every module have both.
 - **From 1.0.x:** run `update/sql/mysql/1.0-to-1.1.sql`, then the 1.1 to 1.2 script.
 - Then regenerate the autoloads and clear the caches.
 
-The full history is in [doc/CHANGELOG](doc/CHANGELOG).
+The full history is in [doc/CHANGELOG](CHANGELOG).
 
 ## Known limits
 
@@ -434,7 +434,7 @@ Issues and pull requests are welcome at <https://github.com/se7enxweb/sqliimport
 
 ## License
 
-GNU General Public License, version 2. See [doc/LICENSE](doc/LICENSE).
+GNU General Public License, version 2. See [doc/LICENSE](LICENSE).
 
 ## Credits and history
 
@@ -443,5 +443,5 @@ GNU General Public License, version 2. See [doc/LICENSE](doc/LICENSE).
   (PostgreSQL schema) and others.
 - Maintained for Exponential by [7x](https://se7enx.com) since 2024.
 - The original documentation, with screenshots of the admin pages and UML diagrams of the handlers, the content API
-  and the CSV classes, is kept in [doc/README.txt](doc/README.txt), `doc/SQLIImport doc.pdf`, `doc/images/` and
+  and the CSV classes, is kept in [doc/README.txt](README.txt), `doc/SQLIImport doc.pdf`, `doc/images/` and
   `doc/uml/`.

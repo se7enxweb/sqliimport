@@ -98,6 +98,112 @@ the import `legacy-<handler>`.
   imports in parallel and each import once at a time.
 - **`sqlidoimport.php` and the 1.x cron parts are kept** but deprecated.
 
+## Worked example: a 1.x handler in the 2.x engine
+
+This example takes a handler written the way 1.x handlers are, the fixture handler of the extension's tests
+(`tests/fixtures/legacy/sqlifixturecsvhandler.php`, class `SQLIFixtureCSVHandler`). It reads a CSV with the columns
+`id` and `name` through `SQLICSVDoc` and publishes one folder per line with `SQLIContent` and
+`SQLIContentPublisher`. A line whose name is `FAIL` throws, as a broken record would. The example shows the
+handler's settings, what the catalogue lists, its options as `name=value` lines, a run's rows, and the migration
+report. Everything below ran on the documentation server, with the settings set for that one process; the outputs are
+real (the path of the CSV is shortened, and node 54916 is the hidden folder the example published into).
+
+**The settings**, as a 1.x site has them in `settings/override/sqliimport.ini.append.php` (or an extension's
+`sqliimport.ini.append.php`):
+
+```ini
+[ImportSettings]
+AvailableSourceHandlers[]=fixturecsv
+
+[fixturecsv-HandlerSettings]
+Enabled=true
+Name=Fixture CSV handler (1.x style)
+ClassName=SQLIFixtureCSVHandler
+DefaultParentNodeID=54916
+CSVFile=var/import/legacy-folders.csv
+```
+
+The CSV:
+
+```
+id,name
+1,Spring news
+2,FAIL
+3,Autumn news
+```
+
+**What the catalogue lists.** **Imports, Catalogue**, section *Handlers*, lists every handler with its class, its
+options and its status. A 1.x handler is a row of its own, marked with the badge **1.x handler**, and its options
+column says *free name=value options*. On the documentation server no 1.x handler is configured, so the table shows
+only the two 2.x handlers:
+
+![The Handlers table of the catalogue: the mapping handler and the data table handler, both enabled](images/dev-catalogue-handlers-table.png)
+
+With the settings above, the registry behind that table gave:
+
+```
+mapping      Mapping to a content class (no code) 2.x    enabled
+datatable    Rows of a data table (a persistent class) 2.x    enabled
+fixturecsv   Fixture CSV handler (1.x style)    legacy enabled
+```
+
+**The import and its options.** `migrate-1x --apply` makes the import `legacy-fixturecsv` (or create one in the
+editor: *Source type*, *A 1.x handler that reads its own source*, and the handler). A 1.x handler's options are the
+`name=value` text of 1.x, one option per line, in the step Processing:
+
+```
+csv=var/import/legacy-folders.csv
+```
+
+The handler reads them as before, through its `SQLIImportHandlerOptions` (`$this->options->attribute( 'csv' )`),
+and its settings block as `handlerConfArray`. An import of a 1.x handler has no step Mapping and no Preview: a 1.x
+handler cannot run without publishing.
+
+**A run.** The engine wraps the handler in `expImportLegacyHandlerAdapter`. It calls `initialize()`,
+`getProcessLength()`, `getNextRow()` and `process()` for every row, then `cleanup()`, in one chunk, because a 1.x
+handler cannot start in the middle. The run's rows:
+
+```
+handler class: expImportLegacyHandlerAdapter, resumable: false
+count(): 3
+#1   processed     record {"id":"1","name":"Spring news"}
+#2   failed     the fixture line 2 fails on purpose   record {"id":"2","name":"FAIL"}
+#3   processed     record {"id":"3","name":"Autumn news"}
+fixturecsv-1: object 56640 "Spring news", node 55019
+fixturecsv-3: object 56641 "Autumn news", node 55020
+```
+
+- The rows are named by their position (`#1`, `#2` ...), and the record shown is a readable copy of the 1.x row.
+- The outcome is `processed`: the engine does not know whether `process()` created, updated or left an object
+  alone, so it does not claim to. The run page's filter *Processed (1.x)* lists them.
+- The exception of line 2 fails that row only, with its message; the run goes on.
+- What the handler returns from `getProgressionNotes()` goes into the run's log (`line 3: Autumn news`).
+- **Retry failed rows** does not apply, and **Undo** has nothing to undo: the rows carry no record and no object the
+  engine made. Fix the data and run the import again.
+
+**The migration report.** `./console ext:sqliimport:migrate-1x` without `--apply` only reports. On the
+documentation server, which has no 1.x handler, schedule or history, it printed:
+
+```
+history   WOULD the 1.x history is migrated
+PASS dry run: nothing was changed (--apply to migrate)
+```
+
+With the handler above configured, the same report (`expImportMigration::run()` without apply) gave:
+
+```
+handlers  WOULD fixturecsv (Fixture CSV handler (1.x style)): becomes the import legacy-fixturecsv
+history   WOULD the 1.x history is migrated
+```
+
+Every line of a dry run starts with `WOULD`, also a line that has nothing to do: "the 1.x history is migrated" means
+that no history is left to migrate. A 1.x scheduled import adds a line such as `schedules WOULD scheduled import #4
+"Nightly products" (products): becomes an import with the schedule daily`.
+
+**Moving it to a mapping.** This handler only copies two CSV columns into a folder, so it is a candidate for the next
+section: the CSV source with the key `id`, the class `folder`, the line `name` to `name`, and the match by the remote
+ID `fixturecsv-{id}`, the pattern the handler used. The existing folders are then updated and not created again.
+
 ## Fixed 1.x bugs
 
 On Exponential 6, release 2 fixes these bugs of 1.x:
