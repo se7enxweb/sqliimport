@@ -386,10 +386,12 @@ class expImportMappingHandler implements expImportHandlerInterface
         }
         $nodesAdded = array_values( array_unique( $nodesAdded ) );
 
+        $locationNote = $extraNodes ? count( $extraNodes ) . ' more location(s) added' : '';
         if ( $isNew )
-            $result = expImportRowResult::created( $objectID, $versionAfter );
-        elseif ( $versionAfter !== $versionBefore )
-            $result = expImportRowResult::updated( $objectID, $versionBefore, $versionAfter );
+            $result = expImportRowResult::created( $objectID, $versionAfter, $locationNote );
+        elseif ( $versionAfter !== $versionBefore || $extraNodes )
+            // a new location changes the object although it makes no version
+            $result = expImportRowResult::updated( $objectID, $versionBefore, $versionAfter, $locationNote );
         else
             $result = expImportRowResult::unchanged( $objectID, $versionAfter );
         $result->remoteID = $plan['remote_id'] !== '' ? $plan['remote_id'] : (string)eZContentObject::fetch( $objectID, false )['remote_id'];
