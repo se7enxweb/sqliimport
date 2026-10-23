@@ -285,6 +285,17 @@ class SqliImportTranslationStrings
                 foreach ( array( 'Name', 'Tooltip' ) as $key )
                     if ( isset( $values[$key] ) )
                         $this->add( $values['TranslationContext'], $values[$key], "menu.ini [$section] $key" );
+            // a left menu (parts/ini_menu.tpl of the kernel): its link, group and description names are translated in
+            // the context design/admin/parts/<the part after Leftmenu_>/menu
+            if ( strpos( $section, 'Leftmenu_' ) === 0 )
+            {
+                $context = 'design/admin/parts/' . explode( '_', $section )[1] . '/menu';
+                foreach ( array( 'LinkNames', 'GroupNames', 'LinkDescriptions' ) as $key )
+                    if ( isset( $values[$key] ) )
+                        foreach ( (array)$values[$key] as $name )
+                            if ( is_string( $name ) && $name !== '' )
+                                $this->add( $context, $name, "menu.ini [$section] $key" );
+            }
         }
         if ( isset( $menu['NavigationPart']['Part'] ) )
             foreach ( (array)$menu['NavigationPart']['Part'] as $id => $name )
