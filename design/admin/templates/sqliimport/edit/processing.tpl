@@ -23,6 +23,25 @@
 <div class="a4-form is-wide a4-sqliimport-options">
 {include uri='design:sqliimport/parts/option_fields.tpl' schema=$handlers[$handler_choice].schema values=$options prefix='HandlerOptions' errors=$errors idprefix='sq-ho'}
 </div>
+{* the AI assist (doc/ai.md): the data table that fits the source's fields, the best three; "Use this table" chooses
+   it in the form, nothing is saved *}
+{if and( $ai.available, eq( $handler_choice, 'datatable' ) )}
+<div class="a4-sqliimport-ai" id="sq-ai" tabindex="-1">
+<div class="a4-toolbar">
+<button type="submit" class="a4-btn a4-btn-small" name="AiTableButton" value="1"><span class="a4-icon a4-bi-stars" aria-hidden="true"></span> {'Suggest a data table with AI'|i18n( 'extension/sqliimport/edit' )}</button>
+<span class="a4-meta">{if $ai.samples}{'Sends the field names and types and masked sample values.'|i18n( 'extension/sqliimport/edit' )}{else}{'Sends only the field names and types, no values.'|i18n( 'extension/sqliimport/edit' )}{/if}</span>
+</div>
+{if $ai.classes|count|gt( 0 )}
+<ol class="a4-sqliimport-ai-list" aria-label="{'Data tables the AI suggests'|i18n( 'extension/sqliimport/edit' )|wash}">
+{foreach $ai.classes as $sq_at}
+<li><code>{$sq_at.identifier|wash}</code> <span class="a4-meta">{$sq_at.name|wash}</span> <span class="a4-badge {$sq_at.kind}" title="{'Confidence of the AI'|i18n( 'extension/sqliimport/edit' )|wash}">{$sq_at.percent}%</span>
+{if ne( $sq_at.reason, '' )}<span class="a4-meta">{$sq_at.reason|wash}</span>{/if}
+{if and( is_set( $options.class ), eq( $options.class, $sq_at.identifier ) )}<span class="a4-tag is-accent">{'In the form'|i18n( 'extension/sqliimport/edit' )}</span>{else}<button type="submit" class="a4-btn a4-btn-small a4-btn-ghost" name="AiUseTableButton" value="{$sq_at.identifier|wash}">{'Use this table'|i18n( 'extension/sqliimport/edit' )}</button>{/if}</li>
+{/foreach}
+</ol>
+{/if}
+</div>
+{/if}
 </fieldset>
 {/if}
 {/if}
@@ -119,5 +138,14 @@
 </div>
 </fieldset>
 
+{if $ai.available}
+<fieldset class="a4-field a4-field-wide">
+<legend>{'AI assist'|i18n( 'extension/sqliimport/edit' )}</legend>
+<input type="hidden" name="AiOptionShown" value="1" />
+<label class="a4-check" for="sq-ai-samples"><input type="checkbox" id="sq-ai-samples" name="AiSendSamples" value="1"{if and( is_set( $behaviour.ai_samples ), $behaviour.ai_samples )} checked="checked"{/if} aria-describedby="sq-ai-samples-help" /> {'Send sample values to the AI'|i18n( 'extension/sqliimport/edit' )}</label>
+<span class="a4-help" id="sq-ai-samples-help">{'Off: the AI gets only the names and types of the fields. On: also a few sample values per field, and the values of a failed row it explains; e-mail addresses, phone numbers and IBAN-like values are masked before they are sent.'|i18n( 'extension/sqliimport/edit' )}</span>
+</fieldset>
+{/if}
+{foreach $ai.accepted as $sq_pa}<input type="hidden" name="AiAccepted[]" value="{$sq_pa|wash}" />{/foreach}
 {include uri='design:sqliimport/edit/buttons.tpl' step='processing' stay=1}
 </form>

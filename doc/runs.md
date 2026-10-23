@@ -107,6 +107,10 @@ warning with a link when runs failed or ended with errors in the last 24 hours (
 - The log.
 - **Cancel** while the run has not ended, and **Retry failed rows** when it ended with failed rows.
 - **Refresh**, which loads the page again.
+- With the AI assist ([ai.md](ai.md)): **Explain** next to the message of a failed row (a short explanation and a
+  suggested fix, from the message and the mapping lines concerned, without record values unless the import opts in)
+  and **Summarize** for a run that has ended (a short summary from the run's own figures, never record values). Both
+  only show text; nothing is changed.
 
 While a run is queued or running, the page follows it live: every two seconds it fetches the status, the progress,
 the counters and the new log lines, and shows them without loading the page again. When the run ends, the page loads

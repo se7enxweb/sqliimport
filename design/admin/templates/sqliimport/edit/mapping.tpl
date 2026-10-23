@@ -1,7 +1,9 @@
 {* Editor step "mapping": the class, how a record finds its object, where new objects go, and the grid: one line per
    attribute of the class with its source field (the fields of the sample are offered), its transforms (one line:
    trim | date(format=d.m.Y)), a default and whether it is required. Auto-match fills the empty lines from the
-   field names, without AI. *}
+   field names, without AI. With the AI assist ($ai, doc/ai.md): "Suggest with AI" shows a suggestion per line with
+   its confidence and reason, "Accept" and "Accept all" fill them into the form (never saved without Save), and the
+   class suggestion; the buttons only post this form. *}
 <form method="post" action={concat( $base, '/(step)/mapping' )|ezurl}>
 {if ne( $sample_error, '' )}<p class="a4-notice is-warn">{'The sample of the source could not be read: %error'|i18n( 'extension/sqliimport/edit',, hash( '%error', $sample_error ) )|wash}</p>{/if}
 <datalist id="sq-sample-fields">{if $sample}{foreach $sample.fields as $f}<option value="{$f|wash}"></option>{/foreach}{/if}</datalist>
@@ -15,6 +17,25 @@
 </select>
 <span class="a4-help">{'After a new class is chosen, save to see its attributes.'|i18n( 'extension/sqliimport/edit' )}</span>
 </div>
+{* the AI assist (doc/ai.md): the class that fits the source's fields, the best three with reasons; "Use this class"
+   chooses it in the form, nothing is saved *}
+{if $ai.available}
+<div class="a4-field a4-field-wide a4-sqliimport-ai" id="sq-ai" tabindex="-1">
+<div class="a4-toolbar">
+<button type="submit" class="a4-btn a4-btn-small" name="AiClassButton" value="1"><span class="a4-icon a4-bi-stars" aria-hidden="true"></span> {'Suggest a class with AI'|i18n( 'extension/sqliimport/edit' )}</button>
+<span class="a4-meta">{if $ai.samples}{'Sends the field names and types and masked sample values.'|i18n( 'extension/sqliimport/edit' )}{else}{'Sends only the field names and types, no values.'|i18n( 'extension/sqliimport/edit' )}{/if}</span>
+</div>
+{if $ai.classes|count|gt( 0 )}
+<ol class="a4-sqliimport-ai-list" aria-label="{'Classes the AI suggests'|i18n( 'extension/sqliimport/edit' )|wash}">
+{foreach $ai.classes as $sq_ac}
+<li><strong>{$sq_ac.name|wash}</strong> <code>{$sq_ac.identifier|wash}</code> <span class="a4-badge {$sq_ac.kind}" title="{'Confidence of the AI'|i18n( 'extension/sqliimport/edit' )|wash}">{$sq_ac.percent}%</span>
+{if ne( $sq_ac.reason, '' )}<span class="a4-meta">{$sq_ac.reason|wash}</span>{/if}
+{if eq( $mapping.class, $sq_ac.identifier )}<span class="a4-tag is-accent">{'In the form'|i18n( 'extension/sqliimport/edit' )}</span>{else}<button type="submit" class="a4-btn a4-btn-small a4-btn-ghost" name="AiUseClassButton" value="{$sq_ac.identifier|wash}">{'Use this class'|i18n( 'extension/sqliimport/edit' )}</button>{/if}</li>
+{/foreach}
+</ol>
+{/if}
+</div>
+{/if}
 {* a class per record (class_from, variants), from the format's preset or a mapping file: not edited in the grid,
    which is the mapping of every other record; kept when the grid is saved, unless removed here *}
 {if and( is_set( $mapping.class_from ), is_set( $mapping.variants ) )}
@@ -76,7 +97,16 @@
 <div class="a4-section-head">
 <h2 class="a4-h2" id="sq-grid-title">{'Attributes'|i18n( 'extension/sqliimport/edit' )}</h2>
 <button type="submit" class="a4-btn a4-btn-small" name="AutoMatchButton" value="1"><span class="a4-icon a4-bi-magic" aria-hidden="true"></span> {'Auto-match by name'|i18n( 'extension/sqliimport/edit' )}</button>
+{if $ai.available}
+<button type="submit" class="a4-btn a4-btn-small" name="AiSuggestButton" value="1"><span class="a4-icon a4-bi-stars" aria-hidden="true"></span> {'Suggest with AI'|i18n( 'extension/sqliimport/edit' )}</button>
+{if and( $ai.mapping, gt( $ai.mapping.count, 0 ) )}<button type="submit" class="a4-btn a4-btn-small a4-btn-primary" name="AiAcceptAllButton" value="1">{'Accept all'|i18n( 'extension/sqliimport/edit' )}</button>{/if}
+{/if}
 </div>
+{if $ai.available}
+<p class="a4-meta">{if $ai.samples}{'The AI gets the attributes of the class, the field names and types and masked sample values (the option of the processing step).'|i18n( 'extension/sqliimport/edit' )}{else}{'The AI gets the attributes of the class and only the field names and types, no values.'|i18n( 'extension/sqliimport/edit' )}{/if}
+{'Suggestions are only filled into the form when you accept them; save to keep them. A dry run is needed before the next real run.'|i18n( 'extension/sqliimport/edit' )}</p>
+{if $ai.mapping}<p class="a4-notice is-info" role="status">{'%n suggestions of the AI'|i18n( 'extension/sqliimport/edit',, hash( '%n', $ai.mapping.count ) )}{if gt( $ai.mapping.dropped, 0 )} · {'%n left out (an attribute, field or transform that does not exist)'|i18n( 'extension/sqliimport/edit',, hash( '%n', $ai.mapping.dropped ) )}{/if}{if ne( $ai.mapping.model, '' )} · {$ai.mapping.model|wash}{/if}</p>{/if}
+{/if}
 <div class="a4-sqliimport-scroll" tabindex="0" role="region" aria-labelledby="sq-grid-title">
 <table class="a4-table is-compact a4-sqliimport-grid">
 <thead><tr>
@@ -85,6 +115,7 @@
 <th>{'Transforms'|i18n( 'extension/sqliimport/edit' )}</th>
 <th>{'Default'|i18n( 'extension/sqliimport/edit' )}</th>
 <th>{'Required'|i18n( 'extension/sqliimport/edit' )}</th>
+{if $ai.mapping}<th>{'AI suggestion'|i18n( 'extension/sqliimport/edit' )}</th>{/if}
 </tr></thead>
 <tbody>
 {foreach $grid as $g}
@@ -94,6 +125,12 @@
 <td><input type="text" id="sq-f-{$g.attribute|wash}-transforms" class="a4-input a4-sqliimport-chain" name="Fields[{$g.attribute|wash}][transforms]" value="{$g.transforms|wash}"{if ne( $g.error, '' )} aria-invalid="true" aria-describedby="sq-f-{$g.attribute|wash}-error"{/if} aria-label="{'Transforms of %a'|i18n( 'extension/sqliimport/edit',, hash( '%a', $g.name ) )|wash}" placeholder="trim" />{if ne( $g.error, '' )}<span class="a4-field-error" id="sq-f-{$g.attribute|wash}-error">{$g.error|wash}</span>{/if}</td>
 <td><input type="text" class="a4-input" name="Fields[{$g.attribute|wash}][default]" value="{$g.default|wash}" aria-label="{'Default of %a'|i18n( 'extension/sqliimport/edit',, hash( '%a', $g.name ) )|wash}" /></td>
 <td><input type="checkbox" name="Fields[{$g.attribute|wash}][required]" value="1"{if $g.required} checked="checked"{/if} aria-label="{'%a is required'|i18n( 'extension/sqliimport/edit',, hash( '%a', $g.name ) )|wash}" /></td>
+{if $ai.mapping}<td class="a4-sqliimport-ai-cell">{if $g.ai}
+<code>{$g.ai.source|wash}</code>{if ne( $g.ai.transforms, '' )} <span class="a4-meta">| {$g.ai.transforms|wash}</span>{/if}
+<span class="a4-badge {$g.ai.kind}" title="{'Confidence of the AI'|i18n( 'extension/sqliimport/edit' )|wash}">{$g.ai.percent}%</span>
+{if ne( $g.ai.reason, '' )}<span class="a4-meta a4-sqliimport-ai-reason">{$g.ai.reason|wash}</span>{/if}
+{if $g.ai.accepted}<span class="a4-tag is-accent">{'In the form'|i18n( 'extension/sqliimport/edit' )}</span>{else}<button type="submit" class="a4-btn a4-btn-small a4-btn-ghost" name="AiAcceptButton" value="{$g.attribute|wash}" aria-label="{'Accept the suggestion for %a'|i18n( 'extension/sqliimport/edit',, hash( '%a', $g.name ) )|wash}">{'Accept'|i18n( 'extension/sqliimport/edit' )}</button>{/if}
+{else}<span class="a4-meta">–</span>{/if}</td>{/if}
 </tr>
 {/foreach}
 </tbody>
@@ -141,6 +178,8 @@
 </details>
 {/if}
 
+{* what was accepted from the AI assist so far: saving marks this version for a dry run before the next real run *}
+{foreach $ai.accepted as $sq_aa}<input type="hidden" name="AiAccepted[]" value="{$sq_aa|wash}" />{/foreach}
 {include uri='design:sqliimport/edit/buttons.tpl' step='mapping' stay=1}
 </form>
 

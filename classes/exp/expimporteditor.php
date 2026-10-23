@@ -696,7 +696,7 @@ class expImportEditor
                                                                                 'trash_policy' => 'skip', 'max_rows' => max( 0, (int)$this->post( 'MaxRows', $behaviour['max_rows'] ) ),
                                                                                 'conflict_policy' => $conflict, 'undo_days' => $undoDays,
                                                                                 'notify_when' => $notifyWhen, 'notify_starter' => $this->post( 'NotifyStarter', '' ) === '1',
-                                                                                'notify_emails' => array_values( array_unique( $emails ) ) ) ) );
+                                                                                'notify_emails' => array_values( array_unique( $emails ) ) ) + $this->aiBehaviour( $behaviour ) ) );
         $this->save( false );
         return true;
     }
@@ -924,6 +924,10 @@ class expImportEditor
         // stored even when not complete yet (the grid keeps what was entered); the errors are shown
         $row = expImportMapping::saveArray( $mapping, $this->import->attribute( 'id' ), $existing );
         $this->import->setAttribute( 'mapping_id', (int)$row->attribute( 'id' ) );
+        // lines a person accepted from the AI assist: the version saved now needs a dry run before the next real run
+        $aiAccepted = $this->aiAcceptedPosted();
+        if ( $aiAccepted )
+            $this->markAiAccepted( $aiAccepted );
         $this->save( false );
         if ( !$autoMatch )
         {
@@ -931,6 +935,186 @@ class expImportEditor
                 $this->errors['Mapping_' . $i] = $message;
         }
         return !$this->errors;
+    }
+
+    // ---- the AI assist (expImportAi) --------------------------------------------------------------------------
+
+    /** @var array|null the mapping suggestions shown in the grid (expImportAi::suggestMapping()) */
+    public $aiMapping = null;
+
+    /** @var array|null the class or data table suggestions (expImportAi::suggestClass()) */
+    public $aiClasses = null;
+
+    /** @var string[] what was accepted from the assist in the form so far (attributes, _class, _table) */
+    public $aiAccepted = array();
+
+    /** @return array the keys of the AI assist in behaviour_json, kept when the processing step is saved */
+    protected function aiBehaviour( array $behaviour )
+    {
+        $out = array();
+        $out['ai_samples'] = $this->posted( 'AiOptionShown' ) !== null ? $this->posted( 'AiSendSamples' ) === '1' : !empty( $behaviour['ai_samples'] );
+        if ( !empty( $behaviour['ai_dry_run_from'] ) )
+            $out['ai_dry_run_from'] = (int)$behaviour['ai_dry_run_from'];
+        if ( $this->aiAcceptedPosted() )
+            $out['ai_dry_run_from'] = (int)$this->import->attribute( 'def_version' ) + 1;
+        return $out;
+    }
+
+    /** @return string[] the posted AiAccepted[] (what the form accepted from the assist) */
+    public function aiAcceptedPosted()
+    {
+        $out = array();
+        foreach ( $this->postArray( 'AiAccepted' ) as $value )
+            if ( is_string( $value ) && preg_match( '/^[A-Za-z0-9_]{1,100}$/', $value ) )
+                $out[] = $value;
+        return array_values( array_unique( $out ) );
+    }
+
+    /** Marks the version about to be saved as one with accepted suggestions (a dry run before the next real run). */
+    protected function markAiAccepted( array $accepted )
+    {
+        $behaviour = expImport::decode( $this->import->attribute( 'behaviour_json' ) );
+        $behaviour['ai_dry_run_from'] = (int)$this->import->attribute( 'def_version' ) + 1;
+        $this->import->setAttribute( 'behaviour_json', expImport::json( $behaviour ) );
+        expImport::audit( 'ai.accept', array( 'id' => (int)$this->import->attribute( 'id' ), 'identifier' => $this->import->attribute( 'identifier' ),
+                                              'accepted' => array_slice( $accepted, 0, 100 ) ) );
+    }
+
+    /** @return array the context of a request of the assist for this import */
+    public function aiContext( $classIdentifier = '' )
+    {
+        return expImportAi::contextFor( $this->import, $classIdentifier );
+    }
+
+    /**
+     * "Suggest with AI" of the mapping step: the suggestions for the class of the form (as posted), from the sample;
+     * kept for the session per import, class and fields. Nothing is saved.
+     *
+     * @param array $mapping the mapping as posted
+     * @param array|null $sample expImportPreview::sample()
+     * @return bool
+     */
+    public function aiSuggestMapping( array $mapping, $sample )
+    {
+        if ( !is_array( $sample ) || empty( $sample['fields'] ) )
+        {
+            $this->errors['Ai'] = ezpI18n::tr( 'extension/sqliimport/edit', 'The AI assist needs the fields of the sample, which could not be read.' );
+            return false;
+        }
+        $attributes = expImportAi::attributesFor( (string)$mapping['class'] );
+        if ( !$attributes )
+        {
+            $this->errors['ClassIdentifier'] = ezpI18n::tr( 'extension/sqliimport/edit', 'Choose the content class.' );
+            return false;
+        }
+        $samples = expImportAi::sendsSamples( $this->import->behaviour() );
+        $key = expImportAi::key( 'mapping', (int)$this->import->attribute( 'id' ), array( $mapping['class'], $sample['fields'], $samples ) );
+        $result = expImportAi::cached( $key );
+        if ( !is_array( $result ) )
+        {
+            try
+            {
+                $result = expImportAi::suggestMapping( $attributes, $sample, $samples, $this->aiContext( (string)$mapping['class'] ) );
+            }
+            catch ( expImportAiException $e )
+            {
+                $this->errors['Ai'] = ezpI18n::tr( 'extension/sqliimport/edit', 'The AI assist could not answer: %error', null, array( '%error' => $e->getMessage() ) );
+                return false;
+            }
+            $result['class'] = (string)$mapping['class'];
+            expImportAi::remember( $key, $result );
+            expImport::audit( 'ai.suggest', array( 'id' => (int)$this->import->attribute( 'id' ), 'identifier' => $this->import->attribute( 'identifier' ),
+                                                   'purpose' => 'mapping', 'lines' => count( $result['lines'] ), 'dropped' => (int)$result['dropped'], 'samples' => $samples ) );
+        }
+        expImportAi::remember( 'mapping-last:' . (int)$this->import->attribute( 'id' ), $key );
+        $this->aiMapping = $result;
+        $this->aiAccepted = $this->aiAcceptedPosted();
+        $this->notice = $result['lines']
+            ? ezpI18n::tr( 'extension/sqliimport/edit', 'The AI suggests %n lines. Accept the ones that fit, check them, then save.', null, array( '%n' => count( $result['lines'] ) ) )
+            : ezpI18n::tr( 'extension/sqliimport/edit', 'The AI has no suggestion that fits the class and the fields.' );
+        return true;
+    }
+
+    /** @return array|null the kept mapping suggestions of this import for the class (the last asked) */
+    public function aiKeptMapping( $class )
+    {
+        $key = expImportAi::cached( 'mapping-last:' . (int)$this->import->attribute( 'id' ) );
+        $result = is_string( $key ) ? expImportAi::cached( $key ) : null;
+        return is_array( $result ) && isset( $result['class'] ) && $result['class'] === (string)$class ? $result : null;
+    }
+
+    /**
+     * Accepts kept suggestions into the form's mapping (Accept, Accept all); nothing is saved.
+     *
+     * @param array $mapping the mapping as posted
+     * @param string[] $attributes empty: all
+     * @return array the mapping for the form
+     */
+    public function aiAccept( array $mapping, array $attributes )
+    {
+        $kept = $this->aiKeptMapping( (string)$mapping['class'] );
+        $this->aiAccepted = $this->aiAcceptedPosted();
+        if ( !$kept )
+        {
+            $this->errors['Ai'] = ezpI18n::tr( 'extension/sqliimport/edit', 'The suggestions are no longer there. Ask the AI again.' );
+            return $mapping;
+        }
+        $this->aiMapping = $kept;
+        list( $mapping, $accepted ) = expImportAi::accept( $mapping, $kept['lines'], $attributes );
+        $this->aiAccepted = array_values( array_unique( array_merge( $this->aiAccepted, $accepted ) ) );
+        $this->notice = ezpI18n::tr( 'extension/sqliimport/edit', 'Accepted %n suggestions into the form. Check them, then save; nothing is saved before.', null, array( '%n' => count( $accepted ) ) );
+        return $mapping;
+    }
+
+    /**
+     * The class suggestion: content classes (mapping step) or data tables (processing step, target datatable); kept
+     * for the session per import.
+     *
+     * @param string $kind content | datatable
+     * @param array $candidates identifier => name
+     * @return bool
+     */
+    public function aiSuggestClass( $kind, array $candidates )
+    {
+        try
+        {
+            $sample = expImportPreview::sample( $this->import, 20 );
+        }
+        catch ( Exception $e )
+        {
+            $this->errors['Ai'] = ezpI18n::tr( 'extension/sqliimport/edit', 'The AI assist needs the fields of the sample, which could not be read.' );
+            return false;
+        }
+        $samples = expImportAi::sendsSamples( $this->import->behaviour() );
+        $key = expImportAi::key( 'class-' . $kind, (int)$this->import->attribute( 'id' ), array( array_keys( $candidates ), $sample['fields'], $samples ) );
+        $result = expImportAi::cached( $key );
+        if ( !is_array( $result ) )
+        {
+            try
+            {
+                $result = expImportAi::suggestClass( $candidates, $sample, $samples, $kind, $this->aiContext() );
+            }
+            catch ( expImportAiException $e )
+            {
+                $this->errors['Ai'] = ezpI18n::tr( 'extension/sqliimport/edit', 'The AI assist could not answer: %error', null, array( '%error' => $e->getMessage() ) );
+                return false;
+            }
+            expImportAi::remember( $key, $result );
+            expImport::audit( 'ai.suggest', array( 'id' => (int)$this->import->attribute( 'id' ), 'identifier' => $this->import->attribute( 'identifier' ),
+                                                   'purpose' => 'class', 'kind' => $kind, 'lines' => count( $result['classes'] ), 'samples' => $samples ) );
+        }
+        expImportAi::remember( 'class-last:' . $kind . ':' . (int)$this->import->attribute( 'id' ), $key );
+        $this->aiClasses = $result;
+        $this->aiAccepted = $this->aiAcceptedPosted();
+        return true;
+    }
+
+    /** @return array|null the kept class suggestions of this import */
+    public function aiKeptClasses( $kind )
+    {
+        $key = expImportAi::cached( 'class-last:' . $kind . ':' . (int)$this->import->attribute( 'id' ) );
+        $result = is_string( $key ) ? expImportAi::cached( $key ) : null;
+        return is_array( $result ) ? $result : null;
     }
 
     // ---- schedule ----------------------------------------------------------------------------------------------
@@ -1253,7 +1437,7 @@ class expImportEditor
         'ConflictPolicy' => 'sq-conflict', 'UndoDays' => 'sq-undo', 'MaxRows' => 'sq-max', 'NotifyWhen' => 'sq-notify-when',
         'NotifyEmails' => 'sq-notify-emails', 'ClassIdentifier' => 'sq-class', 'MappingLanguage' => 'sq-mlang', 'MatchPattern' => 'sq-pattern',
         'MatchAttribute' => 'sq-mattr', 'LocationParentNodeID' => 'sq-lparent', 'LocationParentFrom' => 'sq-lfrom',
-        'LocationExtraParentsFrom' => 'sq-lextra', 'MappingFile' => 'sq-mapfile', 'RunAt' => 'sq-runat', 'Timezone' => 'sq-tz',
+        'LocationExtraParentsFrom' => 'sq-lextra', 'MappingFile' => 'sq-mapfile', 'Ai' => 'sq-ai', 'RunAt' => 'sq-runat', 'Timezone' => 'sq-tz',
         'IntervalMinutes' => 'sq-interval', 'CronExpr' => 'sq-cron', 'CatchUp' => 'sq-catch', 'Notify' => 'sq-notify',
         'TriggerRunUserID' => 'sq-trig-user', 'TriggerSecretRef' => 'sq-trig-ref', 'TriggerAllowPush' => 'sq-trig-push', 'TriggerKeyLabel' => 'sq-trig-label',
     );
@@ -1314,6 +1498,8 @@ class expImportEditor
             $behaviour['notify_starter'] = $v === '1';
         if ( ( $v = $this->posted( 'NotifyEmails' ) ) !== null )
             $behaviour['notify_emails'] = array_values( array_filter( array_map( 'trim', preg_split( '/[\s,;]+/', $v ) ), 'strlen' ) );
+        if ( $this->posted( 'AiOptionShown' ) !== null )
+            $behaviour['ai_samples'] = $this->posted( 'AiSendSamples' ) === '1';
         $options = $this->postArray( 'HandlerOptions' );
         return array(
             'target' => $target,
