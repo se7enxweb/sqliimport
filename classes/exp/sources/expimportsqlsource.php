@@ -1256,7 +1256,9 @@ class expImportSqlSource extends expImportJsonSource
                               'needs' => 'pdo_pgsql (RHEL: php-pgsql; Debian: php-pgsql)' ),
             'sqlite' => array( 'label' => 'SQLite', 'via' => in_array( 'sqlite', $pdo, true ) ? 'pdo_sqlite' : '',
                                'needs' => 'pdo_sqlite (RHEL: php-pdo; Debian: php-sqlite3)' ),
-            'oracle' => array( 'label' => 'Oracle', 'via' => self::hasOci8() ? 'oci8' : ( in_array( 'oci', $pdo, true ) ? 'pdo_oci' : '' ),
+            // oci8 (also what ezoracle's eZOracleDB, a named connection of engine oracle, reads through), else pdo_oci
+            'oracle' => array( 'label' => 'Oracle', 'via' => self::hasOci8() ? 'oci8' . ( class_exists( 'eZOracleDB' ) ? ', eZOracleDB (ezoracle) for named connections' : '' )
+                                                                          : ( in_array( 'oci', $pdo, true ) ? 'pdo_oci' : '' ),
                                'needs' => 'oci8 and the Oracle Instant Client (RHEL: oracle-instantclient-basic and the PECL oci8 extension, '
                                         . 'e.g. php-oci8 of Remi; Debian: the Instant Client and the PECL oci8 extension), or pdo_oci' ),
             'sqlsrv' => array( 'label' => 'Microsoft SQL Server',
