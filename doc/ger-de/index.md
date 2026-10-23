@@ -67,6 +67,7 @@ Protokoll eines Laufs, die Meldungen einer Quelle und die Kommandozeile bleiben 
 | [runs.md](runs.md) | Wie ein Lauf abläuft, die Live-Seite eines Laufs, Status, Zeilen und Protokoll, Abbrechen, Wiederholen, Probelauf |
 | [statistics.md](statistics.md) | Die Diagramme des Dashboards und die Seite Statistik: Verläufe, je Import, Vergleich, Vorschläge, CSV |
 | [transfer.md](transfer.md) | Importe unter den Import- und Export-Werkzeugen: In diesen Ordner importieren, Dateien von Export und CIE, Ergebnis- und Zuordnungsdateien |
+| [definitions.md](definitions.md) | Als JSON herunterladen, Auswahl exportieren, Definitionen importieren, Kopieren nach … und Vorlagen von Importen |
 | [schedules.md](schedules.md) | Arten von Zeitplänen, Zeitzonen, Sommerzeit, die Seite Schedules, der Cron-Teil |
 | [triggers.md](triggers.md) | Einen Import aus einem anderen System starten: signierte Aufrufe, API-Schlüssel, Daten im Aufruf, Status, Grenzen |
 | [ai.md](ai.md) | Die KI-Unterstützung über expai: Zuordnungs- und Klassenvorschläge, Erklärungen fehlgeschlagener Zeilen, Zusammenfassungen von Läufen, was gesendet wird |

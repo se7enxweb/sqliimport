@@ -28,6 +28,10 @@ class expImportAuditBranch implements expAuditTaxonomyBranch
         'ai.accept' => array( 'Import: AI suggestions accepted and saved', 'notice' ),
         'ai.explain' => array( 'Import: AI explanation of a failed row asked for', 'info' ),
         'ai.summary' => array( 'Import: AI summary of a run asked for', 'info' ),
+        'definitions.export' => array( 'Import: definitions exported', 'info' ),
+        'definitions.import' => array( 'Import: definitions imported', 'notice' ),
+        'template.create' => array( 'Import: template saved', 'notice' ),
+        'template.delete' => array( 'Import: template deleted', 'notice' ),
     );
 
     public function events()

@@ -1605,9 +1605,44 @@ class expImportEditor
      */
     public static function duplicate( expImportDefinition $import )
     {
-        $name = ezpI18n::tr( 'extension/sqliimport', 'Copy of %name', null, array( '%name' => $import->attribute( 'name' ) ) );
+        return self::copyTo( $import, ezpI18n::tr( 'extension/sqliimport', 'Copy of %name', null, array( '%name' => $import->attribute( 'name' ) ) ) );
+    }
+
+    /**
+     * Checks the name and identifier of "Copy to ...".
+     *
+     * @param string $name
+     * @param string $identifier '' makes one from the name
+     * @return array field => message (CopyName, CopyIdentifier)
+     */
+    public static function copyErrors( $name, $identifier )
+    {
+        $errors = array();
+        if ( trim( (string)$name ) === '' )
+            $errors['CopyName'] = ezpI18n::tr( 'extension/sqliimport/edit', 'Give the import a name.' );
+        $identifier = trim( (string)$identifier );
+        if ( $identifier !== '' && !preg_match( '/^[a-z0-9_-]{1,100}$/', $identifier ) )
+            $errors['CopyIdentifier'] = ezpI18n::tr( 'extension/sqliimport/edit', 'The identifier takes lower case letters, digits, _ and -.' );
+        elseif ( $identifier !== '' && expImportDefinition::fetchByIdentifier( $identifier ) )
+            $errors['CopyIdentifier'] = ezpI18n::tr( 'extension/sqliimport/edit', 'Another import has this identifier.' );
+        return $errors;
+    }
+
+    /**
+     * "Copy to ...": a copy of an import with a name and identifier of its own, disabled: its source (the same stored
+     * file), processing and mapping, its schedules when asked (paused), never its trigger or its keys, never its runs.
+     *
+     * @param expImportDefinition $import
+     * @param string $name
+     * @param string $identifier '' makes one from the name
+     * @param bool $withSchedules
+     * @return expImportDefinition
+     */
+    public static function copyTo( expImportDefinition $import, $name, $identifier = '', $withSchedules = false )
+    {
         $copy = expImportDefinition::create( array(
-            'name' => $name,
+            'name' => trim( (string)$name ),
+            'identifier' => trim( (string)$identifier ),
             'description' => $import->attribute( 'description' ),
             'source_type' => $import->attribute( 'source_type' ),
             'source_config' => $import->attribute( 'source_config' ),
@@ -1625,12 +1660,23 @@ class expImportEditor
             $copy->setAttribute( 'mapping_id', (int)$row->attribute( 'id' ) );
             $copy->store();
         }
-        expImport::audit( 'import.create', array( 'id' => (int)$copy->attribute( 'id' ), 'copy_of' => (int)$import->attribute( 'id' ) ) );
+        $schedules = array();
+        if ( $withSchedules )
+        {
+            foreach ( $import->schedules() as $s )
+                $schedules[] = array( 'kind' => (string)$s->attribute( 'kind' ), 'run_at' => (int)$s->attribute( 'run_at' ),
+                                      'interval_minutes' => (int)$s->attribute( 'interval_minutes' ), 'cron_expr' => (string)$s->attribute( 'cron_expr' ),
+                                      'timezone' => (string)$s->attribute( 'timezone' ), 'catch_up' => (string)$s->attribute( 'catch_up' ), 'notify' => $s->notify() );
+            expImportTransfer::storeSchedules( (int)$copy->attribute( 'id' ), $schedules );
+        }
+        expImport::audit( 'import.create', array( 'id' => (int)$copy->attribute( 'id' ), 'identifier' => (string)$copy->attribute( 'identifier' ),
+                                                  'copy_of' => (int)$import->attribute( 'id' ), 'schedules' => count( $schedules ) ) );
         return $copy;
     }
 
     /**
-     * Imports exported import definitions (Settings > Import definitions). An import with the same identifier is
+     * Imports exported import definitions at once, without a plan: kept for scripts of 2.0.0-alpha.1. The
+     * administration reads a file with expImportTransfer (sqliimport/transfer) instead. An import with the same identifier is
      * updated, others are created disabled.
      *
      * @param array $list the decoded export

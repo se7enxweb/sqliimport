@@ -1,4 +1,5 @@
-{* Editor step "review": the summary of the import, what is still missing, and Save (enables it) or Save and run. *}
+{* Editor step "review": the summary of the import, what is still missing, and Save (enables it) or Save and run;
+   then Download as JSON, Copy to … and Save as template (parts/import_transfer_forms.tpl). *}
 {def $sq_rv_src = $import.source}
 <dl class="a4-facts is-rows a4-sqliimport-facts">
 <dt>{'Name'|i18n( 'extension/sqliimport/edit' )}</dt><dd>{$import.name|wash} <span class="a4-meta">{$import.identifier|wash}</span></dd>
@@ -22,3 +23,11 @@
 </div>
 {include uri='design:sqliimport/edit/buttons.tpl' step='review' last=1}
 </form>
+
+{if $import}
+<section class="a4-section" aria-labelledby="sq-rv-share">
+<div class="a4-section-head"><h2 class="a4-h2" id="sq-rv-share">{'Export, copy or keep as a template'|i18n( 'extension/sqliimport/edit' )}</h2></div>
+<p class="a4-help">{'The JSON file moves this import to another installation (Imports, Import definitions there): no source file, no API key, the names of its secrets only.'|i18n( 'extension/sqliimport/edit' )}</p>
+<div class="a4-sqliimport-more-body">{include uri='design:sqliimport/parts/import_transfer_forms.tpl' import=$import here=concat( $base, '/(step)/review' ) sq_where='review'}</div>
+</section>
+{/if}

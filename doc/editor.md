@@ -163,6 +163,7 @@ lists what is still missing before the import can run, such as a mapping without
   something is missing.
 - **Save** stores the import and returns to the dashboard.
 - **Save and run** stores the enabled import, starts a run at once and opens its run page ([runs.md](runs.md)).
+- Below the form: **Download as JSON**, **Copy to …** and **Save as template** ([definitions.md](definitions.md)).
 
 ## Changing, copying and deleting
 
@@ -174,6 +175,10 @@ The list of imports on the dashboard has these actions:
 | Dry run | run or manage | Starts a run that publishes nothing (not for 1.x handlers) |
 | Edit | manage | Opens the editor |
 | More > Duplicate | manage | Makes a disabled copy named "Copy of ..." with the source, processing and mapping, without schedules or runs, and opens it in the editor |
+| More > Download as JSON | manage | Saves the import as a definitions file for another installation, without its file, keys or secret values ([definitions.md](definitions.md)) |
+| More > Copy to … | manage | A disabled copy with a name and identifier of your choice, its schedules on request (paused), never its trigger or keys |
+| More > Save as template | manage | Keeps the import without its source data as a template for new imports |
+| Export selected (JSON) | manage | One definitions file with the ticked imports |
 | More > Enable / Disable | manage | Switches the import on or off |
 | More > Delete | manage | Removes the import with its mapping and schedules, after a confirmation. Its runs stay in the history until they are purged. An import that runs now cannot be deleted; cancel the run first. |
 

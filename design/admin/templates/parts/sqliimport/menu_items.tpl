@@ -9,6 +9,8 @@
     'new',       'New import'|i18n( 'extension/sqliimport/menu' ),
     'schedules', 'Schedules'|i18n( 'extension/sqliimport/menu' ),
     'catalogue', 'Catalogue'|i18n( 'extension/sqliimport/menu' ),
+    'templates', 'Templates'|i18n( 'extension/sqliimport/menu' ),
+    'transfer',  'Import definitions'|i18n( 'extension/sqliimport/menu' ),
     'settings',  'Settings'|i18n( 'extension/sqliimport/menu' ),
     'active',    'Running runs'|i18n( 'extension/sqliimport/menu' ),
     'failed',    'Failed runs'|i18n( 'extension/sqliimport/menu' ),

@@ -77,6 +77,12 @@ The webhook / API trigger of imports ([triggers.md](triggers.md)).
 |---|---|---|
 | `ListLimit` | `25` | Rows per page of the lists (at least 5) |
 
+## [TemplateSettings]
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `Templates[]` | `sqliimport` | Where the templates of "New import from a template" come from besides this site's own (`var/<site>/storage/sqliimport/templates/`): the name of an extension (its `share/templates/*.json`) or a JSON file relative to the installation's root ([definitions.md](definitions.md)) |
+
 ## Settings of 1.x that still apply
 
 | Setting | Meaning in 2.x |
@@ -121,47 +127,19 @@ siteaccess, as described above.
 
 ### Export import definitions
 
-Tick the imports to export (none ticked: all) and choose **Export**. The browser saves a JSON file named
-`sqliimport-definitions-<date>-<time>.json`:
-
-```json
-{
-    "format": "sqliimport-definitions",
-    "version": 1,
-    "exported": "2026-10-22T09:30:00+02:00",
-    "imports": [
-        {
-            "identifier": "news_feed",
-            "name": "News from the partner feed",
-            "description": "",
-            "source_type": "rss",
-            "source": { "origin": "url", "url": "https://www.example.com/news.rss" },
-            "handler": "mapping",
-            "mapping": { "class": "article", "match": { "type": "remote_id", "pattern": "partner-news-{id}" }, "fields": [] },
-            "target": { "parent_node_id": 2, "section_id": 0, "language": "", "owner_id": 0 },
-            "behaviour": { "chunk_size": 200, "update_policy": "update" },
-            "options": {}
-        }
-    ]
-}
-```
-
-(The mapping and the behavior are shortened here.) An export holds the source, processing, mapping, target, behavior and options of
-each import. It holds no runs, no schedules and no file content: **uploaded source files are not part of an
-export.**
+Tick the imports to export (none ticked: all you may manage) and choose **Export**. The browser saves a definitions
+file (format `sqliimport-definitions`, version 2): the source, processing, mapping, target (with remote IDs next to
+the node IDs), behavior, options, schedules and trigger settings of each import, and the names of the secrets they
+need. It holds no runs, no uploaded file, no API key, no signing salt and no secret value. The same file comes from
+**Download as JSON** of one import and **Export selected** of the dashboard; [definitions.md](definitions.md)
+describes it field by field.
 
 ### Import import definitions
 
-Choose an exported file (at most 10 MB) and **Import**:
+**Import definitions** (`sqliimport/transfer`) reads such a file, also one of version 1: it shows per import what it
+would create here (new or an identifier that is taken, the class and parent node it resolves to, missing secrets,
+classes, attributes or nodes), lets you choose create new, replace or skip, and creates the chosen imports disabled,
+with their schedules paused and their trigger switched off ([definitions.md](definitions.md)).
 
-- an import with the same identifier is updated, and keeps whether it is enabled;
-- the other imports are created disabled;
-- an entry without an identifier or a name is skipped and reported.
-
-The page reports how many imports were created and updated. Then open each imported import in the editor: an
-import that read an uploaded file needs the file uploaded again in the source step, or its runs fail with "the
-uploaded source file is missing; upload it again". Add schedules in the schedule step, and enable the import in the
-review step.
-
-This is how imports move from a staging installation to the live one. The export contains the addresses and
-options of the sources, so keep the file as safe as the settings of the site.
+This is how imports move from a staging installation to the live one. The file contains the addresses and options
+of the sources, so keep it as safe as the settings of the site.
