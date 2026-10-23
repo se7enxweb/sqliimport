@@ -3,6 +3,24 @@
 All settings are in `sqliimport.ini`. Never edit `extension/sqliimport/settings/sqliimport.ini`; override it in
 `settings/override/sqliimport.ini.append.php`, a siteaccess directory, or your own extension.
 
+German: [ger-de/settings.md](ger-de/settings.md).
+
+## Contents
+
+- [[SourceSettings]](#sourcesettings)
+- [[HandlerSettings]](#handlersettings)
+- [[RunSettings]](#runsettings)
+- [[TriggerSettings]](#triggersettings)
+- [[AdminSettings]](#adminsettings)
+- [Settings of 1.x that still apply](#settings-of-1x-that-still-apply)
+- [Other settings files](#other-settings-files)
+- [The Settings page](#the-settings-page)
+  - [sqliimport.ini](#sqliimportini)
+  - [Secrets](#secrets)
+  - [Export import definitions](#export-import-definitions)
+  - [Import import definitions](#import-import-definitions)
+- [Example: export a docs import and import it back as a copy](#example-export-a-docs-import-and-import-it-back-as-a-copy)
+
 ## [SourceSettings]
 
 | Setting | Default | Meaning |
@@ -101,59 +119,160 @@ changes.
 ## The Settings page
 
 **Settings** in the left menu of the Imports tab (`sqliimport/settings`) needs the policy `manage`
-([permissions.md](permissions.md)). It has three parts.
+([permissions.md](permissions.md)). It has four parts.
 
 ### sqliimport.ini
 
-The settings as they stand for the administration, after every override: `[RunSettings] ChunkSize`, `DryRunRows`,
-`LogLevel`, `KeepDays`; `[SourceSettings] MaxSourceMegabytes`, `AllowPrivateHosts`, `AllowedPaths`;
-`[ImportSettings] DefaultParentNodeID`, `ViewCaching`, `ObjectIndexing`, `StreamTimeout`; `[AdminSettings]
-ListLimit`. The page only shows them. They are changed in `settings/override/sqliimport.ini.append.php` or a
-siteaccess, as described above.
+The settings as they stand for the administration, after every override: `[RunSettings]`, `[SourceSettings]`,
+`[TriggerSettings]`, the `AllowedHosts`, limits and time-outs of every database and service source
+(`[SqlSourceSettings]`, `[MongoDbSourceSettings]` ... `[RestApiSourceSettings]`), `[YouTubeSettings]` and
+`[ImportSettings]`, each line as `[Section] Setting` and its value. The page only shows them. They are changed in
+`settings/override/sqliimport.ini.append.php` or a siteaccess, as described above.
+
+![The section sqliimport.ini of the Settings page: [RunSettings] ChunkSize 200, DryRunRows 20, LogLevel info, KeepDays 90, [SourceSettings] MaxSourceMegabytes 200, AllowPrivateHosts disabled, AllowedPaths empty, the trigger settings and the first source settings](images/set-ini.png)
+
+### Secrets
+
+The names an import can give for a password, key or token (a database, a mailbox, an API), from
+`[SecretSettings] Secrets[]`. The values are never shown; `env:VARIABLE` names an environment variable. They are set
+in **Setup, Secrets** of the administration. On the documentation server no secret is set:
+
+![The section Secrets of the Settings page: the names an import can give as a password, never their values, with the link to Setup, Secrets, and No secret is set](images/set-secrets.png)
 
 ### Export import definitions
 
-Tick the imports to export (none ticked: all) and choose **Export**. The browser saves a JSON file named
-`sqliimport-definitions-<date>-<time>.json`:
+Tick the imports to export (none ticked: all) and choose **Export**. The browser saves a JSON file: for one import
+`sqliimport-import-<identifier>.json`, for several `sqliimport-definitions-<date>-<time>.json`. The same file comes
+from **Download as JSON** of an import, or **Export selected** of the dashboard.
+
+The file (format version 2) holds, per import, its name, description, whether it is enabled, the source, handler,
+options, target, behavior, mapping, schedules, trigger and the **names** of the secrets and connections it uses.
+Parent nodes are written with their remote IDs and paths as well, so another installation finds the same place. It
+holds no runs, no API keys, no secret values and no file content: **uploaded source files are not part of an
+export**, only their original name. The example below is a real export.
+
+### Import import definitions
+
+The section links to **Import definitions** (`sqliimport/transfer`) and to **Templates**. Import definitions reads
+an exported file (at most 10 MB) and shows, per import, what it would create here before anything is created:
+
+- **new**, or **identifier taken** when an import with that identifier exists;
+- the source and handler, the class and the parent node it resolves to (by remote ID and path, else the node ID);
+- what to check in the editor: a file to upload again, a secret or connection this site lacks.
+
+Per import you choose **Create a new import** (when the identifier is taken, it gets a suffix: `_2`), **Replace the
+existing import** (its runs and API keys stay) or **Skip it**. **Create the chosen imports (disabled)** creates them
+**disabled**, with their schedules paused and their trigger switched off, so you review each, upload a file it needs,
+run a dry run and enable it. The dashboard then says how many were created or replaced and skipped.
+
+This is how imports move from a staging installation to the live one. The export contains the addresses and
+options of the sources, so keep the file as safe as the settings of the site. See also [transfer.md](transfer.md).
+
+![The section Import import definitions of the Settings page, with the links Import definitions and Templates](images/set-import-section.png)
+
+## Example: export a docs import and import it back as a copy
+
+**Goal:** a copy of "Docs: Teas (TOML)" (import #126) made through its definitions file, as when an import is moved
+to another installation.
+
+**1. Export.** On the Settings page, under *Export import definitions*, tick "Docs: Teas (TOML)" and choose
+**Export**:
+
+![The export list of the Settings page with Docs: Teas (TOML) ticked and the button Export](images/set-export.png)
+
+The browser saved `sqliimport-import-docs-files-toml.json`. An excerpt (the mapping lines shortened):
 
 ```json
 {
     "format": "sqliimport-definitions",
-    "version": 1,
-    "exported": "2026-10-22T09:30:00+02:00",
+    "version": 2,
+    "exported": "2026-10-23T01:52:14Z",
+    "generator": "7x SQLI Import",
+    "secrets": [],
     "imports": [
         {
-            "identifier": "news_feed",
-            "name": "News from the partner feed",
-            "description": "",
-            "source_type": "rss",
-            "source": { "origin": "url", "url": "https://www.example.com/news.rss" },
+            "identifier": "docs-files-toml",
+            "name": "Docs: Teas (TOML)",
+            "description": "The same teas as an array of tables.",
+            "enabled": true,
+            "source_type": "toml",
+            "source": {
+                "origin": "upload",
+                "original_name": "teas.toml",
+                "format": "toml",
+                "record_path": "teas",
+                "key": "id"
+            },
             "handler": "mapping",
-            "mapping": { "class": "article", "match": { "type": "remote_id", "pattern": "partner-news-{id}" }, "fields": [] },
-            "target": { "parent_node_id": 2, "section_id": 0, "language": "", "owner_id": 0 },
-            "behaviour": { "chunk_size": 200, "update_policy": "update" },
-            "options": {}
+            "options": [],
+            "target": {
+                "parent_node_id": 54984,
+                "section_id": 0,
+                "language": "",
+                "owner_id": 0,
+                "parent": {
+                    "node_id": 54984,
+                    "remote_id": "250095e14b516fc6e9db1ce8e89260ab",
+                    "object_remote_id": "sq688doc-docs-files-toml",
+                    "path": "media/sqli_import_docs_examples/teas_toml"
+                },
+                "section": null,
+                "owner": null
+            },
+            "behaviour": {
+                "chunk_size": 200,
+                "update_policy": "update",
+                "trash_policy": "skip",
+                "max_rows": 0,
+                "conflict_policy": "overwrite",
+                "undo_days": "",
+                "notify_when": "errors",
+                "notify_starter": true,
+                "notify_emails": []
+            },
+            "mapping": {
+                "class": "folder",
+                "language": "",
+                "match": { "type": "remote_id", "pattern": "sq688doc-toml-{id}" },
+                "fields": [
+                    { "source": "name", "attribute": "name", "transforms": [ { "name": "trim" } ], "default": "", "required": true, "language": "" },
+                    ...
+                ],
+                "location": { "parent_node_id": 54984, "parent": { ... } }
+            },
+            "schedules": [],
+            "trigger": null,
+            "secrets": [],
+            "connections": []
         }
     ]
 }
 ```
 
-(The mapping and the behavior are shortened here.) An export holds the source, processing, mapping, target, behavior and options of
-each import. It holds no runs, no schedules and no file content: **uploaded source files are not part of an
-export.**
+The source keeps `original_name` but not the stored upload (`file`). An import that reads a secret lists its name,
+never its value: the export of "Docs: YouTube channel (Data API, illustrative)" has `"api_key":
+"sq-demo-youtube-key"` in its source and `"secrets": [ "sq-demo-youtube-key" ]` at the top and in the import, and
+nothing else of the key.
 
-### Import import definitions
+**2. Rename.** To tell the copy apart, the name in a copy of the file was changed to "Docs: Teas (TOML) (imported
+definition)". The identifier stayed, to show what happens when it is taken.
 
-Choose an exported file (at most 10 MB) and **Import**:
+**3. Import.** **Import definitions**, choose the file, upload:
 
-- an import with the same identifier is updated, and keeps whether it is enabled;
-- the other imports are created disabled;
-- an entry without an identifier or a name is skipped and reported.
+![The page Import definitions before a file is chosen](images/set-transfer-upload.png)
 
-The page reports how many imports were created and updated. Then open each imported import in the editor: an
-import that read an uploaded file needs the file uploaded again in the source step, or its runs fail with "the
-uploaded source file is missing; upload it again". Add schedules in the schedule step, and enable the import in the
-review step.
+The plan says: the identifier `docs-files-toml` is taken, the source is TOML with the mapping to `folder`, the parent
+node #54984 was found, a new import would be `docs-files-toml_2`, and *To check in the editor: upload the file
+teas.toml again in the editor (files are not part of an export)*. The choice is **Create a new import
+(docs-files-toml_2)**:
 
-This is how imports move from a staging installation to the live one. The export contains the addresses and
-options of the sources, so keep the file as safe as the settings of the site.
+![The plan of Import definitions: Docs: Teas (TOML) (imported definition), identifier taken, source TOML and Mapping, class folder, parent node #54984, a new one would be docs-files-toml_2, the note to upload teas.toml again, and the choice Create a new import](images/set-transfer-plan.png)
+
+**4. Result.** **Create the chosen imports (disabled)** returned to the dashboard with "1 imports created or replaced,
+disabled: review, dry-run and enable each. 0 skipped. Docs: Teas (TOML) (imported definition)":
+
+![The message on the dashboard: 1 imports created or replaced, disabled, 0 skipped, and the name of the new import](images/set-transfer-done.png)
+
+The new import `docs-files-toml_2` is disabled and has no file yet: in its source step, upload `teas.toml`, then run
+a dry run (3 teas would be created into the same folder, matched by the same remote IDs as the original, so a real
+run would update the original's objects rather than make new ones) and enable it in the review step.

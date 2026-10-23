@@ -14,6 +14,143 @@ API-Auslöser eines Imports.
   lesen.
 - **Protokolliert im Audit-Trail, mit Ratenbegrenzung, ohne Session, ohne CORS.**
 
+## Durchgespieltes Beispiel auf einer Testinstallation
+
+Dieses Beispiel startet den Import „Docs: First import (teas CSV)“ (Kennung `docs-first-import`, Import #132) von der
+Kommandozeile: einmal signiert, einmal mit API-Schlüssel und neuen Daten und einmal mit einem falschen Schlüssel. Alle
+Aufrufe und Antworten unten sind echt; nur das Signiergeheimnis und der API-Schlüssel sind durch Platzhalter ersetzt.
+Auf dieser Testinstallation ist die Erweiterung nur im Siteaccess der Verwaltung aktiv, daher liegt die Adresse unter
+`/admin`. **Auf einer normalen Website rufen Sie einen Siteaccess auf, der Besucher nicht zur Anmeldung auffordert**
+(meist die öffentliche Website), wie in [Die Adresse](#die-adresse) beschrieben.
+
+### 1. Den Auslöser einschalten
+
+Öffnen Sie den Import im Editor, Schritt **Zeitplan** (Schedule), Abschnitt *Started by another system (webhook or
+API)*:
+
+1. **The trigger is on** anhaken.
+2. **Run as user (ID)**: ein Benutzer mit *Run imports* für diesen Import (hier ein Test-Administrator). Ein
+   ausgelöster Lauf läuft nie als anonymer Benutzer.
+3. **A call may bring the data** anhaken (dieser Import liest eine CSV-Datei).
+4. **Signing secret by name** leer lassen, damit die Erweiterung das Geheimnis erzeugt, und mit **Save the trigger**
+   speichern.
+
+Die Seite zeigt jetzt das neue **Signiergeheimnis, einmal**:
+
+![Der Abschnitt des Auslösers direkt nach dem Einschalten: das Signiergeheimnis in einem Hinweis, der sagt, dass es nur dieses eine Mal gezeigt wird, dann die Felder des Auslösers und die Adresse](../images/trigger-secret-once.png)
+
+Übernehmen Sie es in diesem Moment in das aufrufende System. Es wird **nur dieses eine Mal gezeigt** und nicht in
+lesbarer Form gespeichert. Ist es verloren oder bekannt geworden, **erneuern** Sie es mit **New signing secret**: Das
+alte Geheimnis gilt sofort nicht mehr.
+
+Dann einen API-Schlüssel anlegen: einen Namen in **Name of a new key** (hier `Docs: curl example`, wer den Schlüssel
+nutzt) und **Create an API key**. Auch der Schlüssel wird **einmal gezeigt**:
+
+![Der Abschnitt des Auslösers mit einem neuen API-Schlüssel namens Docs: curl example, einmal in einem Hinweis gezeigt, und darunter die Liste der Schlüssel](../images/trigger-api-key-once.png)
+
+Der Abschnitt danach: der Auslöser ist an, die aufzurufende Adresse, wann das Signiergeheimnis erzeugt wurde, und die
+Liste der Schlüssel mit Schlüssel-ID und letzter Nutzung. **Revoke** sperrt einen Schlüssel sofort; tun Sie das,
+wenn ein Schlüssel bekannt wird oder sein Aufrufer außer Dienst geht.
+
+![Der Abschnitt des Auslösers eines Imports: Auslöser an, Benutzer des Laufs, Daten erlaubt, die Adresse, das Datum des Signiergeheimnisses und die Liste der API-Schlüssel mit Revoke](../images/trigger-section.png)
+
+Die Adresse, die der Abschnitt zeigt:
+
+```
+POST https://alpha.se7enx.com/admin/sqliimport/trigger/docs-first-import
+```
+
+### 2. Ein falscher Schlüssel wird abgelehnt
+
+```sh
+curl -sS -X POST "https://alpha.se7enx.com/admin/sqliimport/trigger/docs-first-import" \
+     -H "Authorization: Bearer sqk_0123456789ab_sq-demo-token-REPLACE"
+```
+
+```
+HTTP 401 {"error":"invalid_key"}
+```
+
+### 3. Ein signierter Aufruf und seine Wiederholung
+
+Die Signatur deckt Methode, Pfad, Zeit und den SHA-256 des Inhalts ab (hier leer):
+
+```sh
+SECRET='sq-demo-signing-secret-REPLACE'
+TS=$(date +%s); BODY=''
+SIG=$(printf 'POST\n/sqliimport/trigger/docs-first-import\n%s\n%s' "$TS" "$(printf '%s' "$BODY" | sha256sum | cut -d' ' -f1)" \
+      | openssl dgst -sha256 -hmac "$SECRET" | sed 's/^.* //')
+curl -sS -X POST "https://alpha.se7enx.com/admin/sqliimport/trigger/docs-first-import" \
+     -H "X-Sqliimport-Timestamp: $TS" -H "X-Sqliimport-Signature: sha256=$SIG"
+```
+
+```
+HTTP 202 {"run_id":202,"status":"queued"}
+```
+
+Der Lauf #202 las die eigene Quelle des Imports und endete erfolgreich (Art import, Auslöser rest): 7 Datensätze
+unverändert, weil sich seit dem letzten Lauf nichts geändert hatte. Derselbe Aufruf noch einmal mit demselben
+Zeitstempel und derselben Signatur:
+
+```
+HTTP 401 {"error":"replayed"}
+```
+
+Eine Signatur wird einmal angenommen, und nur innerhalb von `[TriggerSettings] SignatureWindowSeconds` um die Zeit
+des Servers.
+
+### 4. Ein API-Schlüssel mit Daten im Aufruf
+
+Das aufrufende System schickt zwei geänderte Zeilen als CSV (`teas-push.csv`): Tee 105 mit neuem Preis und einen
+neuen Tee 108.
+
+```
+id,name,code,description,price,harvest
+105,White Peony,TEA-105,"A mild white tea with silver buds.",11.95,2026-04-20
+108,Rooibos Vanilla,TEA-108,"A caffeine-free red bush tea with vanilla.",6.45,2026-06-01
+```
+
+```sh
+curl -sS -X POST "https://alpha.se7enx.com/admin/sqliimport/trigger/docs-first-import" \
+     -H "X-Api-Key: sqk_0123456789ab_sq-demo-token-REPLACE" \
+     -H "Content-Type: text/csv" --data-binary @teas-push.csv
+```
+
+```
+HTTP 202 {"run_id":204,"status":"queued","status_url":".../run/204"}
+```
+
+`status_url` (hier gekürzt) ist die Adresse des Statusaufrufs unten. Der Inhalt ist nur die Daten dieses Laufs; die
+eigene Quelle des Imports wird nicht gelesen.
+
+### 5. Nach dem Status fragen
+
+Mit dem API-Schlüssel (ein signierter Aufruf kann nicht nach einem Status fragen):
+
+```sh
+curl -sS "https://alpha.se7enx.com/admin/sqliimport/trigger/docs-first-import/run/204" \
+     -H "Authorization: Bearer sqk_0123456789ab_sq-demo-token-REPLACE"
+```
+
+Während der Lauf auf einen Worker der Job-Warteschlange wartete:
+
+```
+HTTP 200 {"status":"queued",...,"is_final":false,"run_id":204}
+```
+
+und nachdem er endete:
+
+```
+HTTP 200 {"status":"completed","kind":"import","trigger":"rest","percent":100,"total":2,"done":2,"created":1,"updated":1,"unchanged":0,"skipped":0,"failed":0,"processed":0,"undone":0,"queued_at":1792719682,"started_at":1792719722,"finished_at":1792719723,"is_final":true,"run_id":204}
+```
+
+Fragen Sie, bis `is_final` `true` ist. Die Seite des Laufs zeigt denselben Lauf, gestartet über *REST API* als Benutzer
+des Laufs: Tee 105 aktualisiert (Version 1 auf 2), Tee 108 angelegt. Er lässt sich wie jeder Lauf rückgängig machen:
+
+![Die Seite von Lauf #204: abgeschlossen, Import gestartet über REST API, 1 angelegt und 1 aktualisiert, die beiden Datensätze 105 und 108 und das Protokoll](../images/trigger-run-page.png)
+
+Die Aufrufe des Auslösers stehen im Audit-Trail mit der Schlüssel-ID, nie mit dem Schlüssel ([Audit-Trail](#audit-trail)).
+
 ## Die Adresse
 
 | Anfrage | Was sie tut | Wer darf |

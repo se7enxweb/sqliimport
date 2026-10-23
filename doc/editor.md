@@ -6,6 +6,25 @@ saved on its own, so an import is never lost half-way, and every step can be ope
 
 German: [ger-de/editor.md](ger-de/editor.md).
 
+This page describes every field. The same six steps, filled in for a real CSV import with a screenshot of each, are
+in [getting-started.md](getting-started.md#your-first-csv-import).
+
+## Table of contents
+
+- [Opening the editor](#opening-the-editor)
+- [The buttons of a step](#the-buttons-of-a-step)
+- [When a step has errors: what you entered is kept](#when-a-step-has-errors-what-you-entered-is-kept)
+- [Secrets: the field "New value" and the secret store](#secrets-the-field-new-value-and-the-secret-store)
+- [Step 1: Source](#step-1-source)
+- [Step 2: Processing](#step-2-processing)
+- [Step 3: Mapping](#step-3-mapping)
+- [Step 4: Preview](#step-4-preview)
+- [Step 5: Schedule](#step-5-schedule)
+- [Step 6: Review](#step-6-review)
+- [Changing, copying and deleting](#changing-copying-and-deleting)
+
+![The bar of steps of a stored import: Source and Processing marked as done, Mapping as the current step, Preview, Schedule and Review and save as links](images/editor-steps-bar.png)
+
 ## Opening the editor
 
 - **New import**: the button on the dashboard (`sqliimport/list`) or the link in the left menu of the Imports tab.
@@ -37,6 +56,44 @@ content class, the schedule by its own rules. A step with errors is shown again 
 of the points to check. Each save is a POST request with the form token and raises the version number of the
 import; the change is recorded in the audit log.
 
+## When a step has errors: what you entered is kept
+
+A step that cannot be saved is shown again with **Please check these points:** at the top, each point a link to its
+field, the fields marked, and **everything you entered still in place**. A file that was uploaded stays uploaded,
+so you do not choose it again. Only the "New value" of a secret is never shown again (below).
+
+Example: a new import with the name `Docs: error example`, the identifier `Docs Wrong Identifier!` and no file:
+
+![The source step after Save and continue: the box "Please check these points" with "Choose the file to upload" and "The identifier takes lower case letters, digits, _ and -", the name, the wrong identifier and the description still filled in, the identifier and file fields marked in red](images/editor-error-values-kept.png)
+
+Correct the identifier to `docs-error-example`, choose the file, and save again. Nothing was stored by the failed
+save: a new import exists only once its source step has been saved without errors.
+
+## Secrets: the field "New value" and the secret store
+
+Sources that sign in somewhere (a database, a mailbox, an API, a directory) never keep a password, token or key in
+the import. Their option holds the **name** of a secret; the value lives in the site's secret store and is read only
+when a run needs it. Below each such option the editor has a field **New value (stored in Setup, Secrets under this
+name)**:
+
+![The option "Secret (name)" of the REST API source filled with docs_shop_api_token, and below it the password field "New value (stored in Setup, Secrets under this name)" with a hidden value, and its help "Leave it empty to keep the stored value. It is never shown again, not even after an error."](images/editor-secret-new-value.png)
+
+1. Give the secret a name, e.g. `docs_shop_api_token`.
+2. Paste the value into **New value** and save the step. The value goes to the secret store (Exponential 6.0.15:
+   **Setup, Secrets**, scope `sqliimport`, encrypted); the import keeps only the name.
+3. Later saves leave **New value** empty: the stored value stays. Type a value only to replace it.
+
+The value is never shown again, not in the form, not after an error, not in an export of the import, a run page or
+a log. Other ways to provide a secret by name:
+
+| Name | Where the value comes from |
+|---|---|
+| `docs_shop_api_token` | the kernel's secret store (Setup, Secrets), else `sqliimport.ini [SecretSettings] Secrets[docs_shop_api_token]` in the site's own settings |
+| `env:SHOP_API_TOKEN` | the environment variable of the PHP process (the PHP-FPM pool, and the job queue's workers) |
+
+The worked examples of the sources that need secrets are in [source-examples-apis.md](source-examples-apis.md) and
+[source-examples-databases.md](source-examples-databases.md).
+
 ## Step 1: Source
 
 | Field | Meaning |
@@ -44,9 +101,17 @@ import; the change is recorded in the audit log.
 | Name | Required. The name the administration shows |
 | Identifier | Names the import on the command line (`./console ext:sqliimport:run <identifier>`). Lower case letters, digits, `_` and `-`, unique. Empty: made from the name. |
 | Description | Free text |
-| Source type | CSV, XML, RSS/Atom, JSON, Spreadsheet (XLSX, ODS), or "A 1.x handler that reads its own source" |
-| Where the data comes from | An uploaded file, an address (`http` or `https`, read at every run) or a file on the server |
+| Source type | One card per format, grouped as the catalogue groups them: Data, NoSQL databases, Content, Platforms, Commerce, Media, Other; or "A 1.x handler that reads its own source". A card is grey when its driver is missing on this server. |
+| Where the data comes from | An uploaded file, an address (`http` or `https`, read at every run) or a file on the server. Sources that read a database or a service themselves (SQL, MongoDB, the APIs ...) have no file: their options name the server or the account. |
 | Options of the source | The options of the chosen source type, such as the delimiter of a CSV file or the sheet of a spreadsheet ([sources.md](sources.md)) |
+| Test connection | For sources that read a database or a service: tries the connection and the query with the options as typed, before anything is saved, and lists the fields it found |
+| Load a mapping (optional) | A mapping file (JSON) of another import or installation; its lines are used instead of the format's preset |
+
+![Step 1 for a CSV file: the name, identifier and description, the Data group of source types with CSV chosen, An uploaded file with teas.csv, and the CSV options](images/gs-source-step.png)
+
+Worked examples of every source type, with the values of this step: [source-examples-files.md](source-examples-files.md),
+[source-examples-feeds-web.md](source-examples-feeds-web.md), [source-examples-apis.md](source-examples-apis.md),
+[source-examples-databases.md](source-examples-databases.md), [source-examples-platforms.md](source-examples-platforms.md).
 
 Notes:
 
@@ -72,6 +137,16 @@ For a 1.x handler, choose the handler here. It reads its own source, so the step
 | Records per chunk | Between 1 and 5000 (one job of the job queue each) |
 | At most this many records per run | `0`: no limit |
 | Existing content | Create new, update existing (`update`); only create, leave existing as they are (`create_only`); only update existing (`update_only`) |
+| When someone edited an object since the last run | The conflict rule: overwrite, merge, only fill empty fields, skip ([runs.md](runs.md#conflict-rules-when-an-editor-changed-an-imported-object)) |
+| Days a run can be undone | Empty: `[RunSettings] UndoDays` (30); `0`: no undo ([runs.md](runs.md#undo-a-run)) |
+| Notifications: Tell when a run | `failed or had errors` (default), `failed`, `ended (every run)`, `never` |
+| A notice for the user who started the run | The bell in the header and the dashboard show it ([runs.md](runs.md#notifications)) |
+| E-mail addresses | One per line; they get a mail with the counts and the first errors |
+
+Instead of the mapping, the processing can be **Rows of a data table (a persistent class)**: the records fill a
+module's own table instead of content ([datatables.md](datatables.md)).
+
+![Step 2, Processing: the handler Mapping to a content class, the parent node, section, language, robot user, chunk size, Existing content, the conflict rule, the undo days, the records per run and the notification settings](images/gs-processing-step.png)
 
 ## Step 3: Mapping
 
@@ -108,6 +183,17 @@ before you continue.
 The mapping is stored even when it is not complete yet, so nothing entered is lost; the errors are listed until they
 are fixed.
 
+![Step 3, Mapping: the class Product, the remote ID pattern docs-tea-{id}, the parent node, and the grid with name, product number, short description and price filled in with their transforms](images/gs-mapping-grid.png)
+
+Below the grid:
+
+- **Translations by column**: per other language of the site, the column that holds that language's value
+  ([mappings.md](mappings.md#translations-by-column)).
+- **The transforms**: every transform with its arguments ([transforms.md](transforms.md)).
+- **The fields of the sample**: the field paths of the first records, to copy into the grid.
+- **Mapping file**: **Download mapping (JSON)** and **Load a mapping…**, to move a mapping to another import or
+  installation ([transfer.md](transfer.md)).
+
 ## Step 4: Preview
 
 The preview runs in the request itself; it starts no job and stores no run.
@@ -120,6 +206,8 @@ The preview runs in the request itself; it starts no job and stores no run.
 
 Nothing is published, and no image or file is downloaded: a dry run uses the address in place of the file. When the
 source cannot be read, the step shows the message. Change the source or the mapping and open the preview again.
+
+![Step 4, Preview: the sample of the source as a table, and the dry run of the first records, each with "Created", its remote ID and the values of its fields](images/gs-preview-step.png)
 
 ## Step 5: Schedule
 
@@ -137,6 +225,10 @@ source cannot be read, the step shows the message. Change the source or the mapp
 After saving, the step lists the next five run times. The editor keeps one schedule per import; choosing "Never"
 removes it. Schedules are listed, paused and resumed on the Schedules page ([schedules.md](schedules.md)).
 
+Example: weekdays at 06:00 in Berlin is the cron expression `0 6 * * 1-5` with the time zone `Europe/Berlin`:
+
+![The schedule step with a cron expression 0 6 * * 1-5, the time zone Europe/Berlin, and the list of the next run times after saving](images/schedule-cron-next-runs.png)
+
 Below the schedule, the section **Started by another system (webhook or API)** switches the import's trigger on or
 off, chooses its run user, allows data in the call, shows a new signing secret or API key once, and rotates the secret
 or revokes keys. Each of these is a form of its own ([triggers.md](triggers.md)).
@@ -151,6 +243,8 @@ lists what is still missing before the import can run, such as a mapping without
 - **Save** stores the import and returns to the dashboard.
 - **Save and run** stores the enabled import, starts a run at once and opens its run page ([runs.md](runs.md)).
 
+![Step 6, Review and save: the summary of the import, the checkbox The import is enabled, and the buttons Save and Save and run](images/gs-review-step.png)
+
 ## Changing, copying and deleting
 
 The list of imports on the dashboard has these actions:
@@ -161,6 +255,7 @@ The list of imports on the dashboard has these actions:
 | Dry run | run or manage | Starts a run that publishes nothing (not for 1.x handlers) |
 | Edit | manage | Opens the editor |
 | More > Duplicate | manage | Makes a disabled copy named "Copy of ..." with the source, processing and mapping, without schedules or runs, and opens it in the editor |
+| More > New data table from its fields | manage and setup/setup | Opens the kernel's module table wizard with the import's fields ([datatables.md](datatables.md)) |
 | More > Enable / Disable | manage | Switches the import on or off |
 | More > Delete | manage | Removes the import with its mapping and schedules, after a confirmation. Its runs stay in the history until they are purged. An import that runs now cannot be deleted; cancel the run first. |
 

@@ -127,6 +127,167 @@ Every change (run, dry run, cancel, retry) is a POST request to `sqliimport/acti
 From the command line: `./console ext:sqliimport:cancel <run id>` and `./console ext:sqliimport:retry <run id>`
 ([cli.md](cli.md)).
 
+## Dry run, Run now, live progress and stop
+
+The four ways to start a run from the administration, with the import "Docs: First import (teas CSV)" of
+[getting-started.md](getting-started.md):
+
+| Where | Button | What starts |
+|---|---|---|
+| Dashboard, a row of the imports | **Run now** | a run of kind `import` (an enabled import only) |
+| Dashboard, a row of the imports | **Dry run** | a run of kind `dry_run`: reads the source, publishes nothing |
+| Dashboard, the toolbar at the top | choose the import, **Run now** | the same as the row's Run now |
+| Editor, step 6 | **Save and run** | stores the import, starts a run and opens its page |
+
+![A row of the dashboard's import list: the import with its identifier docs-first-import, source CSV, processing Mapping, its last run with its status, and the buttons Run now, Dry run, Edit and More](images/gs-list-row.png)
+
+None of them does the work in the request: the run is queued, and the job queue's workers process it in the
+background. The dashboard lists it at once with the status **Queued**, then **Running**. Its page
+(`sqliimport/run/<id>`) follows it live: every two seconds it asks the server for the status, the progress, the
+counters and the new log lines (the ezjscore call `sqliimport::runstatus`, a POST with the form token), and shows
+them without reloading. While the run has not ended, the page has the button **Cancel**: it removes the run's
+queued jobs at once and stops the running chunk between two records; what was processed stays. The run ends as
+**Cancelled**.
+
+A dry run is the safe first step after every change of the source or the mapping: its rows say what *would* happen,
+with the fields that would change, as in run #181 of the getting-started example:
+
+![The rows of dry run 181: record 102 would be updated with the price 12.45|1|1 becoming 13.95|1|1, record 104 with its new name, 106 would be created with four fields, 107 fails](images/gs-dry-run-page.png)
+
+## Retry failed rows
+
+**Retry failed rows** (on the page of a run that ended with failed rows) starts a run of kind `retry` that processes
+only those records, **as the failed run stored them**. So a retry helps when the cause was outside the record:
+a parent, a related object or a file that did not exist yet, a time-out, a database that was not reachable. A record
+that failed because of its own data (an empty required field) fails again; correct the source and use **Run now**
+instead, as in [getting-started.md](getting-started.md#the-second-run-changes-a-new-product-and-a-broken-line).
+
+**Worked example: children before their parent.** The import "Docs: Tea shelves (retry of failed rows)" puts teas
+below their shelf. Its `shelves.csv` lists two teas before the shelf they belong to:
+
+```text
+id,name,shelf
+sencha,Sencha Asahi,green
+assam,Assam Breakfast,black
+green,Green teas,
+black,Black teas,
+genmaicha,Genmaicha,green
+```
+
+Its mapping: class `folder`; remote ID pattern `docs-shelf-{id}`; **Parent from a field** `shelf` with the prefix
+`docs-shelf-` (so `green` means the object with the remote ID `docs-shelf-green`), else the import's parent node;
+`name` to `name`, required.
+
+Run #188 processes the records in their order. `sencha` and `assam` come first, and their shelves do not exist yet:
+
+![Run 188, Completed with errors: 3 created (green, black, genmaicha), 2 failed (sencha and assam, "the parent of the record does not exist (yet)"), with the button Retry failed rows](images/runs-retry-before.png)
+
+`genmaicha` comes after `green`, so it was placed. **Retry failed rows** then starts run #191, a retry of #188 that
+reads only the two failed records; now their shelves exist:
+
+![Run 191, Retry of failed rows, retry of 188: 2 records, both Created below their shelves, 0 failed](images/runs-retry-after.png)
+
+From the command line: `./console ext:sqliimport:retry 188`. A retry can be undone like any import run.
+
+## Undo a run
+
+**Undo this run** (on the page of an ended import or retry run) takes back what that run did:
+
+| What the run did | What the undo does |
+|---|---|
+| created an object | moves it to the trash (all its locations), from where it can be restored like any object |
+| updated an object | publishes the version from before the run again, as a new version |
+
+It skips, with the reason on the row, what would destroy someone's work:
+
+- an object that changed after the run (its current version is not the one the run published) is left alone;
+- an object the run created, below which other content has been put since, is left alone;
+- an object that no longer exists, or is already in the trash, is skipped.
+
+An undo is possible once per run, for `[RunSettings] UndoDays` days (30 by default; the import's own number is the
+field **Days a run can be undone** in the step Processing, `0` for no undo). The cron part marks older runs, so they
+no longer offer it. Dry runs and undo runs cannot be undone. The undo is itself a run (kind `undo`) with its rows
+and its log; it needs the policy Run imports.
+
+**Worked example.** Run #200 of "Docs: First import (teas CSV)" updated one product, `docs-tea-103`, from version 2
+to version 3 (the conflict example below). **Undo this run** on its page started run #201:
+
+![Run 201, an undo: 1 record, Undone, object 56614 from version 3 to 4, message "version 2 published again as version 4"](images/undo-run-page.png)
+
+The undo did not delete version 3: it published version 2 again as version 4, so the history of the object keeps
+both. From the command line: `./console ext:sqliimport:undo 200 --wait`.
+
+## Conflict rules: when an editor changed an imported object
+
+An import that runs again and again (a nightly sync) meets objects an editor has changed in the administration in
+the meantime. The import remembers, per object and field, what it wrote last; a field whose value differs from that
+was edited. **When someone edited an object since the last run**, in the step Processing, decides what happens:
+
+| Rule | What the run does with an edited object |
+|---|---|
+| **Overwrite with the source** (`overwrite`, default) | writes every field from the source; the editor's change is replaced |
+| **Merge: keep the fields that were edited** (`merge`) | writes the fields nobody edited, keeps the edited ones |
+| **Only fill empty fields** (`fill_empty`) | writes only fields that are empty in the object |
+| **Skip the object** (`skip`) | leaves the object as it is; the row is **Skipped** with the edited fields named |
+
+![The step Processing with the fields Existing content, the conflict rule "When someone edited an object since the last run", the days a run can be undone and the records per run](images/conflict-and-undo-settings.png)
+
+**Worked example.** After the second run of the getting-started import, an editor renamed `Sencha Asahi` to
+`Sencha Asahi (staff pick)`. Then the spreadsheet changed the price and the description of the same tea:
+
+```diff
+-103,Sencha Asahi,TEA-103,"A grassy Japanese green tea, steamed.",9.85,2026-05-02
++103,Sencha Asahi,TEA-103,"A grassy Japanese green tea, steamed. New harvest.",10.45,2026-05-02
+```
+
+A dry run under each rule shows what each would do with record 103 (the other six records are unchanged under all
+four):
+
+| Rule | Dry run | Record 103 |
+|---|---|---|
+| overwrite | #192: 1 updated, 6 unchanged | name back to `Sencha Asahi`, new description, price `10.45` |
+| merge | #193: 1 updated, 6 unchanged | name kept, new description, price `10.45` |
+| fill_empty | #194: 7 unchanged | nothing: no field is empty |
+| skip | #196: 1 skipped, 6 unchanged | skipped: "edited since the last run: name (conflict rule: skip)" |
+
+![Overwrite: record 103 would be updated in 3 fields, the name from "Sencha Asahi (staff pick)" back to "Sencha Asahi", the short description and the price from 9.85|1|1 to 10.45|1|1](images/conflict-dry-run-overwrite.png)
+
+![Merge: record 103 would be updated in 2 fields only, the short description and the price; the edited name is kept](images/conflict-dry-run-merge.png)
+
+![Only fill empty fields: record 103 is Unchanged, "edited since the last run; nothing left to write (conflict rule: fill_empty)"](images/conflict-dry-run-fill-empty.png)
+
+![Skip the object: record 103 is Skipped, "edited since the last run: name (conflict rule: skip)"](images/conflict-dry-run-skip.png)
+
+With **Merge** chosen, run #200 updated only 103 (version 2 to 3), and the editor's name stayed:
+
+![Run 200 with the rule merge: 1 updated (103, version 2 to 3), 6 unchanged](images/conflict-merge-run.png)
+
+The rules apply to updates only; a new object is always created from the source. Where nobody edited anything, all
+four rules behave the same.
+
+## The run history and the CSV report
+
+The dashboard lists every run, newest first, with filters: **all**, **Running or queued**, **Failed**,
+**Completed**, **Cancelled**, and per import with `sqliimport/list/(import)/<id>` (the link on the import's name).
+When the kernel's shared run history is installed (Exponential 6.0.15), the same list has a filter by tool, so the
+runs of Export, Packages, Syndication and the other transfer tools appear next to the imports
+([transfer.md](transfer.md)).
+
+![The runs of one import: run number, status, progress, created, updated and failed counts, and the start time](images/history-runs-filtered.png)
+
+On a run page, **Download results (CSV)** (`sqliimport/report/<run id>`) gives one line per record. The first lines
+of run #184:
+
+```text
+run_id,row,ref,outcome,status,object_id,node_id,remote_id,version_before,version_after,changed_fields,message,time
+184,0,101,unchanged,ok,56612,54991,docs-tea-101,1,1,,,2026-10-23T01:23:02Z
+184,1,102,updated,ok,56613,54992,docs-tea-102,1,2,,,2026-10-23T01:23:03Z
+```
+
+`changed_fields` is filled for dry runs (the fields that would change); a real run keeps the versions before and
+after instead. The same file comes from `./console ext:sqliimport:report 184` ([cli.md](cli.md)). Charts of the
+run history are on the Statistics page ([statistics.md](statistics.md)).
+
 ## Notifications
 
 Who hears of a run that ended is set per import, in the editor's step Processing, under **Notifications**:
@@ -140,6 +301,17 @@ Who hears of a run that ended is set per import, in the editor's step Processing
 Dry runs and undo runs give their starter a notice, never a mail. The addresses of a schedule (2.0.0-alpha.1) still
 get a mail when a scheduled run fails or ends with errors. The link in a mail uses `[AdminSettings] AdminURL` of
 `sqliimport.ini` when it is set (e.g. `https://edit.example.org/admin`), else a path.
+
+**Worked example.** "Docs: First import (teas CSV)" with **Tell when a run** set to `ended (every run)` and the notice
+for the starter checked:
+
+![The notification settings of the step Processing: Tell when a run "ended (every run)", the checkbox for a notice to the user who started the run, and the empty field for e-mail addresses](images/notifications-settings.png)
+
+After its run #215 ended, the bell in the header showed a count of 1, and its panel the run with its outcome:
+
+![The header bell with the count 1 and its open panel "Import notifications": Run 215, Docs: First import (teas CSV), completed, with the time, and the link All imports](images/bell-panel.png)
+
+Opening the run's page marks the notice as read, and the count goes away.
 
 **The bell in the header.** From Exponential 6.0.15 on, admin4 and admin4l have a slot for header tools of
 extensions (`design.ini [AdminHeaderSettings] HeaderItems[]`), and the extension puts a bell there

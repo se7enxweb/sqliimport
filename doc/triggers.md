@@ -12,6 +12,137 @@ address of the site, and it may bring the data in the call. This is the webhook 
 - **Data in the call (optional):** the body of the call becomes the data of that run, for imports that read a file.
 - **Audited, rate limited, no session, no CORS.**
 
+## Worked example on a test installation
+
+This example starts the import "Docs: First import (teas CSV)" (identifier `docs-first-import`, import #132) from the
+command line: once signed, once with an API key and new data, and once with a wrong key. All the calls and answers
+below are real; only the signing secret and the API key are replaced by placeholders. On this test installation the
+extension is active only in the administration siteaccess, so the address is under `/admin`. **On a normal site,
+call a siteaccess that does not ask visitors to sign in** (usually the public site), as described in
+[The address](#the-address).
+
+### 1. Switch the trigger on
+
+Open the import in the editor, step **Schedule**, section *Started by another system (webhook or API)*:
+
+1. Tick **The trigger is on**.
+2. **Run as user (ID)**: a user with *Run imports* for this import (here a test administrator). A triggered run never
+   runs as anonymous.
+3. Tick **A call may bring the data** (this import reads a CSV file).
+4. Leave **Signing secret by name** empty, so the extension makes the secret, and save with **Save the trigger**.
+
+The page now shows the new **signing secret, once**:
+
+![The trigger section right after it was switched on: the signing secret in a notice that says it is shown only this once, then the trigger's fields and the address](images/trigger-secret-once.png)
+
+Copy it into the calling system at that moment. It is **shown only this once** and not stored in a readable form.
+If it is lost or leaked, **rotate** it with **New signing secret**: the old secret stops working at once.
+
+Then create an API key: a name in **Name of a new key** (here `Docs: curl example`, who uses the key), and **Create an
+API key**. The key is also **shown once**:
+
+![The trigger section with a new API key named Docs: curl example, shown once in a notice, and the list of keys below](images/trigger-api-key-once.png)
+
+The section afterwards: the trigger is on, the address to call, when the signing secret was made, and the list of keys
+with their key id and when they were last used. **Revoke** stops a key at once; do it when a key leaks or its caller
+is retired.
+
+![The trigger section of the import: trigger on, run user, data allowed, the address, the signing secret date and the API key list with Revoke](images/trigger-section.png)
+
+The address the section shows:
+
+```
+POST https://alpha.se7enx.com/admin/sqliimport/trigger/docs-first-import
+```
+
+### 2. A wrong key is refused
+
+```sh
+curl -sS -X POST "https://alpha.se7enx.com/admin/sqliimport/trigger/docs-first-import" \
+     -H "Authorization: Bearer sqk_0123456789ab_sq-demo-token-REPLACE"
+```
+
+```
+HTTP 401 {"error":"invalid_key"}
+```
+
+### 3. A signed call, and its replay
+
+The signature covers the method, the path, the time and the SHA-256 of the body (here empty):
+
+```sh
+SECRET='sq-demo-signing-secret-REPLACE'
+TS=$(date +%s); BODY=''
+SIG=$(printf 'POST\n/sqliimport/trigger/docs-first-import\n%s\n%s' "$TS" "$(printf '%s' "$BODY" | sha256sum | cut -d' ' -f1)" \
+      | openssl dgst -sha256 -hmac "$SECRET" | sed 's/^.* //')
+curl -sS -X POST "https://alpha.se7enx.com/admin/sqliimport/trigger/docs-first-import" \
+     -H "X-Sqliimport-Timestamp: $TS" -H "X-Sqliimport-Signature: sha256=$SIG"
+```
+
+```
+HTTP 202 {"run_id":202,"status":"queued"}
+```
+
+The run #202 read the import's own source and completed (kind import, trigger rest): 7 records unchanged, because
+nothing had changed since the last run. The same call sent again with the same timestamp and signature:
+
+```
+HTTP 401 {"error":"replayed"}
+```
+
+A signature is accepted once, and only within `[TriggerSettings] SignatureWindowSeconds` of the server's time.
+
+### 4. An API key with data in the call
+
+The calling system sends two changed rows as CSV (`teas-push.csv`): tea 105 with a new price, and a new tea 108.
+
+```
+id,name,code,description,price,harvest
+105,White Peony,TEA-105,"A mild white tea with silver buds.",11.95,2026-04-20
+108,Rooibos Vanilla,TEA-108,"A caffeine-free red bush tea with vanilla.",6.45,2026-06-01
+```
+
+```sh
+curl -sS -X POST "https://alpha.se7enx.com/admin/sqliimport/trigger/docs-first-import" \
+     -H "X-Api-Key: sqk_0123456789ab_sq-demo-token-REPLACE" \
+     -H "Content-Type: text/csv" --data-binary @teas-push.csv
+```
+
+```
+HTTP 202 {"run_id":204,"status":"queued","status_url":".../run/204"}
+```
+
+`status_url` (shortened here) is the address of the status call below. The body is the data of this run only; the
+import's own source is not read.
+
+### 5. Ask for the status
+
+With the API key (a signed call cannot ask for a status):
+
+```sh
+curl -sS "https://alpha.se7enx.com/admin/sqliimport/trigger/docs-first-import/run/204" \
+     -H "Authorization: Bearer sqk_0123456789ab_sq-demo-token-REPLACE"
+```
+
+While the run waited for a worker of the job queue:
+
+```
+HTTP 200 {"status":"queued",...,"is_final":false,"run_id":204}
+```
+
+and after it ended:
+
+```
+HTTP 200 {"status":"completed","kind":"import","trigger":"rest","percent":100,"total":2,"done":2,"created":1,"updated":1,"unchanged":0,"skipped":0,"failed":0,"processed":0,"undone":0,"queued_at":1792719682,"started_at":1792719722,"finished_at":1792719723,"is_final":true,"run_id":204}
+```
+
+Poll until `is_final` is `true`. The run page shows the same run, started by *REST API* as the run user: tea 105
+updated (version 1 to 2), tea 108 created. It can be undone like any run:
+
+![The run page of run #204: completed, import started by REST API, 1 created and 1 updated, the two records 105 and 108 and the log](images/trigger-run-page.png)
+
+The trigger's calls are in the audit trail with the key id, never the key ([Audit trail](#audit-trail)).
+
 ## The address
 
 | Request | What it does | Who may |

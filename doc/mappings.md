@@ -191,6 +191,260 @@ line keeps its language in the mapping (`"language": "ger-DE"`); the run publish
 language that has a value. An emptied source removes the line. Attributes that are not translatable take the value of
 the main language.
 
+## Worked examples
+
+Each example below ran on a test installation: an import of a small file, below a hidden folder, with a dry run or
+a small real run. The files, run numbers, object IDs and outputs are the real ones. Every example shows the input,
+the mapping (as the mapping step stores it), what the run said, and what was published.
+
+- [Remote ID patterns](#remote-id-patterns)
+- [Match by the value of an attribute](#match-by-the-value-of-an-attribute)
+- [Parent from a field, and more locations](#parent-from-a-field-and-more-locations)
+- [A class per record](#a-class-per-record-worked-example)
+- [Translations by column](#translations-by-column-worked-example)
+- [Images and related image objects](#images-and-related-image-objects)
+
+### Remote ID patterns
+
+A pattern puts fields of the record in braces: `{sku}`. Several fields are allowed; `{_ref}` is the record's own
+reference (its key field, else its position `#3`). A remote ID longer than 100 characters keeps its first 60
+characters and gets a dash and the MD5 hash of the whole ID, so it stays unique. What the mapper made of three
+records (the first with the key field `sku`, the second without a `sku`, the third with a long name):
+
+```
+tea-{sku}                  with key sku   => tea-TEA-SEN-100 (15 chars)
+tea-{sku}                  without key    => error: the remote ID needs sku, which the record does not have
+docs-map-{origin}-{sku}    with key sku   => docs-map-Japan-TEA-SEN-100 (26 chars)
+docs-map-{origin}-{sku}    long name      => docs-map-Taiwan-TEA-LNG-001 (27 chars)
+tea-{_ref}                 with key sku   => tea-TEA-SEN-100 (15 chars)
+tea-{_ref}                 without key    => tea-#3 (6 chars)
+tea-{name}                 with key sku   => tea-Morning Sencha (18 chars)
+tea-{name}                 long name      => tea-Long product name Long product name Long product name Lo-bb44102a90a3656d20d9f147a84f3b95 (93 chars)
+```
+
+- Prefer a field that never changes (an ID, a SKU) over a name: when the name changes, `tea-{name}` makes a new
+  object.
+- `{_ref}` names a record without a key by its position. That is stable only as long as the order of the source
+  stays the same.
+
+The import "Docs: remote ID from two fields" (#146) uses `docs-map-{origin}-{sku}` on this CSV:
+
+```
+sku,origin,name
+TEA-SEN-100,Japan,Morning Sencha
+TEA-HBL-100,India,Highland Black
+,China,Silver Needle
+```
+
+Its dry run #217: 2 would be created (`docs-map-Japan-TEA-SEN-100`, `docs-map-India-TEA-HBL-100`), and record `#3`
+failed with "the remote ID needs sku, which the record does not have":
+
+![The dry run of the two-field remote ID: two records would be created and the third failed because it has no sku](images/map-remote-id-two-fields-dry-run.png)
+
+### Match by the value of an attribute
+
+When the other system has no stable ID of its own but the objects already carry one (a product number, an ISBN),
+match by that attribute instead of a remote ID. The import "Docs: match products by product number" (#147), class
+`product`:
+
+```
+product_number,name,price
+DOCS-MAP-1,Tea caddy,"14.5|1|1"
+DOCS-MAP-2,Tea strainer,"4.2|1|1"
+```
+
+| Setting | Value |
+|---|---|
+| How a record finds its object | **By the value of an attribute** |
+| Attribute and source field to match on | `product_number`, `product_number` |
+| Lines | `name` to `name` (required), `product_number` to `product_number`, `price` to `price` |
+
+As stored: `"match": {"type": "attribute", "attribute": "product_number", "source": "product_number"}`.
+
+![The mapping step of the import matching by attribute: class product and the choice By the value of an attribute](images/map-match-by-attribute-mapping.png)
+
+The real run #218 created the two products (objects 56648 and 56649). A new object gets a generated remote ID
+(`9ded5562b529a52f926696fafa3e5460`); it is found again by its product number. The dry run #225 afterwards found
+both and reported them unchanged:
+
+![The dry run after the first run: both records unchanged, each with its object found by its product number](images/map-match-by-attribute-dry-run.png)
+
+A record whose match field is empty fails with "the match field 'product_number' is empty". Matching by an attribute
+looks the value up among the objects of the class, which can be slower than a remote ID on large classes; prefer a remote ID when you can.
+
+### Parent from a field, and more locations
+
+`parent_from` names a field with the **remote ID of the parent** (with `parent_prefix` put before it);
+`extra_parents_from` names a field with more parents (a list, or a comma-separated text), which become additional
+locations of a new object. A record without a parent goes below the import's parent node. The import "Docs: parents
+and more locations from fields" (#148), class `folder`, remote IDs `docs-map-tree-{id}`:
+
+```
+id,title,parent,also_in
+shelf-a,Shelf A,,
+shelf-b,Shelf B,,
+tea-1,Sencha,shelf-a,shelf-b
+tea-2,Assam,shelf-b,
+```
+
+| Setting | Value |
+|---|---|
+| Parent from a field (its remote ID) | `parent`, prefix `docs-map-tree-` |
+| More locations from a field | `also_in` |
+
+As stored: `"location": {"parent_from": "parent", "parent_prefix": "docs-map-tree-", "extra_parents_from": "also_in", "parent_node_id": 55028}`.
+
+![The mapping step with the parent from the field parent, the prefix docs-map-tree- and more locations from the field also_in](images/map-location-from-fields-mapping.png)
+
+The real run #219 created 4 folders, the shelves first, so they exist when the teas need them:
+
+![The run of the tree import: four folders created, Shelf A, Shelf B, Sencha and Assam](images/map-location-from-fields-run.png)
+
+What was published:
+
+```
+docs-map-tree-shelf-a: object 56651, class folder, "Shelf A"; node 55029 (main) below "Map: tree"
+docs-map-tree-shelf-b: object 56652, class folder, "Shelf B"; node 55030 (main) below "Map: tree"
+docs-map-tree-tea-1: object 56653, class folder, "Sencha"; node 55031 (main) below "Shelf A"
+docs-map-tree-tea-2: object 56654, class folder, "Assam"; node 55032 (main) below "Shelf B"
+```
+
+Sencha should also have a second location below Shelf B (from `also_in`). **In the build that was tested
+(2.0-dev, 2026-10-22) it did not get one: a known issue** of `extra_parents_from` for new objects, reported for a
+fix. Until then, add the extra locations in the administration (Locations tab of the object).
+
+<a id="a-class-per-record-worked-example"></a>
+
+### A class per record
+
+One source, several kinds of records. The NDJSON of the import "Docs: a class per record" (#149):
+
+```json
+{"id":"sec-1","kind":"folder","title":"Green teas"}
+{"id":"art-1","kind":"article","title":"Brewing Sencha","parent":"sec-1","intro":"<p>Use water at 70 to 80 degrees.</p>"}
+{"id":"note-1","kind":"note","title":"Reorder in May","parent":"sec-1"}
+```
+
+The mapping's own class is `article` (lines `title` to `title`, `intro` to `intro` with `richtext`), remote IDs
+`docs-map-mixed-{id}`, parent from `parent` with the prefix `docs-map-mixed-`. Its class per record:
+
+```json
+"class_from": "kind",
+"variants": {
+  "folder": { "class": "folder", "fields": [ { "source": "title", "attribute": "name", "required": true } ] },
+  "note":   { "skip": true }
+}
+```
+
+A record of the kind `folder` becomes a folder with its own line; `note` is left out; every other kind (here
+`article`) uses the class and lines of the grid. The mapping step says so above the grid:
+
+![The mapping step of the class per record: a notice that records choose their class by the field kind, folder to folder, note not imported](images/map-class-per-record-mapping.png)
+
+The real run #220: 2 created, 1 skipped ("not imported: its kind is note"):
+
+![The run of the class per record: the folder and the article created, the note skipped as not imported](images/map-class-per-record-run.png)
+
+```
+docs-map-mixed-sec-1: object 56656, class folder, "Green teas"; node 55034 (main) below "Map: class per record"
+docs-map-mixed-art-1: object 56657, class article, "Brewing Sencha"; node 55035 (main) below "Green teas"
+docs-map-mixed-note-1: missing
+```
+
+The variants are set in a mapping file (download, edit, load in the step Mapping); the grid edits the lines of the
+mapping's own class.
+
+<a id="translations-by-column-worked-example"></a>
+
+### Translations by column
+
+A source with a column per language gives one object with its translations. The import "Docs: translations by
+column" (#150), class `article`:
+
+```
+id,title,title_de,intro,intro_de
+t-1,Morning Sencha,Morgen-Sencha,"<p>A fresh green tea.</p>","<p>Ein frischer gruener Tee.</p>"
+```
+
+The grid maps `title` and `intro` (the main language); under **Translations by column**, the section **German
+(ger-DE)** maps `title_de` to `title` and `intro_de` to `intro` (with `richtext`):
+
+![The Translations by column section of the mapping step: German ger-DE with title_de and intro_de mapped to title and intro](images/map-translations-by-column.png)
+
+As stored, the two lines carry their language:
+
+```json
+{ "source": "title_de", "attribute": "title", "language": "ger-DE" },
+{ "source": "intro_de", "attribute": "intro", "language": "ger-DE", "transforms": [ { "name": "richtext" } ] }
+```
+
+The real run #221 created one article with both languages:
+
+```
+docs-map-tr-t-1: object 56659, class article, "Morning Sencha", languages eng-US,ger-DE
+  eng-US: title "Morning Sencha", intro "A fresh green tea."
+  ger-DE: title "Morgen-Sencha", intro "Ein frischer gruener Tee."
+```
+
+![The Translations tab of the article: English and German](images/map-translations-tab.png)
+
+A record whose `title_de` is empty gets no German translation; an attribute that is not translatable takes the value
+of the main language.
+
+### Images and related image objects
+
+**An image attribute (`image`).** The import "Docs: images into an image attribute" (#151) makes objects of the
+class `image`; the line `image_url` to `image` with `image(required=true)` downloads each address into the `ezimage`
+attribute:
+
+```
+id,title,image_url
+img-1,Illustration,https://alpha.se7enx.com/design/mysite/images/mysite-illustration.jpg
+img-2,Front page illustration,https://alpha.se7enx.com/design/mysite/images/mysite-illustration-frontpage.jpg
+```
+
+The real run #222 created both, with the pictures stored:
+
+```
+docs-map-img-img-1: object 56661, class image, "Illustration"
+  image: illustration.jpg, 700x55, image/jpeg, 11433 bytes
+docs-map-img-img-2: object 56662, class image, "Front page illustration"
+  image: front-page-illustration.jpg, 700x125, image/jpeg, 24745 bytes
+```
+
+![The run of the image import: two image objects created](images/map-image-run.png)
+
+**An object relation (`media_object`).** The webshop's `product` keeps its picture as a relation to an image object.
+`media_object` makes one image object per address and gives its ID; the same address later, in the same run or the
+next, reuses that object. The import "Docs: product images as related image objects" (#152), with two products that
+share one picture:
+
+```
+product_number,name,image_url
+DOCS-MAP-IMG-1,Gift box,https://alpha.se7enx.com/design/mysite/images/mysite-illustration.jpg
+DOCS-MAP-IMG-2,Gift box large,https://alpha.se7enx.com/design/mysite/images/mysite-illustration.jpg
+```
+
+The line: `image_url` to `image` with `media_object(class=image, attribute=image, name=name)` (the image object is
+named after the record's `name`, placed below the import's parent). The real run #223 created the two products and
+**one** image object, which both relate to:
+
+```
+docs-map-prod-DOCS-MAP-IMG-1: object 56665, class product, "Gift box"
+  image relation: 56664
+    object 56664, class image, "Gift box", remote ID sqliimport-media-f6f5c1dacc0515c39afcdedb143ce1e55df1bd9a
+docs-map-prod-DOCS-MAP-IMG-2: object 56666, class product, "Gift box large"
+  image relation: 56664
+```
+
+The image object's remote ID is made from a hash of the address (`sqliimport-media-...`), which is how it is found again.
+The second run #224 of the same file: 2 unchanged, no new image object:
+
+![The second run of the media_object import: both products unchanged, no new image object made](images/map-media-object-second-run.png)
+
+In a dry run, and in the editor's preview, `image` and `media_object` download nothing: the address stands for the
+file. Addresses follow the rules of an address source (no private networks unless allowed).
+
 ## Creating an import in PHP
 
 The import editor is the usual way to create an import ([editor.md](editor.md)). A script that sets up imports,

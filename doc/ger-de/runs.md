@@ -142,6 +142,175 @@ Formular-Token.
 Auf der Kommandozeile: `./console ext:sqliimport:cancel <Lauf-ID>` und `./console ext:sqliimport:retry <Lauf-ID>`
 ([cli.md](cli.md)).
 
+## Probelauf, Run now, Live-Fortschritt und Anhalten
+
+Die vier Wege, einen Lauf in der Administration zu starten, mit dem Import „Docs: First import (teas CSV)“ aus
+[getting-started.md](getting-started.md):
+
+| Wo | Schaltfläche | Was startet |
+|---|---|---|
+| Übersicht, eine Zeile der Importe | **Run now** | ein Lauf der Art `import` (nur bei einem aktivierten Import) |
+| Übersicht, eine Zeile der Importe | **Dry run** | ein Lauf der Art `dry_run`: liest die Quelle, veröffentlicht nichts |
+| Übersicht, die Leiste oben | den Import wählen, **Run now** | dasselbe wie Run now in der Zeile |
+| Editor, Schritt 6 | **Save and run** | speichert den Import, startet einen Lauf und öffnet seine Seite |
+
+![Eine Zeile der Importliste der Übersicht: der Import mit seinem Bezeichner docs-first-import, Quelle CSV, Verarbeitung Mapping, sein letzter Lauf mit Status und die Schaltflächen Run now, Dry run, Edit und More](../images/gs-list-row.png)
+
+Keiner dieser Wege erledigt die Arbeit in der Anfrage: Der Lauf wird eingereiht, und die Worker der Job-Warteschlange
+verarbeiten ihn im Hintergrund. Die Übersicht führt ihn sofort mit dem Status **Queued**, dann **Running**. Seine
+Seite (`sqliimport/run/<id>`) verfolgt ihn live: Alle zwei Sekunden fragt sie den Server nach Status, Fortschritt,
+Zählern und neuen Protokollzeilen (der ezjscore-Aufruf `sqliimport::runstatus`, ein POST mit dem Formular-Token) und
+zeigt sie an, ohne neu zu laden. Solange der Lauf nicht beendet ist, hat die Seite die Schaltfläche **Cancel**: Sie
+entfernt die wartenden Jobs des Laufs sofort und hält den laufenden Abschnitt zwischen zwei Datensätzen an; was
+verarbeitet ist, bleibt. Der Lauf endet als **Cancelled**.
+
+Ein Probelauf ist nach jeder Änderung der Quelle oder der Zuordnung der sichere erste Schritt: Seine Zeilen sagen, was
+geschehen *würde*, mit den Feldern, die sich ändern würden, wie in Lauf #181 des Beispiels aus den ersten Schritten:
+
+![Die Zeilen von Probelauf 181: Datensatz 102 würde aktualisiert, der Preis 12.45|1|1 wird zu 13.95|1|1, Datensatz 104 mit seinem neuen Namen, 106 würde mit vier Feldern angelegt, 107 schlägt fehl](../images/gs-dry-run-page.png)
+
+## Fehlgeschlagene Zeilen wiederholen
+
+**Retry failed rows** (auf der Seite eines Laufs, der mit fehlgeschlagenen Zeilen endete) startet einen Lauf der Art
+`retry`, der nur diese Datensätze verarbeitet, **so, wie der fehlgeschlagene Lauf sie gespeichert hat**. Eine
+Wiederholung hilft also, wenn die Ursache außerhalb des Datensatzes lag: ein Elternobjekt, ein verwandtes Objekt oder
+eine Datei, die es noch nicht gab, eine Zeitüberschreitung, eine Datenbank, die nicht erreichbar war. Ein Datensatz,
+der an seinen eigenen Daten gescheitert ist (ein leeres Pflichtfeld), schlägt wieder fehl; korrigieren Sie dann die
+Quelle und nutzen Sie **Run now**, wie in
+[getting-started.md](getting-started.md#der-zweite-lauf-änderungen-ein-neues-produkt-und-eine-fehlerhafte-zeile).
+
+**Beispiel: Kinder vor ihrem Elternobjekt.** Der Import „Docs: Tea shelves (retry of failed rows)“ legt Teesorten
+unter ihr Regal. Seine `shelves.csv` führt zwei Teesorten vor dem Regal auf, zu dem sie gehören:
+
+```text
+id,name,shelf
+sencha,Sencha Asahi,green
+assam,Assam Breakfast,black
+green,Green teas,
+black,Black teas,
+genmaicha,Genmaicha,green
+```
+
+Seine Zuordnung: Klasse `folder`; Remote-ID-Muster `docs-shelf-{id}`; **Parent from a field** `shelf` mit dem Präfix
+`docs-shelf-` (`green` bedeutet also das Objekt mit der Remote-ID `docs-shelf-green`), sonst der Elternknoten des
+Imports; `name` zu `name`, Pflicht.
+
+Lauf #188 verarbeitet die Datensätze in ihrer Reihenfolge. `sencha` und `assam` kommen zuerst, und ihre Regale gibt
+es noch nicht:
+
+![Lauf 188, Completed with errors: 3 angelegt (green, black, genmaicha), 2 fehlgeschlagen (sencha und assam, „the parent of the record does not exist (yet)“), mit der Schaltfläche Retry failed rows](../images/runs-retry-before.png)
+
+`genmaicha` kommt nach `green` und wurde daher eingeordnet. **Retry failed rows** startet dann Lauf #191, eine
+Wiederholung von #188, die nur die beiden fehlgeschlagenen Datensätze liest; jetzt gibt es ihre Regale:
+
+![Lauf 191, Retry of failed rows, Wiederholung von 188: 2 Datensätze, beide unter ihren Regalen angelegt, 0 fehlgeschlagen](../images/runs-retry-after.png)
+
+Auf der Kommandozeile: `./console ext:sqliimport:retry 188`. Eine Wiederholung lässt sich wie jeder Importlauf
+rückgängig machen.
+
+## Einen Lauf rückgängig machen
+
+**Undo this run** (auf der Seite eines beendeten Import- oder Wiederholungslaufs) nimmt zurück, was dieser Lauf getan
+hat:
+
+| Was der Lauf getan hat | Was das Rückgängigmachen tut |
+|---|---|
+| ein Objekt angelegt | verschiebt es in den Papierkorb (alle seine Platzierungen), von wo es sich wie jedes Objekt wiederherstellen lässt |
+| ein Objekt aktualisiert | veröffentlicht die Version von vor dem Lauf erneut, als neue Version |
+
+Es überspringt, mit dem Grund in der Zeile, was die Arbeit von jemandem zerstören würde:
+
+- ein Objekt, das sich nach dem Lauf geändert hat (seine aktuelle Version ist nicht die, die der Lauf veröffentlicht
+  hat), bleibt in Ruhe;
+- ein Objekt, das der Lauf angelegt hat und unter das seitdem andere Inhalte gelegt wurden, bleibt in Ruhe;
+- ein Objekt, das es nicht mehr gibt oder das schon im Papierkorb liegt, wird übersprungen.
+
+Ein Lauf lässt sich einmal rückgängig machen, `[RunSettings] UndoDays` Tage lang (Vorgabe 30; die eigene Zahl des
+Imports ist das Feld **Days a run can be undone** im Schritt Verarbeitung, `0` für kein Rückgängigmachen). Der
+Cron-Teil kennzeichnet ältere Läufe, sodass sie es nicht mehr anbieten. Probeläufe und Rückgängig-Läufe lassen sich
+nicht rückgängig machen. Das Rückgängigmachen ist selbst ein Lauf (Art `undo`) mit seinen Zeilen und seinem Protokoll;
+es braucht die Richtlinie Run imports.
+
+**Beispiel.** Lauf #200 von „Docs: First import (teas CSV)“ hat ein Produkt, `docs-tea-103`, von Version 2 auf
+Version 3 aktualisiert (das Konfliktbeispiel unten). **Undo this run** auf seiner Seite startete Lauf #201:
+
+![Lauf 201, ein Rückgängigmachen: 1 Datensatz, Undone, Objekt 56614 von Version 3 auf 4, Meldung „version 2 published again as version 4“](../images/undo-run-page.png)
+
+Das Rückgängigmachen hat Version 3 nicht gelöscht: Es hat Version 2 erneut als Version 4 veröffentlicht, sodass der
+Verlauf des Objekts beide behält. Auf der Kommandozeile: `./console ext:sqliimport:undo 200 --wait`.
+
+## Konfliktregeln: wenn jemand ein importiertes Objekt geändert hat
+
+Ein Import, der immer wieder läuft (ein nächtlicher Abgleich), trifft auf Objekte, die eine Redakteurin inzwischen in
+der Administration geändert hat. Der Import merkt sich pro Objekt und Feld, was er zuletzt geschrieben hat; ein Feld,
+dessen Wert davon abweicht, wurde bearbeitet. **When someone edited an object since the last run** im Schritt
+Verarbeitung entscheidet, was geschieht:
+
+| Regel | Was der Lauf mit einem bearbeiteten Objekt tut |
+|---|---|
+| **Overwrite with the source** (`overwrite`, Vorgabe) | schreibt jedes Feld aus der Quelle; die Änderung der Redaktion wird ersetzt |
+| **Merge: keep the fields that were edited** (`merge`) | schreibt die Felder, die niemand bearbeitet hat, und behält die bearbeiteten |
+| **Only fill empty fields** (`fill_empty`) | schreibt nur Felder, die im Objekt leer sind |
+| **Skip the object** (`skip`) | lässt das Objekt, wie es ist; die Zeile ist **Skipped** und nennt die bearbeiteten Felder |
+
+![Der Schritt Verarbeitung mit den Feldern Existing content, der Konfliktregel „When someone edited an object since the last run“, den Tagen zum Rückgängigmachen und den Datensätzen pro Lauf](../images/conflict-and-undo-settings.png)
+
+**Beispiel.** Nach dem zweiten Lauf des Imports aus den ersten Schritten benannte eine Redakteurin `Sencha Asahi` in
+`Sencha Asahi (staff pick)` um. Dann änderte die Tabelle Preis und Beschreibung derselben Teesorte:
+
+```diff
+-103,Sencha Asahi,TEA-103,"A grassy Japanese green tea, steamed.",9.85,2026-05-02
++103,Sencha Asahi,TEA-103,"A grassy Japanese green tea, steamed. New harvest.",10.45,2026-05-02
+```
+
+Ein Probelauf unter jeder Regel zeigt, was sie mit Datensatz 103 täte (die anderen sechs Datensätze sind unter allen
+vier unverändert):
+
+| Regel | Probelauf | Datensatz 103 |
+|---|---|---|
+| overwrite | #192: 1 aktualisiert, 6 unverändert | Name zurück zu `Sencha Asahi`, neue Beschreibung, Preis `10.45` |
+| merge | #193: 1 aktualisiert, 6 unverändert | Name behalten, neue Beschreibung, Preis `10.45` |
+| fill_empty | #194: 7 unverändert | nichts: kein Feld ist leer |
+| skip | #196: 1 übersprungen, 6 unverändert | übersprungen: „edited since the last run: name (conflict rule: skip)“ |
+
+![Overwrite: Datensatz 103 würde in 3 Feldern aktualisiert, der Name von „Sencha Asahi (staff pick)“ zurück zu „Sencha Asahi“, die Kurzbeschreibung und der Preis von 9.85|1|1 auf 10.45|1|1](../images/conflict-dry-run-overwrite.png)
+
+![Merge: Datensatz 103 würde nur in 2 Feldern aktualisiert, Kurzbeschreibung und Preis; der bearbeitete Name bleibt](../images/conflict-dry-run-merge.png)
+
+![Only fill empty fields: Datensatz 103 ist Unchanged, „edited since the last run; nothing left to write (conflict rule: fill_empty)“](../images/conflict-dry-run-fill-empty.png)
+
+![Skip the object: Datensatz 103 ist Skipped, „edited since the last run: name (conflict rule: skip)“](../images/conflict-dry-run-skip.png)
+
+Mit der Regel **Merge** aktualisierte Lauf #200 nur 103 (Version 2 auf 3), und der Name der Redakteurin blieb:
+
+![Lauf 200 mit der Regel merge: 1 aktualisiert (103, Version 2 auf 3), 6 unverändert](../images/conflict-merge-run.png)
+
+Die Regeln gelten nur für Aktualisierungen; ein neues Objekt wird immer aus der Quelle angelegt. Wo niemand etwas
+bearbeitet hat, verhalten sich alle vier Regeln gleich.
+
+## Der Laufverlauf und der CSV-Bericht
+
+Die Übersicht listet jeden Lauf, die neuesten zuerst, mit Filtern: **all**, **Running or queued**, **Failed**,
+**Completed**, **Cancelled**, und pro Import mit `sqliimport/list/(import)/<id>` (der Link auf dem Namen des Imports).
+Ist der gemeinsame Laufverlauf des Kernels installiert (Exponential 6.0.15), hat dieselbe Liste einen Filter nach
+Werkzeug, sodass die Läufe von Export, Packages, Syndication und den anderen Transfer-Werkzeugen neben den Importen
+erscheinen ([transfer.md](transfer.md)).
+
+![Die Läufe eines Imports: Laufnummer, Status, Fortschritt, die Zahlen angelegt, aktualisiert und fehlgeschlagen und die Startzeit](../images/history-runs-filtered.png)
+
+Auf der Seite eines Laufs ergibt **Download results (CSV)** (`sqliimport/report/<Lauf-ID>`) eine Zeile pro Datensatz.
+Die ersten Zeilen von Lauf #184:
+
+```text
+run_id,row,ref,outcome,status,object_id,node_id,remote_id,version_before,version_after,changed_fields,message,time
+184,0,101,unchanged,ok,56612,54991,docs-tea-101,1,1,,,2026-10-23T01:23:02Z
+184,1,102,updated,ok,56613,54992,docs-tea-102,1,2,,,2026-10-23T01:23:03Z
+```
+
+`changed_fields` ist bei Probeläufen gefüllt (die Felder, die sich ändern würden); ein echter Lauf hält stattdessen
+die Versionen davor und danach fest. Dieselbe Datei liefert `./console ext:sqliimport:report 184` ([cli.md](cli.md)).
+Diagramme des Laufverlaufs stehen auf der Seite Statistics ([statistics.md](statistics.md)).
+
 ## Benachrichtigungen
 
 Wer vom Ende eines Laufs erfährt, wird je Import im Schritt Verarbeitung des Editors unter **Notifications**
@@ -157,6 +326,17 @@ Probeläufe und Rückgängig-Läufe geben ihrem Starter einen Hinweis, nie eine 
 (2.0.0-alpha.1) erhalten weiterhin eine E-Mail, wenn ein geplanter Lauf fehlschlägt oder mit Fehlern endet. Der Link
 in einer E-Mail nutzt `[AdminSettings] AdminURL` der `sqliimport.ini`, wenn er gesetzt ist (z. B.
 `https://edit.example.org/admin`), sonst einen Pfad.
+
+**Durchgespieltes Beispiel.** „Docs: First import (teas CSV)“ mit **Tell when a run** auf `ended (every run)` und
+angekreuztem Hinweis für den Starter:
+
+![Die Benachrichtigungseinstellungen im Schritt Processing: Tell when a run „ended (every run)“, das Kästchen für einen Hinweis an den Benutzer, der den Lauf gestartet hat, und das leere Feld für E-Mail-Adressen](../images/notifications-settings.png)
+
+Nach dem Ende seines Laufs #215 zeigte die Glocke im Kopf die Zahl 1 und ihr Bereich den Lauf mit seinem Ergebnis:
+
+![Die Glocke im Kopf mit der Zahl 1 und ihrem geöffneten Bereich „Import notifications“: Run 215, Docs: First import (teas CSV), completed, mit der Uhrzeit, und dem Link All imports](../images/bell-panel.png)
+
+Wer die Seite des Laufs öffnet, markiert den Hinweis als gelesen, und die Zahl verschwindet.
 
 **Die Glocke im Kopf.** Ab Exponential 6.0.15 haben admin4 und admin4l einen Platz für Werkzeuge der Erweiterungen im
 Kopf (`design.ini [AdminHeaderSettings] HeaderItems[]`), und die Erweiterung stellt dort eine Glocke hin
