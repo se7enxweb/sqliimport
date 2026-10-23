@@ -41,6 +41,19 @@ English: [../index.md](../index.md).
   sind nicht mehr leer, mit NUL-Bytes serialisierte Optionen werden unter SQLite nicht mehr abgeschnitten, und
   Optionstext ohne `=` erzeugt unter PHP 8 keine Warnung mehr.
 
+## Sprachen
+
+Die Seiten der Erweiterung gibt es in amerikanischem Englisch und auf Deutsch: `translations/ger-DE/translation.ts`
+übersetzt jeden Text der Templates, die Meldungen des Editors, die Bezeichnungen und Hilfetexte der Optionen jedes
+Formats, Handlers und jeder Umwandlung (Kontext `extension/sqliimport/options`), die Beschreibungen des Katalogs
+(`extension/sqliimport/catalogue`), die Wörter der Status und die Beschreibungen der Zeitpläne. Wer die
+Administration mit dem Gebietsschema `ger-DE` benutzt, sieht die deutschen Seiten; der Kernel lädt die Datei über
+`site.ini [RegionalSettings] TranslationExtensions[]=sqliimport`. `translations/untranslated/translation.ts` listet
+jeden Text für eine neue Sprache; die französische und die spanische Datei enthalten die Texte von 1.x. Das
+Protokoll eines Laufs, die Meldungen einer Quelle und die Kommandozeile bleiben englisch.
+`tests/unit/TranslationsTest.php` schlägt fehl, wenn ein Text des Codes in ger-DE oder untranslated fehlt oder eine
+Übersetzung einen `%Platzhalter` verliert.
+
 ## Seiten
 
 | Seite | Inhalt |

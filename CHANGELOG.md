@@ -7,6 +7,11 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 
 ### Added
 
+- Added: The German administration: translations/ger-DE/translation.ts translates every text of the pages (1772
+  texts in 18 contexts), the labels, help texts and choices of the options of every format, handler and transform
+  (extension/sqliimport/options), the catalogue's descriptions (extension/sqliimport/catalogue), the messages of the
+  option, mapping and schedule checks and the schedule descriptions; translations/untranslated lists every text, and
+  tests/unit/TranslationsTest.php checks both against the code, the placeholders and the translator's schema.
 - Added: The target "A data table": the records become rows of a persistent class, written by the kernel's
   expDataTableWriter (Exponential 6.0.15), with column lines and transforms, keys and the modes upsert, insert,
   update and replace; a dry run checks without writing.

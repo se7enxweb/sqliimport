@@ -5,8 +5,9 @@ einen Import durch sechs Schritte: Quelle (Source), Verarbeitung (Processing), Z
 (Preview), Zeitplan (Schedule) und Prüfung (Review and save). Jeder Schritt ist ein Formular, das für sich
 gespeichert wird. So geht ein Import nie auf halbem Weg verloren, und jeder Schritt lässt sich später wieder öffnen.
 
-Die Oberfläche der Administration ist auf Englisch; die Namen der Schaltflächen und Felder stehen hier deshalb so,
-wie sie auf der Seite erscheinen.
+Die Namen der Schaltflächen und Felder stehen hier so, wie sie die englische Oberfläche zeigt; mit dem
+Gebietsschema ger-DE erscheinen sie auf Deutsch (Speichern und weiter, Verbindung testen ...), siehe
+[index.md](index.md#sprachen).
 
 English: [../editor.md](../editor.md).
 
