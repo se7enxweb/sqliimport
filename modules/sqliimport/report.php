@@ -16,8 +16,7 @@ if ( !$run )
 $outcomes = array( 'created', 'updated', 'unchanged', 'skipped', 'failed', 'processed', 'undone' );
 $outcome = isset( $Params['Outcome'] ) && in_array( $Params['Outcome'], $outcomes, true ) ? (string)$Params['Outcome'] : '';
 
-while ( ob_get_level() > 0 )
-    ob_end_clean();
+expImport::discardOutput();
 header( 'Content-Type: text/csv; charset=utf-8' );
 header( 'Content-Disposition: attachment; filename="' . expImportReport::fileName( $run, $outcome ) . '"' );
 header( 'X-Content-Type-Options: nosniff' );

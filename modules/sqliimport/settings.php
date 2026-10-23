@@ -1,8 +1,9 @@
 <?php
 /**
  * sqliimport/settings (policy sqliimport/settings): the settings of 7x SQLI Import as they stand, the export of the
- * import definitions as JSON (to move them from staging to live; no secret and no run), and the import of such a
- * file. Every change is a POST with the form token.
+ * import definitions as JSON (expImportTransfer: to move them from staging to live; no secret, file, key or run), and
+ * the way to "Import definitions" (sqliimport/transfer), which reads such a file. Every change is a POST with the form
+ * token.
  *
  * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
  * @license GNU General Public License v2.0
@@ -18,34 +19,28 @@ $isPost = strtoupper( (string)eZSys::serverVariable( 'REQUEST_METHOD', true ) ) 
 $message = null;
 if ( $isPost && $http->hasPostVariable( 'ExportButton' ) )
 {
+    // the definitions file of expImportTransfer (version 2): references instead of node IDs, the names of secrets,
+    // never a stored file, key or salt; only imports the user may manage (the handler limitation)
     $ids = $http->hasPostVariable( 'ImportIDs' ) ? array_map( 'intval', (array)$http->postVariable( 'ImportIDs' ) ) : array();
     $list = array();
     foreach ( expImportDefinition::fetchList( 0, 1000 ) as $import )
-        if ( !$ids || in_array( (int)$import->attribute( 'id' ), $ids, true ) )
-            $list[] = $import->export();
-    $json = json_encode( array( 'format' => 'sqliimport-definitions', 'version' => 1, 'exported' => date( 'c', expImport::now() ), 'imports' => $list ),
-                         JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
-    while ( @ob_end_clean() );
-    header( 'Content-Type: application/json; charset=utf-8' );
-    header( 'Content-Disposition: attachment; filename="sqliimport-definitions-' . date( 'Ymd-His', expImport::now() ) . '.json"' );
-    header( 'X-Content-Type-Options: nosniff' );
-    echo $json;
-    eZExecution::cleanExit();
+        if ( ( !$ids || in_array( (int)$import->attribute( 'id' ), $ids, true ) ) && expImportAdmin::can( 'edit', (string)$import->attribute( 'handler' ) ) )
+            $list[] = $import;
+    if ( $list )
+    {
+        $document = expImportTransfer::exportImports( $list );
+        expImport::audit( 'definitions.export', array( 'imports' => array_map( function ( $i ) { return (string)$i->attribute( 'identifier' ); }, $list ),
+                                                       'secrets' => count( $document['secrets'] ) ) );
+        expImportTransfer::send( $document );
+        return;
+    }
+    $message = array( 'kind' => 'warn', 'message' => ezpI18n::tr( 'extension/sqliimport', 'There is no import to export.' ) );
 }
+// a file is read by "Import definitions" (sqliimport/transfer), which shows what it would create first
 if ( $isPost && $http->hasPostVariable( 'ImportButton' ) )
 {
-    $file = eZHTTPFile::canFetch( 'DefinitionsFile' ) ? eZHTTPFile::fetch( 'DefinitionsFile' ) : null;
-    $data = $file instanceof eZHTTPFile && filesize( $file->attribute( 'filename' ) ) < 10485760
-          ? json_decode( (string)file_get_contents( $file->attribute( 'filename' ) ), true ) : null;
-    if ( !is_array( $data ) || !isset( $data['format'] ) || $data['format'] !== 'sqliimport-definitions' )
-        $message = array( 'kind' => 'bad', 'message' => ezpI18n::tr( 'extension/sqliimport', 'The file is not an export of import definitions.' ) );
-    else
-    {
-        list( $created, $updated, $errors ) = expImportEditor::importDefinitions( $data );
-        $message = array( 'kind' => $errors ? 'warn' : 'ok',
-                          'message' => ezpI18n::tr( 'extension/sqliimport', '%created imports created (disabled), %updated updated.', null,
-                                                    array( '%created' => $created, '%updated' => $updated ) ) . ( $errors ? ' ' . implode( '; ', $errors ) : '' ) );
-    }
+    $Module->redirectTo( '/sqliimport/transfer' );
+    return;
 }
 $ini = expImport::ini();
 $settings = array();

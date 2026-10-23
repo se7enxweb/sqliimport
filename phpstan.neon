@@ -11,6 +11,8 @@ parameters:
         - modules/sqliimport/schedules.php
         - modules/sqliimport/catalogue.php
         - modules/sqliimport/settings.php
+        - modules/sqliimport/transfer.php
+        - modules/sqliimport/templates.php
         - modules/sqliimport/trigger.php
         - cronjobs/sqliimport_schedule.php
     scanFiles:

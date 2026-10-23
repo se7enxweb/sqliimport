@@ -24,6 +24,14 @@ class expImportAuditBranch implements expAuditTaxonomyBranch
         'import.delete' => array( 'Import: import deleted', 'notice' ),
         'schedule.change' => array( 'Import: schedule changed', 'notice' ),
         'migrate' => array( 'Import: 1.x imports migrated', 'notice' ),
+        'ai.suggest' => array( 'Import: AI suggestions asked for', 'info' ),
+        'ai.accept' => array( 'Import: AI suggestions accepted and saved', 'notice' ),
+        'ai.explain' => array( 'Import: AI explanation of a failed row asked for', 'info' ),
+        'ai.summary' => array( 'Import: AI summary of a run asked for', 'info' ),
+        'definitions.export' => array( 'Import: definitions exported', 'info' ),
+        'definitions.import' => array( 'Import: definitions imported', 'notice' ),
+        'template.create' => array( 'Import: template saved', 'notice' ),
+        'template.delete' => array( 'Import: template deleted', 'notice' ),
     );
 
     public function events()

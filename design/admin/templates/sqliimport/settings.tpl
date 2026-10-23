@@ -32,21 +32,16 @@
 <legend>{'Imports (none ticked: all)'|i18n( 'extension/sqliimport' )}</legend>
 {foreach $imports as $i}<label class="a4-check"><input type="checkbox" name="ImportIDs[]" value="{$i.id}" /> {$i.name|wash} <span class="a4-meta">{$i.identifier|wash}</span></label>{/foreach}
 </fieldset>
-<p class="a4-help">{'A JSON file with the source, processing, mapping, target and options of each import; no run, schedule or file content.'|i18n( 'extension/sqliimport' )}</p>
+<p class="a4-help">{'A JSON file with the source, processing, mapping, target (by remote ID), options, schedules and trigger settings of each import; no run, no uploaded file, no API key or signing secret, the names of the secrets only.'|i18n( 'extension/sqliimport' )}</p>
 <div class="a4-toolbar"><button type="submit" class="a4-btn" name="ExportButton" value="1"><span class="a4-icon a4-bi-download" aria-hidden="true"></span> {'Export'|i18n( 'extension/sqliimport' )}</button></div>
 </form>
 </section>
 
 <section class="a4-section" aria-labelledby="sq-set-import">
 <div class="a4-section-head"><h2 class="a4-h2" id="sq-set-import">{'Import import definitions'|i18n( 'extension/sqliimport' )}</h2></div>
-<form class="a4-form" method="post" action={'/sqliimport/settings'|ezurl} enctype="multipart/form-data">
-<div class="a4-field">
-<label for="sq-defs">{'Exported file'|i18n( 'extension/sqliimport' )}</label>
-<input type="file" id="sq-defs" name="DefinitionsFile" accept=".json,application/json" />
-<span class="a4-help">{'An import with the same identifier is updated; the others are created disabled. Uploaded source files are not part of an export: upload them again in the editor.'|i18n( 'extension/sqliimport' )}</span>
-</div>
-<div class="a4-toolbar"><button type="submit" class="a4-btn a4-btn-primary" name="ImportButton" value="1"><span class="a4-icon a4-bi-upload" aria-hidden="true"></span> {'Import'|i18n( 'extension/sqliimport' )}</button></div>
-</form>
+<p class="a4-help">{'Import definitions reads such a file, shows per import what it would create here (a taken identifier, the class and parent node, missing secrets) and lets you create new, replace or skip each; they are created disabled.'|i18n( 'extension/sqliimport' )}</p>
+<p><a class="a4-btn a4-btn-primary" href={'/sqliimport/transfer'|ezurl}><span class="a4-icon a4-bi-upload" aria-hidden="true"></span> {'Import definitions'|i18n( 'extension/sqliimport' )}</a>
+<a class="a4-btn a4-btn-ghost" href={'/sqliimport/templates'|ezurl}>{'Templates'|i18n( 'extension/sqliimport' )}</a></p>
 </section>
 </div></div></div>
 </div>

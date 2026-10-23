@@ -1,0 +1,34 @@
+{
+    "format": "sqliimport-template",
+    "version": 1,
+    "title": "Articles from a CSV file",
+    "description": "A CSV file with the columns id, title, intro and body (the first line names them): each line becomes an article; a later upload of the same file updates them.",
+    "source_type": "csv",
+    "placeholders": {
+        "name": { "label": "Name", "default": "Articles (CSV)" },
+        "identifier": { "label": "Identifier", "default": "", "optional": true }
+    },
+    "secrets": [],
+    "import": {
+        "identifier": "{{identifier}}",
+        "name": "{{name}}",
+        "description": "",
+        "source_type": "csv",
+        "source": { "origin": "upload", "delimiter": "auto", "encoding": "auto", "header": true },
+        "handler": "mapping",
+        "options": {},
+        "target": { "parent_node_id": 0, "section_id": 0, "language": "", "owner_id": 0 },
+        "behaviour": { "chunk_size": 200, "update_policy": "update", "conflict_policy": "overwrite" },
+        "mapping": {
+            "class": "article",
+            "language": "",
+            "match": { "type": "remote_id", "pattern": "{{identifier}}-{id}" },
+            "fields": [
+                { "source": "title", "attribute": "title", "transforms": [ { "name": "trim" } ], "default": "", "required": true, "language": "" },
+                { "source": "intro", "attribute": "intro", "transforms": [ { "name": "richtext" } ], "default": "", "required": false, "language": "" },
+                { "source": "body", "attribute": "body", "transforms": [ { "name": "richtext" } ], "default": "", "required": false, "language": "" }
+            ],
+            "location": { "parent_node_id": 2, "parent_from": "", "parent_prefix": "" }
+        }
+    }
+}

@@ -7,6 +7,41 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 
 ### Added
 
+- Added: The German administration: translations/ger-DE/translation.ts translates every text of the pages (1772
+  texts in 18 contexts), the labels, help texts and choices of the options of every format, handler and transform
+  (extension/sqliimport/options), the catalogue's descriptions (extension/sqliimport/catalogue), the messages of the
+  option, mapping and schedule checks and the schedule descriptions; translations/untranslated lists every text, and
+  tests/unit/TranslationsTest.php checks both against the code, the placeholders and the translator's schema.
+- Added: The AI assist through the installation's expai ([doc/ai.md](doc/ai.md)), off unless [AiSettings]
+  Enabled=enabled: "Suggest with AI" in the mapping step (a source field, transforms, a confidence and a reason per
+  attribute, accepted line by line or all at once into the form), the content class or data table that fits the
+  fields (the best three), "Explain" for a failed row and "Summarize" for a finished run. Assistive only: nothing is
+  saved without the form's save, and a version with accepted suggestions needs a dry run before the next real run.
+- Added: Data minimisation of the AI assist: by default only field names and detected types are sent; sample values
+  only with the import's option "Send sample values to the AI" (off by default), masked first (e-mail, phone and
+  IBAN-like values). Every request goes through expai's master switch, expai/write and model permissions, data
+  policy, limits, budgets, usage log and audit; answers that are not JSON Lines are rejected, suggestions naming an
+  unknown attribute, field, class or transform are dropped; answers are kept for the session; audit events
+  ai.suggest, ai.accept, ai.explain and ai.summary.
+
+- Added: Download as JSON (an import's More menu and the editor's last step) and Export selected (the dashboard): a
+  definitions file sqliimport-import-<identifier>.json, format version 2, with the source and its options (an upload
+  by its original name only, an address without user and password), handler, target and mapping location by remote
+  ID with the node ID as fallback, section by identifier, mapping with translations, class_from and variants,
+  schedules and trigger settings; never an uploaded file, API key, signing salt or secret value, the names of the
+  secrets the imports need instead (Manage imports, with the handler limitation).
+- Added: Import definitions (sqliimport/transfer): reads such a file (and version 1), refuses a malformed one as a
+  whole, shows per import whether it is new or its identifier is taken, the class and parent node it resolves to,
+  and the missing classes, attributes, nodes, sections, languages, secrets and named connections, checked with the
+  option schemas, the mapper and the schedule rules; per import create new (identifier suffixed), replace or skip;
+  created disabled, schedules paused, trigger off without keys; every import audited.
+- Added: Templates of imports: Save as template (no source data, no schedules, trigger, run user or notification
+  addresses; name and identifier as {{placeholders}}), stored as JSON in var/<site>/storage/sqliimport/templates/, and
+  templates shipped by extensions (sqliimport.ini [TemplateSettings] Templates[], share/templates/*.json; two
+  shipped: News feed into articles, Articles from a CSV file); New import from a template (sqliimport/templates),
+  offered on the catalogue's format cards.
+- Added: Copy to … with a name, an identifier and, on request, the schedules (paused); the trigger and its keys are
+  never copied. Duplicate stays.
 - Added: The target "A data table": the records become rows of a persistent class, written by the kernel's
   expDataTableWriter (Exponential 6.0.15), with column lines and transforms, keys and the modes upsert, insert,
   update and replace; a dry run checks without writing.
@@ -331,6 +366,9 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 
 ### Updated
 
+- Updated: The export of the Settings page writes the definitions file of version 2 (references, secret names, no
+  keys) of the imports one may manage, and its import goes through Import definitions, which shows what a file
+  would create before anything is created; an existing import is no longer changed without being asked.
 - Updated: The tick also runs within the cron part expqueue, so schedules need no cron line of their own; a lock
   keeps two ticks from running at once.
 - Updated: A preset maps only the fields the site's class can take (by attribute and datatype).

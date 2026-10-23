@@ -30,6 +30,8 @@ second run that updates, adds and catches a broken line.
 | [schedules.md](schedules.md) | Schedules with cron expressions, time zones, missed runs, pause and resume |
 | [triggers.md](triggers.md) | Starting an import from another system: signed calls and API keys, with curl examples |
 | [statistics.md](statistics.md) | The charts of the dashboard and the Statistics page |
+| [definitions.md](definitions.md) | Download as JSON, Export selected, Import definitions, Copy to … and templates of imports |
+| [ai.md](ai.md) | The AI assist through expai: mapping and class suggestions, explanations of failed rows, run summaries, what is sent |
 
 ### Every source, with a worked example
 
@@ -85,3 +87,19 @@ The content API and the handler API of 1.x, which still apply, are described in
 - **Statistics** of the run history, with charts and a CSV download.
 - **Two policies**, "Manage imports" and "Run imports". The 1.x policies keep working.
 - **1.x handlers run untouched** through a compatibility adapter ([migration-1x.md](migration-1x.md)).
+- **The AI assist** (with the extension expai): mapping and class suggestions, explanations of failed rows and run
+  summaries, for a person to accept ([ai.md](ai.md)).
+- **Definitions, copies and templates:** imports move between installations as JSON files, are copied with **Copy
+  to …** and kept as templates ([definitions.md](definitions.md)).
+
+## Languages
+
+The pages of the extension are in American English and in German: `translations/ger-DE/translation.ts` translates
+every text of the templates, the messages of the editor, the labels and help texts of the options of every format,
+handler and transform (context `extension/sqliimport/options`), the descriptions of the catalogue
+(`extension/sqliimport/catalogue`), the words of the statuses and the schedule descriptions. An administrator whose
+locale is `ger-DE` sees the German pages; the kernel loads the file through `site.ini [RegionalSettings]
+TranslationExtensions[]=sqliimport`. `translations/untranslated/translation.ts` lists every text for a new
+language; the French and Spanish files hold the texts of 1.x. The log of a run, the messages of a source and the
+command line stay in English. `tests/unit/TranslationsTest.php` fails when a text of the code is missing in ger-DE or
+untranslated, or when a translation loses a `%placeholder`.

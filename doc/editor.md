@@ -142,9 +142,12 @@ For a 1.x handler, choose the handler here. It reads its own source, so the step
 | Notifications: Tell when a run | `failed or had errors` (default), `failed`, `ended (every run)`, `never` |
 | A notice for the user who started the run | The bell in the header and the dashboard show it ([runs.md](runs.md#notifications)) |
 | E-mail addresses | One per line; they get a mail with the counts and the first errors |
+| Send sample values to the AI | Only with the AI assist ([ai.md](ai.md)); off by default. Off: the AI gets only the names and types of the fields. On: also a few sample values per field and the values of a failed row it explains, with e-mail, phone and IBAN-like values masked first. |
 
 Instead of the mapping, the processing can be **Rows of a data table (a persistent class)**: the records fill a
-module's own table instead of content ([datatables.md](datatables.md)).
+module's own table instead of content ([datatables.md](datatables.md)). With that target and the AI assist,
+**Suggest a data table with AI** shows the three data tables that fit the fields best; **Use this table** chooses one
+in the form (saved with the step).
 
 ![Step 2, Processing: the handler Mapping to a content class, the parent node, section, language, robot user, chunk size, Existing content, the conflict rule, the undo days, the records per run and the notification settings](images/gs-processing-step.png)
 
@@ -179,6 +182,15 @@ match first, then a name that contains the other. Each field is used once. A ric
 `richtext`, a date `date`, an image `image` and a checkbox `bool`. Auto-match uses no external service. It saves the
 mapping and stays on the step with the message "Auto-match filled N lines. Check them, then save."; check the lines
 before you continue.
+
+**Suggest with AI** (with the AI assist, [ai.md](ai.md)) asks the model of the installation's expai for a source
+field and transforms per attribute, from the attributes of the class and the names and types of the fields (sample
+values only when the import opts in in the processing step, and then masked). The suggestions appear in an extra
+column of the grid with a confidence badge and a short reason; suggestions that name an attribute, a field or a
+transform that does not exist are left out. **Accept** fills one line into the form, **Accept all** every line with
+a suggestion; nothing is saved until you save the step, and once a step with accepted lines is saved, the import
+needs a dry run before its next real run. **Suggest a class with AI** next to the class shows the three classes that
+fit the fields best; **Use this class** chooses one in the form.
 
 The mapping is stored even when it is not complete yet, so nothing entered is lost; the errors are listed until they
 are fixed.
@@ -242,6 +254,7 @@ lists what is still missing before the import can run, such as a mapping without
   something is missing.
 - **Save** stores the import and returns to the dashboard.
 - **Save and run** stores the enabled import, starts a run at once and opens its run page ([runs.md](runs.md)).
+- Below the form: **Download as JSON**, **Copy to …** and **Save as template** ([definitions.md](definitions.md)).
 
 ![Step 6, Review and save: the summary of the import, the checkbox The import is enabled, and the buttons Save and Save and run](images/gs-review-step.png)
 
@@ -256,6 +269,10 @@ The list of imports on the dashboard has these actions:
 | Edit | manage | Opens the editor |
 | More > Duplicate | manage | Makes a disabled copy named "Copy of ..." with the source, processing and mapping, without schedules or runs, and opens it in the editor |
 | More > New data table from its fields | manage and setup/setup | Opens the kernel's module table wizard with the import's fields ([datatables.md](datatables.md)) |
+| More > Download as JSON | manage | Saves the import as a definitions file for another installation, without its file, keys or secret values ([definitions.md](definitions.md)) |
+| More > Copy to … | manage | A disabled copy with a name and identifier of your choice, its schedules on request (paused), never its trigger or keys |
+| More > Save as template | manage | Keeps the import without its source data as a template for new imports |
+| Export selected (JSON) | manage | One definitions file with the ticked imports |
 | More > Enable / Disable | manage | Switches the import on or off |
 | More > Delete | manage | Removes the import with its mapping and schedules, after a confirmation. Its runs stay in the history until they are purged. An import that runs now cannot be deleted; cancel the run first. |
 

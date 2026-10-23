@@ -81,11 +81,25 @@ The webhook / API trigger of imports ([triggers.md](triggers.md)).
 | `MaxBodyMegabytes` | `20` | The largest body a call may bring as the data of its run |
 | `ServerKeySecret` | empty | The name of a secret (at least 32 characters) used as the server key; empty: a random key in `var/<site>/storage/sqliimport/trigger.key` |
 
+## [AiSettings]
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `Enabled` | `disabled` | `enabled` offers the AI assist through expai ([ai.md](ai.md)) to users with `expai/write` |
+| `SampleValues` | `3` | Masked sample values per field (1 to 5) for an import with "Send sample values to the AI" |
+| `MaxFields` | `150` | The most source fields one request describes |
+
 ## [AdminSettings]
 
 | Setting | Default | Meaning |
 |---|---|---|
 | `ListLimit` | `25` | Rows per page of the lists (at least 5) |
+
+## [TemplateSettings]
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `Templates[]` | `sqliimport` | Where the templates of "New import from a template" come from besides this site's own (`var/<site>/storage/sqliimport/templates/`): the name of an extension (its `share/templates/*.json`) or a JSON file relative to the installation's root ([definitions.md](definitions.md)) |
 
 ## Settings of 1.x that still apply
 
@@ -276,3 +290,8 @@ disabled: review, dry-run and enable each. 0 skipped. Docs: Teas (TOML) (importe
 The new import `docs-files-toml_2` is disabled and has no file yet: in its source step, upload `teas.toml`, then run
 a dry run (3 teas would be created into the same folder, matched by the same remote IDs as the original, so a real
 run would update the original's objects rather than make new ones) and enable it in the review step.
+
+This is how imports move from a staging installation to the live one. The file contains the addresses and options
+of the sources, so keep it as safe as the settings of the site. **Download as JSON** of one import, **Export
+selected** of the dashboard, **Copy to …** and templates use the same format; [definitions.md](definitions.md)
+describes it field by field.

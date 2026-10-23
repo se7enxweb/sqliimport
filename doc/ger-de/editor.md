@@ -5,8 +5,9 @@ einen Import durch sechs Schritte: Quelle (Source), Verarbeitung (Processing), Z
 (Preview), Zeitplan (Schedule) und Prüfung (Review and save). Jeder Schritt ist ein Formular, das für sich
 gespeichert wird. So geht ein Import nie auf halbem Weg verloren, und jeder Schritt lässt sich später wieder öffnen.
 
-Die Oberfläche der Administration ist noch überwiegend auf Englisch; die Namen der Schaltflächen und Felder stehen
-hier deshalb so, wie sie auf der Seite erscheinen.
+Die Namen der Schaltflächen und Felder stehen hier so, wie sie die englische Oberfläche zeigt; mit dem
+Gebietsschema ger-DE erscheinen sie auf Deutsch (Speichern und weiter, Verbindung testen ...), siehe
+[index.md](index.md#sprachen).
 
 English: [../editor.md](../editor.md).
 
@@ -153,9 +154,12 @@ Datei und keine Adresse.
 | Notifications: Tell when a run | `failed or had errors` (Vorgabe), `failed`, `ended (every run)`, `never` |
 | A notice for the user who started the run | Die Glocke in der Kopfzeile und die Übersicht zeigen ihn ([runs.md](runs.md#benachrichtigungen)) |
 | E-mail addresses | Eine pro Zeile; sie bekommen eine E-Mail mit den Zahlen und den ersten Fehlern |
+| Send sample values to the AI | Nur mit der KI-Unterstützung ([ai.md](ai.md)); standardmäßig aus. Aus: Die KI bekommt nur die Namen und Typen der Felder. An: zusätzlich einige Beispielwerte je Feld und die Werte einer fehlgeschlagenen Zeile, die sie erklärt; E-Mail-, Telefon- und IBAN-artige Werte werden vorher maskiert. |
 
 Statt der Zuordnung kann die Verarbeitung **Rows of a data table (a persistent class)** sein: Die Datensätze füllen
-die eigene Tabelle eines Moduls statt Inhalte ([datatables.md](datatables.md)).
+die eigene Tabelle eines Moduls statt Inhalte ([datatables.md](datatables.md)). Mit diesem Ziel und der
+KI-Unterstützung zeigt **Suggest a data table with AI** die drei Datentabellen, die am besten zu den Feldern passen;
+**Use this table** wählt eine im Formular (gespeichert mit dem Schritt).
 
 ![Schritt 2, Verarbeitung: der Handler Mapping to a content class, Elternknoten, Sektion, Sprache, Robot-Benutzer, Abschnittsgröße, Existing content, die Konfliktregel, die Tage zum Rückgängigmachen, die Datensätze pro Lauf und die Benachrichtigungen](../images/gs-processing-step.png)
 
@@ -193,6 +197,16 @@ verglichen, zuerst auf Gleichheit, dann darauf, ob ein Name den anderen enthält
 Ein Rich-Text-Attribut bekommt die Umwandlung `richtext`, ein Datum `date`, ein Bild `image` und ein Kontrollkästchen
 `bool`. Auto-match verwendet keinen externen Dienst. Es speichert die Zuordnung und bleibt auf dem Schritt, mit der
 Meldung „Auto-match filled N lines. Check them, then save.“; prüfen Sie die Zeilen, bevor Sie weitergehen.
+
+**Suggest with AI** (mit der KI-Unterstützung, [ai.md](ai.md)) fragt das Modell des expai der Installation nach einem
+Quellfeld und Umwandlungen je Attribut, aus den Attributen der Klasse und den Namen und Typen der Felder
+(Beispielwerte nur, wenn der Import es im Schritt Verarbeitung wählt, und dann maskiert). Die Vorschläge erscheinen in
+einer zusätzlichen Spalte des Rasters mit einem Abzeichen für die Sicherheit und einer kurzen Begründung; Vorschläge,
+die ein Attribut, ein Feld oder eine Umwandlung nennen, die es nicht gibt, werden weggelassen. **Accept** übernimmt
+eine Zeile ins Formular, **Accept all** jede Zeile mit Vorschlag; gespeichert wird erst, wenn Sie den Schritt
+speichern, und ist ein Schritt mit angenommenen Zeilen gespeichert, braucht der Import vor dem nächsten echten Lauf
+einen Probelauf. **Suggest a class with AI** neben der Klasse zeigt die drei Klassen, die am besten zu den Feldern
+passen; **Use this class** wählt eine im Formular.
 
 Die Zuordnung wird auch dann gespeichert, wenn sie noch nicht vollständig ist, damit nichts Eingegebenes verloren
 geht; die Fehler werden aufgeführt, bis sie behoben sind.
@@ -261,6 +275,7 @@ nennt außerdem, was noch fehlt, bevor der Import laufen kann, etwa eine Zuordnu
 - **Save** speichert den Import und kehrt zur Übersicht zurück.
 - **Save and run** speichert den aktivierten Import, startet sofort einen Lauf und öffnet dessen Seite
   ([runs.md](runs.md)).
+- Unter dem Formular: **Download as JSON**, **Copy to …** und **Save as template** ([definitions.md](definitions.md)).
 
 ![Schritt 6, Prüfen und speichern: die Zusammenfassung des Imports, das Kontrollkästchen The import is enabled und die Schaltflächen Save und Save and run](../images/gs-review-step.png)
 
@@ -275,6 +290,10 @@ Die Liste der Importe auf der Übersicht hat diese Aktionen:
 | Edit | manage | Öffnet den Editor |
 | More > Duplicate | manage | Legt eine deaktivierte Kopie „Copy of ...“ mit Quelle, Verarbeitung und Zuordnung an, ohne Zeitpläne und Läufe, und öffnet sie im Editor |
 | More > New data table from its fields | manage und setup/setup | Öffnet den Modultabellen-Assistenten des Kernels mit den Feldern des Imports ([datatables.md](datatables.md)) |
+| More > Download as JSON | manage | Speichert den Import als Definitionsdatei für eine andere Installation, ohne Datei, Schlüssel oder geheime Werte ([definitions.md](definitions.md)) |
+| More > Copy to … | manage | Eine deaktivierte Kopie mit Name und Bezeichner Ihrer Wahl, auf Wunsch mit ihren Zeitplänen (pausiert), nie mit Trigger oder Schlüsseln |
+| More > Save as template | manage | Bewahrt den Import ohne Quelldaten als Vorlage für neue Importe auf |
+| Export selected (JSON) | manage | Eine Definitionsdatei mit den angekreuzten Importen |
 | More > Enable / Disable | manage | Schaltet den Import ein oder aus |
 | More > Delete | manage | Entfernt den Import mit seiner Zuordnung und seinen Zeitplänen nach einer Rückfrage. Seine Läufe bleiben im Verlauf, bis sie bereinigt werden. Ein Import, der gerade läuft, lässt sich nicht löschen; brechen Sie den Lauf zuerst ab. |
 

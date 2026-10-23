@@ -38,6 +38,8 @@ Links[statistics]=sqliimport/statistics
 Links[new]=sqliimport/edit/new
 Links[schedules]=sqliimport/schedules
 Links[catalogue]=sqliimport/catalogue
+Links[templates]=sqliimport/templates
+Links[transfer]=sqliimport/transfer
 Links[settings]=sqliimport/settings
 Links[active]=sqliimport/list/(status)/active
 Links[failed]=sqliimport/list/(status)/failed
@@ -48,6 +50,8 @@ LinkNames[statistics]=Statistics
 LinkNames[new]=New import
 LinkNames[schedules]=Schedules
 LinkNames[catalogue]=Catalogue
+LinkNames[templates]=Templates
+LinkNames[transfer]=Import definitions
 LinkNames[settings]=Settings
 LinkNames[active]=Running runs
 LinkNames[failed]=Failed runs
@@ -65,6 +69,8 @@ GroupLinks_runs[]=failed
 GroupLinks_runs[]=schedules
 GroupLinks_runs[]=queue
 GroupLinks_runs[]=catalogue
+GroupLinks_runs[]=templates
+GroupLinks_runs[]=transfer
 GroupLinks_runs[]=settings
 
 */ ?>

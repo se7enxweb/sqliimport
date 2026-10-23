@@ -34,6 +34,7 @@ and the Settings page (`sqliimport/settings`) need `manage`.
 | Duplicate, Enable, Disable, Delete | | yes |
 | Pause, Resume, Edit and Delete of a schedule | | yes |
 | Settings, export and import of import definitions | | yes |
+| Download as JSON, Export selected, Import definitions, Copy to …, Save as template, New import from a template | | yes |
 | The trigger of an import (switch on, keys, secret) | | yes |
 | More > New data table from its fields | | yes, and `setup/setup` |
 
@@ -114,5 +115,6 @@ dashboard is shown to users who may open the Imports tab.
   request changes nothing. The live run page reads its updates by POST with the form token as well.
 - The run is processed as the user who started it, or as the robot user of the import. That user needs the content
   policies to create and edit the objects of the import.
-- An export of import definitions contains no runs and no file content, but it does contain the source addresses
-  and options. Treat the file as you would treat the settings of the site.
+- An export of import definitions contains no runs, no uploaded file, no API key, no signing salt and no secret
+  value (only the names of secrets), but it does contain the source addresses, queries and options. Treat the file
+  as you would treat the settings of the site; exporting needs Manage imports ([definitions.md](definitions.md)).

@@ -120,6 +120,11 @@ sind (`dashboard.ini [DashboardBlock_sqliimport]`, `NumberOfItems=5`).
 - **Cancel** (abbrechen), solange der Lauf nicht beendet ist, und **Retry failed rows** (fehlgeschlagene Zeilen
   wiederholen), wenn er mit fehlgeschlagenen Zeilen endete.
 - **Refresh**, das die Seite neu lädt.
+- Mit der KI-Unterstützung ([ai.md](ai.md)): **Explain** neben der Meldung einer fehlgeschlagenen Zeile (eine kurze
+  Erklärung und ein Vorschlag zur Behebung, aus der Meldung und den betroffenen Zuordnungszeilen, ohne Werte des
+  Datensatzes, es sei denn, der Import wählt es) und **Summarize** für einen beendeten Lauf (eine kurze
+  Zusammenfassung aus den eigenen Zahlen des Laufs, nie Werte von Datensätzen). Beide zeigen nur Text; nichts wird
+  geändert.
 
 Solange ein Lauf wartet oder läuft, verfolgt die Seite ihn live: Alle zwei Sekunden holt sie Status, Fortschritt,
 Zähler und neue Protokollzeilen und zeigt sie an, ohne die Seite neu zu laden. Endet der Lauf, lädt die Seite noch

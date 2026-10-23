@@ -1,0 +1,36 @@
+{
+    "format": "sqliimport-template",
+    "version": 1,
+    "title": "News feed into articles",
+    "description": "An RSS or Atom feed read from its address at every run: each item becomes an article (title, summary, content, date) and is updated when the feed changes it.",
+    "source_type": "rss",
+    "placeholders": {
+        "name": { "label": "Name", "default": "News feed" },
+        "identifier": { "label": "Identifier", "default": "", "optional": true },
+        "feed_url": { "label": "Address of the feed", "default": "", "help": "https://..., the RSS or Atom feed" }
+    },
+    "secrets": [],
+    "import": {
+        "identifier": "{{identifier}}",
+        "name": "{{name}}",
+        "description": "Articles from {{feed_url}}",
+        "source_type": "rss",
+        "source": { "origin": "url", "url": "{{feed_url}}", "key": "id" },
+        "handler": "mapping",
+        "options": {},
+        "target": { "parent_node_id": 0, "section_id": 0, "language": "", "owner_id": 0 },
+        "behaviour": { "chunk_size": 200, "update_policy": "update", "conflict_policy": "overwrite" },
+        "mapping": {
+            "class": "article",
+            "language": "",
+            "match": { "type": "remote_id", "pattern": "{{identifier}}-{id}" },
+            "fields": [
+                { "source": "title", "attribute": "title", "transforms": [ { "name": "strip_tags" }, { "name": "trim" } ], "default": "", "required": true, "language": "" },
+                { "source": "summary", "attribute": "intro", "transforms": [ { "name": "richtext" } ], "default": "", "required": false, "language": "" },
+                { "source": "content", "attribute": "body", "transforms": [ { "name": "richtext" } ], "default": "", "required": false, "language": "" },
+                { "source": "date", "attribute": "publish_date", "transforms": [ { "name": "date" } ], "default": "", "required": false, "language": "" }
+            ],
+            "location": { "parent_node_id": 2, "parent_from": "", "parent_prefix": "" }
+        }
+    }
+}

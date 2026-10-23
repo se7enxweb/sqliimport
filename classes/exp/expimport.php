@@ -125,6 +125,31 @@ class expImport
     }
 
     /**
+     * Throws away the output printed so far, for a view that answers with its own body (a download, JSON). Under
+     * Exponential Velocity a persistent worker keeps a buffer of its own under the script that cannot be removed: a
+     * loop on ob_get_level() never ends there and the request hangs until the server answers 504. The kernel's
+     * eZExecution::discardOutputBuffers() empties that buffer instead; on an older kernel a loop that stops when a
+     * buffer cannot be removed does the same.
+     */
+    public static function discardOutput()
+    {
+        if ( class_exists( 'eZExecution' ) && method_exists( 'eZExecution', 'discardOutputBuffers' ) )
+        {
+            eZExecution::discardOutputBuffers();
+            return;
+        }
+        $guard = 0;
+        while ( ob_get_level() > 0 && $guard++ < 64 )
+        {
+            if ( !@ob_end_clean() )
+            {
+                @ob_clean();
+                break;
+            }
+        }
+    }
+
+    /**
      * The extension's directory below the site's storage directory (var/<site>/storage/sqliimport/<sub>), created on
      * demand. Uploads, URL snapshots and reports live there, outside the web root's served paths.
      *
@@ -194,5 +219,21 @@ class expImport
     public static function currentUserID()
     {
         return (int)eZUser::currentUserID();
+    }
+
+    /**
+     * A text of the pages in the user's language (translations/<locale>/translation.ts); without the kernel's
+     * translator (the unit tests) the English text with its %placeholders filled in.
+     *
+     * @param string $context e.g. extension/sqliimport/options
+     * @param string $text the American English text
+     * @param array $args %name => value
+     * @return string
+     */
+    public static function tr( $context, $text, array $args = array() )
+    {
+        if ( class_exists( 'ezpI18n' ) )
+            return ezpI18n::tr( $context, $text, null, $args );
+        return $args ? strtr( $text, array_map( 'strval', $args ) ) : $text;
     }
 }

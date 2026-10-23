@@ -196,3 +196,23 @@
 .a4-sqliimport-secret { display: block; margin: var(--a4-space-1) 0; padding: var(--a4-space-2); border: 1px solid var(--a4-line-strong);
                         border-radius: var(--a4-radius-s); font-family: var(--a4-mono); overflow-wrap: anywhere; user-select: all; }
 .a4-sqliimport-trigger-url { font-family: var(--a4-mono); overflow-wrap: anywhere; }
+
+/* the AI assist (doc/ai.md): the suggestions of a class or data table, a mapping line's suggestion, an explanation */
+.a4-sqliimport-ai { margin: var(--a4-space-2) 0; }
+.a4-sqliimport-ai p { margin: 0 0 var(--a4-space-1); overflow-wrap: anywhere; }
+.a4-sqliimport-ai-list { margin: var(--a4-space-2) 0 0; padding-left: var(--a4-space-4); }
+.a4-sqliimport-ai-list li { margin: 0 0 var(--a4-space-1); overflow-wrap: anywhere; }
+.a4-sqliimport-ai-cell { min-width: 12rem; overflow-wrap: anywhere; }
+.a4-sqliimport-ai-reason { display: block; margin: var(--a4-space-1) 0; }
+/* the transfer actions of an import (parts/import_transfer_forms.tpl): Copy to … and Save as template fold out below
+   the buttons of the More menu and of the review step, at a width a form can use */
+.a4-sqliimport-subform { flex-basis: 100%; text-align: start; }
+.a4-sqliimport-subform > summary { cursor: pointer; font-size: var(--a4-text-s); }
+.a4-sqliimport-subform > .a4-form { margin: var(--a4-space-2) 0 0; min-width: min( 18rem, 100% ); }
+
+/* Export selected under the list of imports */
+.a4-sqliimport-selection { flex-wrap: wrap; align-items: center; gap: var(--a4-space-2); margin: var(--a4-space-2) 0 0; }
+
+/* Import definitions: a card per import of the file */
+.a4-sqliimport-plan { display: grid; gap: var(--a4-space-3); margin: 0 0 var(--a4-space-3); }
+.a4-sqliimport-plan > .a4-card > .a4-notice { margin: var(--a4-space-2) 0; }

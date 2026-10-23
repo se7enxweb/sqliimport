@@ -29,6 +29,12 @@
  */
 class expImportMapper
 {
+    /** @return string a message of the mapping checks in the user's language (context extension/sqliimport/mapping) */
+    protected static function tr( $text, array $args = array() )
+    {
+        return expImport::tr( 'extension/sqliimport/mapping', $text, $args );
+    }
+
     /**
      * Checks a mapping.
      *
@@ -41,27 +47,27 @@ class expImportMapper
         $errors = array();
         $class = isset( $mapping['class'] ) ? (string)$mapping['class'] : '';
         if ( !preg_match( '/^[a-z0-9_]+$/i', $class ) )
-            $errors[] = 'choose the content class';
+            $errors[] = self::tr( 'choose the content class' );
         $match = isset( $mapping['match'] ) && is_array( $mapping['match'] ) ? $mapping['match'] : array();
         $type = isset( $match['type'] ) ? $match['type'] : '';
         if ( $type === 'remote_id' )
         {
             if ( !isset( $match['pattern'] ) || !preg_match( '/\{[^}]+\}/', (string)$match['pattern'] ) )
-                $errors[] = 'the remote ID pattern needs at least one {field} of the record, e.g. news-{id}, or {_ref} for the reference of the record';
+                $errors[] = self::tr( 'the remote ID pattern needs at least one {field} of the record, e.g. news-{id}, or {_ref} for the reference of the record' );
         }
         elseif ( $type === 'attribute' )
         {
             if ( empty( $match['attribute'] ) || empty( $match['source'] ) )
-                $errors[] = 'matching on an attribute needs the attribute and the source field';
+                $errors[] = self::tr( 'matching on an attribute needs the attribute and the source field' );
             elseif ( $attributes !== null && !isset( $attributes[$match['attribute']] ) )
-                $errors[] = "the class has no attribute '{$match['attribute']}' to match on";
+                $errors[] = self::tr( "the class has no attribute '%attribute' to match on", array( '%attribute' => $match['attribute'] ) );
         }
         else
-            $errors[] = 'choose how a record finds its object (remote ID or attribute)';
+            $errors[] = self::tr( 'choose how a record finds its object (remote ID or attribute)' );
 
         $fields = isset( $mapping['fields'] ) && is_array( $mapping['fields'] ) ? $mapping['fields'] : array();
         if ( !$fields )
-            $errors[] = 'map at least one field';
+            $errors[] = self::tr( 'map at least one field' );
         $seen = array();
         foreach ( $fields as $i => $field )
         {
@@ -69,27 +75,27 @@ class expImportMapper
             $attribute = isset( $field['attribute'] ) ? (string)$field['attribute'] : '';
             if ( $attribute === '' )
             {
-                $errors[] = "line $n: choose the attribute";
+                $errors[] = self::tr( 'line %n: choose the attribute', array( '%n' => $n ) );
                 continue;
             }
             if ( $attributes !== null && !isset( $attributes[$attribute] ) )
-                $errors[] = "line $n: the class has no attribute '$attribute'";
+                $errors[] = self::tr( "line %n: the class has no attribute '%attribute'", array( '%n' => $n, '%attribute' => $attribute ) );
             $language = isset( $field['language'] ) ? (string)$field['language'] : '';
             $key = $language . '/' . $attribute;
             if ( isset( $seen[$key] ) )
-                $errors[] = "line $n: the attribute '$attribute' is mapped twice";
+                $errors[] = self::tr( "line %n: the attribute '%attribute' is mapped twice", array( '%n' => $n, '%attribute' => $attribute ) );
             $seen[$key] = true;
             $source = isset( $field['source'] ) ? (string)$field['source'] : '';
             $default = isset( $field['default'] ) ? (string)$field['default'] : '';
             $chain = isset( $field['transforms'] ) && is_array( $field['transforms'] ) ? $field['transforms'] : array();
             if ( $source === '' && $default === '' && !$chain )
-                $errors[] = "line $n: give a source field or a default value for '$attribute'";
+                $errors[] = self::tr( "line %n: give a source field or a default value for '%attribute'", array( '%n' => $n, '%attribute' => $attribute ) );
             foreach ( expImportTransforms::validateChain( $chain ) as $error )
-                $errors[] = "line $n: $error";
+                $errors[] = self::tr( 'line %n: %error', array( '%n' => $n, '%error' => $error ) );
         }
         $location = isset( $mapping['location'] ) && is_array( $mapping['location'] ) ? $mapping['location'] : array();
         if ( empty( $location['parent_node_id'] ) && empty( $location['parent_from'] ) )
-            $errors[] = 'choose where new objects are placed (a parent node, or a field with the parent\'s remote ID)';
+            $errors[] = self::tr( 'choose where new objects are placed (a parent node, or a field with the parent\'s remote ID)' );
         return array_merge( $errors, self::validateVariants( $mapping ) );
     }
 
@@ -139,15 +145,15 @@ class expImportMapper
         if ( empty( $mapping['variants'] ) )
             return array();
         if ( !is_array( $mapping['variants'] ) )
-            return array( 'the variants of the mapping must be a list of values with their class' );
+            return array( self::tr( 'the variants of the mapping must be a list of values with their class' ) );
         if ( empty( $mapping['class_from'] ) )
-            return array( 'variants need the field that chooses them (class_from)' );
+            return array( self::tr( 'variants need the field that chooses them (class_from)' ) );
         $errors = array();
         foreach ( $mapping['variants'] as $value => $variant )
         {
             if ( !is_array( $variant ) )
             {
-                $errors[] = "variant '$value': give a class or skip";
+                $errors[] = self::tr( "variant '%value': give a class or skip", array( '%value' => $value ) );
                 continue;
             }
             if ( !empty( $variant['skip'] ) )
@@ -159,11 +165,11 @@ class expImportMapper
             $attributes = $attributesOf && preg_match( '/^[a-z0-9_]+$/i', $check['class'] ) ? $attributesOf( $check['class'] ) : null;
             if ( $attributesOf && $attributes === null )
             {
-                $errors[] = "variant '$value': the class '{$check['class']}' does not exist";
+                $errors[] = self::tr( "variant '%value': the class '%class' does not exist", array( '%value' => $value, '%class' => $check['class'] ) );
                 continue;
             }
             foreach ( self::validate( $check, $attributes ) as $error )
-                $errors[] = "variant '$value': $error";
+                $errors[] = self::tr( "variant '%value': %error", array( '%value' => $value, '%error' => $error ) );
         }
         return $errors;
     }

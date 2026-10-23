@@ -33,6 +33,8 @@ Produkten durch, mit einem zweiten Lauf, der aktualisiert, ergänzt und eine feh
 | [schedules.md](schedules.md) | Zeitpläne mit Cron-Ausdrücken, Zeitzonen, verpasste Läufe, Anhalten und Fortsetzen |
 | [triggers.md](triggers.md) | Einen Import aus einem anderen System starten: signierte Aufrufe und API-Schlüssel, mit curl-Beispielen |
 | [statistics.md](statistics.md) | Die Diagramme der Übersicht und die Seite Statistics |
+| [definitions.md](definitions.md) | Als JSON herunterladen, Auswahl exportieren, Definitionen importieren, Kopieren nach … und Vorlagen von Importen |
+| [ai.md](ai.md) | Die KI-Unterstützung über expai: Zuordnungs- und Klassenvorschläge, Erklärungen fehlgeschlagener Zeilen, Zusammenfassungen von Läufen, was gesendet wird |
 
 ### Jede Quelle, mit einem durchgerechneten Beispiel
 
@@ -91,3 +93,20 @@ Die Inhalts-API und die Handler-API von 1.x, die weiter gelten, beschreibt
 - **Statistik** des Laufverlaufs, mit Diagrammen und einem CSV-Download.
 - **Zwei Richtlinien**, „Manage imports“ und „Run imports“. Die Richtlinien von 1.x funktionieren weiter.
 - **Handler von 1.x laufen unverändert** über einen Kompatibilitätsadapter ([migration-1x.md](migration-1x.md)).
+- **Die KI-Unterstützung** (mit der Erweiterung expai): Vorschläge für Zuordnung und Klasse, Erklärungen
+  fehlgeschlagener Zeilen und Zusammenfassungen von Läufen, die ein Mensch übernimmt ([ai.md](ai.md)).
+- **Definitionen, Kopien und Vorlagen:** Importe wandern als JSON-Dateien zwischen Installationen, werden mit
+  **Copy to …** kopiert und als Vorlagen aufbewahrt ([definitions.md](definitions.md)).
+
+## Sprachen
+
+Die Seiten der Erweiterung gibt es in amerikanischem Englisch und auf Deutsch: `translations/ger-DE/translation.ts`
+übersetzt jeden Text der Templates, die Meldungen des Editors, die Bezeichnungen und Hilfetexte der Optionen jedes
+Formats, Handlers und jeder Umwandlung (Kontext `extension/sqliimport/options`), die Beschreibungen des Katalogs
+(`extension/sqliimport/catalogue`), die Wörter der Status und die Beschreibungen der Zeitpläne. Wer die
+Administration mit dem Gebietsschema `ger-DE` benutzt, sieht die deutschen Seiten; der Kernel lädt die Datei über
+`site.ini [RegionalSettings] TranslationExtensions[]=sqliimport`. `translations/untranslated/translation.ts` listet
+jeden Text für eine neue Sprache; die französische und die spanische Datei enthalten die Texte von 1.x. Das
+Protokoll eines Laufs, die Meldungen einer Quelle und die Kommandozeile bleiben englisch.
+`tests/unit/TranslationsTest.php` schlägt fehl, wenn ein Text des Codes in ger-DE oder untranslated fehlt oder eine
+Übersetzung einen `%Platzhalter` verliert.

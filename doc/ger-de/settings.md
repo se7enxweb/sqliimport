@@ -83,11 +83,25 @@ Der Webhook-/API-Auslöser der Importe ([triggers.md](triggers.md)).
 | `MaxBodyMegabytes` | `20` | Der größte Body, den ein Aufruf als Daten seines Laufs mitbringen darf |
 | `ServerKeySecret` | leer | Der Name eines Geheimnisses (mindestens 32 Zeichen) als Serverschlüssel; leer: ein zufälliger Schlüssel in `var/<site>/storage/sqliimport/trigger.key` |
 
+## [AiSettings]
+
+| Einstellung | Vorgabe | Bedeutung |
+|---|---|---|
+| `Enabled` | `disabled` | `enabled` bietet die KI-Unterstützung über expai an ([ai.md](ai.md)), für Benutzer mit `expai/write` |
+| `SampleValues` | `3` | Maskierte Beispielwerte je Feld (1 bis 5) für einen Import mit „Send sample values to the AI“ |
+| `MaxFields` | `150` | Die meisten Felder der Quelle, die eine Anfrage beschreibt |
+
 ## [AdminSettings]
 
 | Einstellung | Vorgabe | Bedeutung |
 |---|---|---|
 | `ListLimit` | `25` | Zeilen pro Seite der Listen (mindestens 5) |
+
+## [TemplateSettings]
+
+| Einstellung | Vorgabe | Bedeutung |
+|---|---|---|
+| `Templates[]` | `sqliimport` | Woher die Vorlagen von „New import from a template“ neben denen dieser Site (`var/<site>/storage/sqliimport/templates/`) kommen: der Name einer Erweiterung (deren `share/templates/*.json`) oder eine JSON-Datei relativ zum Wurzelverzeichnis der Installation ([definitions.md](definitions.md)) |
 
 ## Einstellungen von 1.x, die weiter gelten
 
@@ -285,3 +299,8 @@ Der neue Import `docs-files-toml_2` ist deaktiviert und hat noch keine Datei: La
 hoch, machen Sie einen Probelauf (3 Tees würden in denselben Ordner angelegt, über dieselben Remote-IDs wie beim
 Original; ein echter Lauf würde also die Objekte des Originals aktualisieren statt neue anzulegen) und aktivieren Sie
 ihn im Schritt Überprüfung.
+
+So wandern Importe von einer Staging-Installation in die Live-Installation. Die Datei enthält die Adressen und
+Optionen der Quellen; bewahren Sie sie so sicher auf wie die Einstellungen der Website. **Download as JSON** eines
+Imports, **Export selected** der Übersicht, **Copy to …** und die Vorlagen verwenden dasselbe Format;
+[definitions.md](definitions.md) beschreibt es Feld für Feld.

@@ -1,5 +1,6 @@
-{* The actions of an import in the list: Run now and Dry run (policy run), Edit, and under More: Duplicate, Enable or
-   Disable, Delete (policy edit). Input: $i (an entry of expImportAdmin::imports()), $here. *}
+{* The actions of an import in the list: Run now and Dry run (policy run), Edit, and under More: Duplicate, Download
+   as JSON, Copy to …, Save as template, Enable or Disable, Delete (policy edit). Input: $i (an entry of
+   expImportAdmin::imports()), $here. *}
 <div class="a4-sqliimport-actions">
 {if $i.can_run}
 {if $i.import.is_enabled}{include uri='design:sqliimport/parts/button.tpl' action='run' import_id=$i.import.id here=$here small=1 label='Run now'|i18n( 'extension/sqliimport' ) kind='primary'}{/if}
@@ -11,6 +12,7 @@
 <summary>{'More'|i18n( 'extension/sqliimport' )}<span class="a4-sr-only"> {$i.import.name|wash}</span></summary>
 <div class="a4-sqliimport-more-body">
 {include uri='design:sqliimport/parts/button.tpl' action='duplicate' import_id=$i.import.id here=$here small=1 label='Duplicate'|i18n( 'extension/sqliimport' )}
+{include uri='design:sqliimport/parts/import_transfer_forms.tpl' import=$i.import here=$here sq_where='list'}
 {* the kernel's module table wizard with this import's fields (Exponential 6.0.15, policy setup/setup) *}
 {if is_set( $datatable_wizard )}{if and( $datatable_wizard, $i.import.is_legacy|not )}<a class="a4-btn a4-btn-small" href={concat( '/setup/moduletable/(source)/sqliimport/(ref)/', $i.import.id )|ezurl}>{'New data table from its fields'|i18n( 'extension/sqliimport' )}</a>{/if}{/if}
 {if $i.import.is_enabled}{include uri='design:sqliimport/parts/button.tpl' action='disable' import_id=$i.import.id here=$here small=1 label='Disable'|i18n( 'extension/sqliimport' )}{else}{include uri='design:sqliimport/parts/button.tpl' action='enable' import_id=$i.import.id here=$here small=1 label='Enable'|i18n( 'extension/sqliimport' )}{/if}

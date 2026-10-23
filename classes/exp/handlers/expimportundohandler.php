@@ -66,6 +66,8 @@ class expImportUndoHandler implements expImportHandlerInterface
             $nodes = array();
             foreach ( $object->assignedNodes() as $node )
             {
+                if ( !$node instanceof eZContentObjectTreeNode )
+                    continue;
                 foreach ( $node->subTree( array( 'Limitation' => array(), 'LoadDataMap' => false, 'AsObject' => false ) ) as $child )
                 {
                     if ( !isset( $this->created[(int)$child['contentobject_id']] ) )

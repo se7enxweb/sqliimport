@@ -2,6 +2,8 @@
 /**
  * sqliimport/action: every change of the 2.x pages, POST only (ezformtoken checks the form token of every POST):
  *   run, dryrun, duplicate, delete, enable, disable (ImportID); cancel, retry, undo (RunID);
+ *   export (ImportID or ImportIDs[]: a definitions file as a download), copy_to (ImportID, CopyName, CopyIdentifier,
+ *   CopySchedules), save_template (ImportID, TemplateTitle, TemplateDescription), template_delete (TemplateID);
  *   schedule_pause, schedule_resume, schedule_delete (ScheduleID);
  *   1.x: legacy_request (ImportHandler, ImportOptions), legacy_cancel, legacy_interrupt (ItemID), legacy_purge,
  *   legacy_schedule_run, legacy_schedule_enable, legacy_schedule_disable, legacy_schedule_delete (LegacyScheduleID)
@@ -80,6 +82,70 @@ try
                                            array( '%id' => $retry->attribute( 'id' ), '%parent' => $run->attribute( 'id' ) ) ) );
                 $redirect = '/sqliimport/run/' . (int)$retry->attribute( 'id' );
             }
+            break;
+        case 'export':
+            // "Download as JSON" (ImportID) and "Export selected" (ImportIDs[]): Manage imports for each import, as a
+            // definition names hosts, queries and paths of this installation; never a secret, file or key
+            $ids = $http->hasPostVariable( 'ImportIDs' ) ? array_map( 'intval', (array)$http->postVariable( 'ImportIDs' ) )
+                                                         : array( $http->hasPostVariable( 'ImportID' ) ? (int)$http->postVariable( 'ImportID' ) : 0 );
+            $ids = array_values( array_unique( array_filter( $ids ) ) );
+            $list = array();
+            foreach ( $ids as $id )
+            {
+                $import = expImportDefinition::fetch( $id );
+                if ( $import && expImportAdmin::can( 'edit', (string)$import->attribute( 'handler' ) ) )
+                    $list[] = $import;
+            }
+            if ( !$list )
+                throw new expImportException( $ids ? ezpI18n::tr( 'extension/sqliimport', 'You may not export these imports.' )
+                                                   : ezpI18n::tr( 'extension/sqliimport', 'Tick the imports to export first.' ) );
+            $document = expImportTransfer::exportImports( $list );
+            expImport::audit( 'definitions.export', array( 'imports' => array_map( function ( $i ) { return (string)$i->attribute( 'identifier' ); }, $list ),
+                                                           'secrets' => count( $document['secrets'] ) ) );
+            expImportTransfer::send( $document );
+            return;
+        case 'copy_to':
+        case 'save_template':
+            $import = expImportDefinition::fetch( (int)$http->postVariable( 'ImportID' ) );
+            if ( !$import )
+                throw new expImportException( ezpI18n::tr( 'extension/sqliimport', 'The import does not exist.' ) );
+            if ( !expImportAdmin::can( 'edit', (string)$import->attribute( 'handler' ) ) )
+                return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
+            if ( $action === 'copy_to' )
+            {
+                $name = $http->hasPostVariable( 'CopyName' ) ? trim( (string)$http->postVariable( 'CopyName' ) ) : '';
+                $identifier = $http->hasPostVariable( 'CopyIdentifier' ) ? trim( (string)$http->postVariable( 'CopyIdentifier' ) ) : '';
+                $errors = expImportEditor::copyErrors( $name, $identifier );
+                if ( $errors )
+                    throw new expImportException( ezpI18n::tr( 'extension/sqliimport', 'Copy to: %errors', null, array( '%errors' => implode( ' ', $errors ) ) ) );
+                $withSchedules = $http->hasPostVariable( 'CopySchedules' ) && (string)$http->postVariable( 'CopySchedules' ) === '1';
+                $copy = expImportEditor::copyTo( $import, $name, $identifier, $withSchedules );
+                $flash( 'ok', ezpI18n::tr( 'extension/sqliimport', '"%name" (%identifier) is a copy of "%original", disabled until it is saved; its trigger and keys are not copied.', null,
+                                           array( '%name' => $copy->attribute( 'name' ), '%identifier' => $copy->attribute( 'identifier' ), '%original' => $import->attribute( 'name' ) ) ) );
+                $redirect = '/sqliimport/edit/' . (int)$copy->attribute( 'id' ) . '/(step)/source';
+            }
+            else
+            {
+                $title = $http->hasPostVariable( 'TemplateTitle' ) ? trim( (string)$http->postVariable( 'TemplateTitle' ) ) : '';
+                if ( $title === '' )
+                    $title = (string)$import->attribute( 'name' );
+                $description = $http->hasPostVariable( 'TemplateDescription' ) ? (string)$http->postVariable( 'TemplateDescription' ) : '';
+                $template = expImportTemplates::fromItem( expImportTransfer::exportItem( expImportTransfer::raw( $import ), expImportTransfer::site() ), $title, $description );
+                $id = expImportTemplates::save( $template );
+                expImport::audit( 'template.create', array( 'template' => $id, 'from' => (string)$import->attribute( 'identifier' ) ) );
+                $flash( 'ok', ezpI18n::tr( 'extension/sqliimport', 'The template "%title" is saved; new imports can start from it.', null, array( '%title' => $template['title'] ) ) );
+                $redirect = '/sqliimport/templates';
+            }
+            break;
+        case 'template_delete':
+            if ( !expImportAdmin::can( 'manage' ) )
+                return $Module->handleError( eZError::KERNEL_ACCESS_DENIED, 'kernel' );
+            $id = $http->hasPostVariable( 'TemplateID' ) ? (string)$http->postVariable( 'TemplateID' ) : '';
+            if ( !expImportTemplates::delete( $id ) )
+                throw new expImportException( ezpI18n::tr( 'extension/sqliimport', 'Only a template of this site can be deleted.' ) );
+            expImport::audit( 'template.delete', array( 'template' => $id ) );
+            $flash( 'ok', ezpI18n::tr( 'extension/sqliimport', 'The template is deleted.' ) );
+            $redirect = '/sqliimport/templates';
             break;
         case 'duplicate':
         case 'delete':

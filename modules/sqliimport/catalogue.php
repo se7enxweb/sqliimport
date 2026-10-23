@@ -27,8 +27,7 @@ if ( isset( $Params['Example'] ) && $Params['Example'] !== false && $Params['Exa
                     'xml' => 'application/xml', 'rss' => 'application/rss+xml', 'atom' => 'application/atom+xml', 'opml' => 'text/x-opml',
                     'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'ods' => 'application/vnd.oasis.opendocument.spreadsheet', 'sqlite' => 'application/vnd.sqlite3' );
     $extension = strtolower( pathinfo( $example, PATHINFO_EXTENSION ) );
-    while ( ob_get_level() > 0 )
-        ob_end_clean();
+    expImport::discardOutput();
     header( 'Content-Type: ' . ( isset( $types[$extension] ) ? $types[$extension] : 'application/octet-stream' ) );
     header( 'Content-Disposition: attachment; filename="' . $example . '"' );
     header( 'Content-Length: ' . filesize( $path ) );
@@ -58,6 +57,8 @@ $tpl->setVariable( 'data_tables', $dataTables );
 $tpl->setVariable( 'handlers', $registry->handlers() );
 $tpl->setVariable( 'transforms', expImportTransforms::catalogue() );
 $tpl->setVariable( 'can_manage', expImportAdmin::can( 'edit' ) );
+// the templates of each format ("From a template" on its card)
+$tpl->setVariable( 'template_counts', expImportAdmin::can( 'manage' ) ? expImportTemplates::countBySource() : array() );
 // the drivers each format can use here and in the job queue's workers
 $sourceDrivers = array();
 foreach ( $sources as $sid => $s )
