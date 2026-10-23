@@ -103,8 +103,7 @@
 {/if}
 </div>
 {if $ai.available}
-<p class="a4-meta">{if $ai.samples}{'The AI gets the attributes of the class, the field names and types and masked sample values (the option of the processing step).'|i18n( 'extension/sqliimport/edit' )}{else}{'The AI gets the attributes of the class and only the field names and types, no values.'|i18n( 'extension/sqliimport/edit' )}{/if}
-{'Suggestions are only filled into the form when you accept them; save to keep them. A dry run is needed before the next real run.'|i18n( 'extension/sqliimport/edit' )}</p>
+<p class="a4-meta">{if $ai.samples}{'The AI gets the attributes of the class, the field names and types and masked sample values (the option of the processing step).'|i18n( 'extension/sqliimport/edit' )}{else}{'The AI gets the attributes of the class and only the field names and types, no values.'|i18n( 'extension/sqliimport/edit' )}{/if} {'Suggestions are only filled into the form when you accept them; save to keep them. A dry run is needed before the next real run.'|i18n( 'extension/sqliimport/edit' )}</p>
 {if $ai.mapping}<p class="a4-notice is-info" role="status">{'%n suggestions of the AI'|i18n( 'extension/sqliimport/edit',, hash( '%n', $ai.mapping.count ) )}{if gt( $ai.mapping.dropped, 0 )} · {'%n left out (an attribute, field or transform that does not exist)'|i18n( 'extension/sqliimport/edit',, hash( '%n', $ai.mapping.dropped ) )}{/if}{if ne( $ai.mapping.model, '' )} · {$ai.mapping.model|wash}{/if}</p>{/if}
 {/if}
 <div class="a4-sqliimport-scroll" tabindex="0" role="region" aria-labelledby="sq-grid-title">

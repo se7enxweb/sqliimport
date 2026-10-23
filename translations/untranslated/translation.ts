@@ -2,6 +2,57 @@
 <!DOCTYPE TS>
 <TS version="2.0">
 <context>
+    <name>design/admin/parts/sqliimport/menu</name>
+    <message>
+        <source>Overview</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Statistics</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New import</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Schedules</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Catalogue</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Templates</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Import definitions</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Running runs</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed runs</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Job queue</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Imports and runs</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>extension/sqliimport</name>
     <message>
         <source>Imports</source>
@@ -65,6 +116,10 @@
     </message>
     <message>
         <source>New import</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>From a template (%n)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -140,6 +195,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>New import from a template</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Import definitions</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>1.x import requests</source>
         <translation type="unfinished"></translation>
     </message>
@@ -180,6 +243,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Select</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Source</source>
         <translation type="unfinished"></translation>
     </message>
@@ -200,6 +267,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Select %name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>disabled</source>
         <translation type="unfinished"></translation>
     </message>
@@ -209,6 +280,14 @@
     </message>
     <message>
         <source>never</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Export selected (JSON)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>One file with the ticked imports: no source file, no key, the names of their secrets only.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -412,6 +491,46 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Download as JSON</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy to …</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy of %name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lower case letters, digits, _ and -; empty: made from the name.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy its schedules too (paused)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The copy is disabled until it is saved. Its trigger and API keys are never copied.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save as template</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Title of the template</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A template keeps the source type and its options, the processing, the mapping and the target; not the file, address or path, the schedules, the trigger or the notification addresses. Name and identifier become placeholders.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Purge history</source>
         <translation type="unfinished"></translation>
     </message>
@@ -609,6 +728,10 @@
     </message>
     <message>
         <source>The host needs:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Delete this template? Imports made from it stay.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -848,7 +971,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>A JSON file with the source, processing, mapping, target and options of each import; no run, schedule or file content.</source>
+        <source>A JSON file with the source, processing, mapping, target (by remote ID), options, schedules and trigger settings of each import; no run, no uploaded file, no API key or signing secret, the names of the secrets only.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -860,11 +983,175 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Exported file</source>
+        <source>Import definitions reads such a file, shows per import what it would create here (a taken identifier, the class and parent node, missing secrets) and lets you create new, replace or skip each; they are created disabled.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>An import with the same identifier is updated; the others are created disabled. Uploaded source files are not part of an export: upload them again in the editor.</source>
+        <source>Templates</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New import from the template "%title"</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>From</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>this site</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>the extension %name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>not on this site</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>set</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>missing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>To check in the editor after it is made:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The import is created disabled and opens in the editor: choose its file or check its address there, then preview, dry-run and enable it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Create the import</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All templates</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A template is an import without its source data, with placeholders for its name and identifier. Save one from an import (More, Save as template, or the last step of the editor); extensions ship their own (sqliimport.ini [TemplateSettings] Templates[]).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%format ×</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No template for this format.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No template yet.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A definitions file comes from "Download as JSON" of an import or "Export selected" of the dashboard, here or on another installation. Nothing is created before you choose; what is created is disabled, its schedules paused and its trigger switched off, so you review it, run a dry run and enable it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Definitions file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File (JSON)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>At most %n MB, format sqliimport-definitions (version 1 or 2). Source files are not part of it: upload them again in the editor.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Read the file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>What the file would create</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%n imports</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>cannot be created</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>identifier taken</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>new</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Parent node</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>from the mapping</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Existing import</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>a new one would be %identifier</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Schedules and trigger</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%n schedules (paused)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>trigger switched off, no keys</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>To check in the editor:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>What to do</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Create a new import (%identifier)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Create it</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Replace the existing import (it is disabled; its runs and API keys stay)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Skip it</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Create the chosen imports (disabled)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -893,10 +1180,6 @@
     </message>
     <message>
         <source>the import %id of 7x SQLI Import, %label</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Copy of %name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -953,6 +1236,34 @@
     </message>
     <message>
         <source>Run #%id retries the failed rows of run #%parent.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>You may not export these imports.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Tick the imports to export first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy to: %errors</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>"%name" (%identifier) is a copy of "%original", disabled until it is saved; its trigger and keys are not copied.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The template "%title" is saved; new imports can start from it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Only a template of this site can be deleted.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The template is deleted.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1056,15 +1367,31 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>The file is not an export of import definitions.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%created imports created (disabled), %updated updated.</source>
+        <source>There is no import to export.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Statistics</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>"%name" is made from the template "%title", disabled: finish it in the editor.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose the definitions file (JSON).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The file is larger than 10 MB.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The file was replaced in another window: check the choices again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%n imports created or replaced, disabled: review, dry-run and enable each. %skipped skipped.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2742,6 +3069,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Export, copy or keep as a template</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The JSON file moves this import to another installation (Imports, Import definitions there): no source file, no API key, the names of its secrets only.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Runs by itself</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3522,6 +3857,14 @@
     </message>
     <message>
         <source>Catalogue</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Templates</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Import definitions</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

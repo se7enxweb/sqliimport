@@ -2,6 +2,57 @@
 <!DOCTYPE TS>
 <TS version="2.0" language="de_DE" sourcelanguage="en_US">
 <context>
+    <name>design/admin/parts/sqliimport/menu</name>
+    <message>
+        <source>Overview</source>
+        <translation>Übersicht</translation>
+    </message>
+    <message>
+        <source>Statistics</source>
+        <translation>Statistik</translation>
+    </message>
+    <message>
+        <source>New import</source>
+        <translation>Neuer Import</translation>
+    </message>
+    <message>
+        <source>Schedules</source>
+        <translation>Zeitpläne</translation>
+    </message>
+    <message>
+        <source>Catalogue</source>
+        <translation>Katalog</translation>
+    </message>
+    <message>
+        <source>Templates</source>
+        <translation>Vorlagen</translation>
+    </message>
+    <message>
+        <source>Import definitions</source>
+        <translation>Importdefinitionen</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Einstellungen</translation>
+    </message>
+    <message>
+        <source>Running runs</source>
+        <translation>Laufende Läufe</translation>
+    </message>
+    <message>
+        <source>Failed runs</source>
+        <translation>Fehlgeschlagene Läufe</translation>
+    </message>
+    <message>
+        <source>Job queue</source>
+        <translation>Auftragswarteschlange</translation>
+    </message>
+    <message>
+        <source>Imports and runs</source>
+        <translation>Importe und Läufe</translation>
+    </message>
+</context>
+<context>
     <name>extension/sqliimport</name>
     <message>
         <source>Imports</source>
@@ -66,6 +117,10 @@
     <message>
         <source>New import</source>
         <translation>Neuer Import</translation>
+    </message>
+    <message>
+        <source>From a template (%n)</source>
+        <translation>Aus einer Vorlage (%n)</translation>
     </message>
     <message>
         <source>Handlers</source>
@@ -140,6 +195,14 @@
         <translation>Jetzt ausführen</translation>
     </message>
     <message>
+        <source>New import from a template</source>
+        <translation>Neuer Import aus einer Vorlage</translation>
+    </message>
+    <message>
+        <source>Import definitions</source>
+        <translation>Importdefinitionen</translation>
+    </message>
+    <message>
         <source>1.x import requests</source>
         <translation>Importaufträge (1.x)</translation>
     </message>
@@ -180,6 +243,10 @@
         <translation>Handbuch lesen</translation>
     </message>
     <message>
+        <source>Select</source>
+        <translation>Auswählen</translation>
+    </message>
+    <message>
         <source>Source</source>
         <translation>Quelle</translation>
     </message>
@@ -200,6 +267,10 @@
         <translation>Aktionen</translation>
     </message>
     <message>
+        <source>Select %name</source>
+        <translation>%name auswählen</translation>
+    </message>
+    <message>
         <source>disabled</source>
         <translation>deaktiviert</translation>
     </message>
@@ -210,6 +281,14 @@
     <message>
         <source>never</source>
         <translation>nie</translation>
+    </message>
+    <message>
+        <source>Export selected (JSON)</source>
+        <translation>Auswahl exportieren (JSON)</translation>
+    </message>
+    <message>
+        <source>One file with the ticked imports: no source file, no key, the names of their secrets only.</source>
+        <translation>Eine Datei mit den angekreuzten Importen: ohne Quelldatei, ohne Schlüssel, nur mit den Namen ihrer Geheimnisse.</translation>
     </message>
     <message>
         <source>Runs</source>
@@ -412,6 +491,46 @@
         <translation>Diesen Import mit seiner Zuordnung und seinen Zeitplänen löschen? Seine Läufe bleiben in der Historie.</translation>
     </message>
     <message>
+        <source>Download as JSON</source>
+        <translation>Als JSON herunterladen</translation>
+    </message>
+    <message>
+        <source>Copy to …</source>
+        <translation>Kopieren nach …</translation>
+    </message>
+    <message>
+        <source>Copy of %name</source>
+        <translation>Kopie von %name</translation>
+    </message>
+    <message>
+        <source>Lower case letters, digits, _ and -; empty: made from the name.</source>
+        <translation>Kleinbuchstaben, Ziffern, _ und -; leer: aus dem Namen gebildet.</translation>
+    </message>
+    <message>
+        <source>Copy its schedules too (paused)</source>
+        <translation>Auch seine Zeitpläne kopieren (pausiert)</translation>
+    </message>
+    <message>
+        <source>The copy is disabled until it is saved. Its trigger and API keys are never copied.</source>
+        <translation>Die Kopie ist deaktiviert, bis sie gespeichert wird. Ihr Auslöser und ihre API-Schlüssel werden nie kopiert.</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Kopieren</translation>
+    </message>
+    <message>
+        <source>Save as template</source>
+        <translation>Als Vorlage speichern</translation>
+    </message>
+    <message>
+        <source>Title of the template</source>
+        <translation>Titel der Vorlage</translation>
+    </message>
+    <message>
+        <source>A template keeps the source type and its options, the processing, the mapping and the target; not the file, address or path, the schedules, the trigger or the notification addresses. Name and identifier become placeholders.</source>
+        <translation>Eine Vorlage behält den Quelltyp und seine Optionen, die Verarbeitung, die Zuordnung und das Ziel; nicht die Datei, Adresse oder den Pfad, die Zeitpläne, den Auslöser oder die Adressen der Benachrichtigungen. Name und Bezeichner werden Platzhalter.</translation>
+    </message>
+    <message>
         <source>Purge history</source>
         <translation>Historie leeren</translation>
     </message>
@@ -610,6 +729,10 @@
     <message>
         <source>The host needs:</source>
         <translation>Der Server braucht:</translation>
+    </message>
+    <message>
+        <source>Delete this template? Imports made from it stay.</source>
+        <translation>Diese Vorlage löschen? Daraus angelegte Importe bleiben.</translation>
     </message>
     <message>
         <source>retry of</source>
@@ -848,8 +971,8 @@
         <translation>Importe (keiner angehakt: alle)</translation>
     </message>
     <message>
-        <source>A JSON file with the source, processing, mapping, target and options of each import; no run, schedule or file content.</source>
-        <translation>Eine JSON-Datei mit Quelle, Verarbeitung, Zuordnung, Ziel und Optionen jedes Imports; ohne Läufe, Zeitpläne oder Dateiinhalte.</translation>
+        <source>A JSON file with the source, processing, mapping, target (by remote ID), options, schedules and trigger settings of each import; no run, no uploaded file, no API key or signing secret, the names of the secrets only.</source>
+        <translation>Eine JSON-Datei mit Quelle, Verarbeitung, Zuordnung, Ziel (über die Remote-ID), Optionen, Zeitplänen und Auslöser-Einstellungen jedes Imports; ohne Läufe, ohne hochgeladene Datei, ohne API-Schlüssel oder Signaturgeheimnis, nur mit den Namen der Geheimnisse.</translation>
     </message>
     <message>
         <source>Export</source>
@@ -860,12 +983,176 @@
         <translation>Importdefinitionen importieren</translation>
     </message>
     <message>
-        <source>Exported file</source>
-        <translation>Exportierte Datei</translation>
+        <source>Import definitions reads such a file, shows per import what it would create here (a taken identifier, the class and parent node, missing secrets) and lets you create new, replace or skip each; they are created disabled.</source>
+        <translation>Importdefinitionen liest eine solche Datei, zeigt je Import, was er hier anlegen würde (ein vergebener Bezeichner, Klasse und Elternknoten, fehlende Geheimnisse), und lässt Sie jeden neu anlegen, ersetzen oder überspringen; sie werden deaktiviert angelegt.</translation>
     </message>
     <message>
-        <source>An import with the same identifier is updated; the others are created disabled. Uploaded source files are not part of an export: upload them again in the editor.</source>
-        <translation>Ein Import mit demselben Bezeichner wird aktualisiert; die anderen werden deaktiviert angelegt. Hochgeladene Quelldateien gehören nicht zu einem Export: Laden Sie sie im Editor erneut hoch.</translation>
+        <source>Templates</source>
+        <translation>Vorlagen</translation>
+    </message>
+    <message>
+        <source>New import from the template "%title"</source>
+        <translation>Neuer Import aus der Vorlage „%title“</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation>Format</translation>
+    </message>
+    <message>
+        <source>From</source>
+        <translation>Aus</translation>
+    </message>
+    <message>
+        <source>this site</source>
+        <translation>diese Website</translation>
+    </message>
+    <message>
+        <source>the extension %name</source>
+        <translation>die Erweiterung %name</translation>
+    </message>
+    <message>
+        <source>not on this site</source>
+        <translation>nicht auf dieser Website</translation>
+    </message>
+    <message>
+        <source>set</source>
+        <translation>gesetzt</translation>
+    </message>
+    <message>
+        <source>missing</source>
+        <translation>fehlt</translation>
+    </message>
+    <message>
+        <source>To check in the editor after it is made:</source>
+        <translation>Nach dem Anlegen im Editor zu prüfen:</translation>
+    </message>
+    <message>
+        <source>The import is created disabled and opens in the editor: choose its file or check its address there, then preview, dry-run and enable it.</source>
+        <translation>Der Import wird deaktiviert angelegt und öffnet sich im Editor: Wählen Sie dort seine Datei oder prüfen Sie seine Adresse, dann Vorschau, Probelauf und aktivieren.</translation>
+    </message>
+    <message>
+        <source>Create the import</source>
+        <translation>Den Import anlegen</translation>
+    </message>
+    <message>
+        <source>All templates</source>
+        <translation>Alle Vorlagen</translation>
+    </message>
+    <message>
+        <source>A template is an import without its source data, with placeholders for its name and identifier. Save one from an import (More, Save as template, or the last step of the editor); extensions ship their own (sqliimport.ini [TemplateSettings] Templates[]).</source>
+        <translation>Eine Vorlage ist ein Import ohne seine Quelldaten, mit Platzhaltern für Namen und Bezeichner. Speichern Sie eine aus einem Import (Mehr, Als Vorlage speichern, oder im letzten Schritt des Editors); Erweiterungen bringen eigene mit (sqliimport.ini [TemplateSettings] Templates[]).</translation>
+    </message>
+    <message>
+        <source>%format ×</source>
+        <translation>%format ×</translation>
+    </message>
+    <message>
+        <source>No template for this format.</source>
+        <translation>Keine Vorlage für dieses Format.</translation>
+    </message>
+    <message>
+        <source>No template yet.</source>
+        <translation>Noch keine Vorlage.</translation>
+    </message>
+    <message>
+        <source>Use</source>
+        <translation>Verwenden</translation>
+    </message>
+    <message>
+        <source>A definitions file comes from "Download as JSON" of an import or "Export selected" of the dashboard, here or on another installation. Nothing is created before you choose; what is created is disabled, its schedules paused and its trigger switched off, so you review it, run a dry run and enable it.</source>
+        <translation>Eine Definitionsdatei stammt aus „Als JSON herunterladen“ eines Imports oder „Auswahl exportieren“ der Übersicht, hier oder in einer anderen Installation. Bevor Sie wählen, wird nichts angelegt; was angelegt wird, ist deaktiviert, seine Zeitpläne sind pausiert und sein Auslöser ist ausgeschaltet, damit Sie es prüfen, einen Probelauf machen und es aktivieren.</translation>
+    </message>
+    <message>
+        <source>Definitions file</source>
+        <translation>Definitionsdatei</translation>
+    </message>
+    <message>
+        <source>File (JSON)</source>
+        <translation>Datei (JSON)</translation>
+    </message>
+    <message>
+        <source>At most %n MB, format sqliimport-definitions (version 1 or 2). Source files are not part of it: upload them again in the editor.</source>
+        <translation>Höchstens %n MB, Format sqliimport-definitions (Version 1 oder 2). Quelldateien gehören nicht dazu: Laden Sie sie im Editor erneut hoch.</translation>
+    </message>
+    <message>
+        <source>Read the file</source>
+        <translation>Die Datei lesen</translation>
+    </message>
+    <message>
+        <source>What the file would create</source>
+        <translation>Was die Datei anlegen würde</translation>
+    </message>
+    <message>
+        <source>%n imports</source>
+        <translation>%n Importe</translation>
+    </message>
+    <message>
+        <source>cannot be created</source>
+        <translation>kann nicht angelegt werden</translation>
+    </message>
+    <message>
+        <source>identifier taken</source>
+        <translation>Bezeichner vergeben</translation>
+    </message>
+    <message>
+        <source>new</source>
+        <translation>neu</translation>
+    </message>
+    <message>
+        <source>Parent node</source>
+        <translation>Elternknoten</translation>
+    </message>
+    <message>
+        <source>from the mapping</source>
+        <translation>aus der Zuordnung</translation>
+    </message>
+    <message>
+        <source>Existing import</source>
+        <translation>Bestehender Import</translation>
+    </message>
+    <message>
+        <source>a new one would be %identifier</source>
+        <translation>ein neuer wäre %identifier</translation>
+    </message>
+    <message>
+        <source>Schedules and trigger</source>
+        <translation>Zeitpläne und Auslöser</translation>
+    </message>
+    <message>
+        <source>%n schedules (paused)</source>
+        <translation>%n Zeitpläne (pausiert)</translation>
+    </message>
+    <message>
+        <source>trigger switched off, no keys</source>
+        <translation>Auslöser ausgeschaltet, keine Schlüssel</translation>
+    </message>
+    <message>
+        <source>To check in the editor:</source>
+        <translation>Im Editor zu prüfen:</translation>
+    </message>
+    <message>
+        <source>What to do</source>
+        <translation>Was geschehen soll</translation>
+    </message>
+    <message>
+        <source>Create a new import (%identifier)</source>
+        <translation>Einen neuen Import anlegen (%identifier)</translation>
+    </message>
+    <message>
+        <source>Create it</source>
+        <translation>Anlegen</translation>
+    </message>
+    <message>
+        <source>Replace the existing import (it is disabled; its runs and API keys stay)</source>
+        <translation>Den bestehenden Import ersetzen (er wird deaktiviert; seine Läufe und API-Schlüssel bleiben)</translation>
+    </message>
+    <message>
+        <source>Skip it</source>
+        <translation>Überspringen</translation>
+    </message>
+    <message>
+        <source>Create the chosen imports (disabled)</source>
+        <translation>Die gewählten Importe anlegen (deaktiviert)</translation>
     </message>
     <message>
         <source>Import notifications</source>
@@ -894,10 +1181,6 @@
     <message>
         <source>the import %id of 7x SQLI Import, %label</source>
         <translation>der Import %id von 7x SQLI Import, %label</translation>
-    </message>
-    <message>
-        <source>Copy of %name</source>
-        <translation>Kopie von %name</translation>
     </message>
     <message>
         <source>The 1.x handler "%handler" is not available.</source>
@@ -954,6 +1237,34 @@
     <message>
         <source>Run #%id retries the failed rows of run #%parent.</source>
         <translation>Lauf #%id wiederholt die fehlgeschlagenen Zeilen von Lauf #%parent.</translation>
+    </message>
+    <message>
+        <source>You may not export these imports.</source>
+        <translation>Sie dürfen diese Importe nicht exportieren.</translation>
+    </message>
+    <message>
+        <source>Tick the imports to export first.</source>
+        <translation>Kreuzen Sie zuerst die zu exportierenden Importe an.</translation>
+    </message>
+    <message>
+        <source>Copy to: %errors</source>
+        <translation>Kopieren nach: %errors</translation>
+    </message>
+    <message>
+        <source>"%name" (%identifier) is a copy of "%original", disabled until it is saved; its trigger and keys are not copied.</source>
+        <translation>„%name“ (%identifier) ist eine Kopie von „%original“, deaktiviert, bis sie gespeichert wird; ihr Auslöser und ihre Schlüssel werden nicht kopiert.</translation>
+    </message>
+    <message>
+        <source>The template "%title" is saved; new imports can start from it.</source>
+        <translation>Die Vorlage „%title“ ist gespeichert; neue Importe können damit beginnen.</translation>
+    </message>
+    <message>
+        <source>Only a template of this site can be deleted.</source>
+        <translation>Nur eine Vorlage dieser Website kann gelöscht werden.</translation>
+    </message>
+    <message>
+        <source>The template is deleted.</source>
+        <translation>Die Vorlage ist gelöscht.</translation>
     </message>
     <message>
         <source>"%name" is a copy (disabled until it is saved).</source>
@@ -1056,16 +1367,32 @@
         <translation>Es gibt keinen Handler von 1.x zum Planen: Die Site listet keinen in sqliimport.ini [ImportSettings] AvailableSourceHandlers[]. Planen Sie stattdessen einen Import von 2.x in seinem Editor.</translation>
     </message>
     <message>
-        <source>The file is not an export of import definitions.</source>
-        <translation>Die Datei ist kein Export von Importdefinitionen.</translation>
-    </message>
-    <message>
-        <source>%created imports created (disabled), %updated updated.</source>
-        <translation>%created Importe angelegt (deaktiviert), %updated aktualisiert.</translation>
+        <source>There is no import to export.</source>
+        <translation>Es gibt keinen Import zum Exportieren.</translation>
     </message>
     <message>
         <source>Statistics</source>
         <translation>Statistik</translation>
+    </message>
+    <message>
+        <source>"%name" is made from the template "%title", disabled: finish it in the editor.</source>
+        <translation>„%name“ ist aus der Vorlage „%title“ angelegt, deaktiviert: Stellen Sie ihn im Editor fertig.</translation>
+    </message>
+    <message>
+        <source>Choose the definitions file (JSON).</source>
+        <translation>Wählen Sie die Definitionsdatei (JSON).</translation>
+    </message>
+    <message>
+        <source>The file is larger than 10 MB.</source>
+        <translation>Die Datei ist größer als 10 MB.</translation>
+    </message>
+    <message>
+        <source>The file was replaced in another window: check the choices again.</source>
+        <translation>Die Datei wurde in einem anderen Fenster ersetzt: Prüfen Sie die Auswahl erneut.</translation>
+    </message>
+    <message>
+        <source>%n imports created or replaced, disabled: review, dry-run and enable each. %skipped skipped.</source>
+        <translation>%n Importe angelegt oder ersetzt, deaktiviert: Prüfen Sie jeden, machen Sie einen Probelauf und aktivieren Sie ihn. %skipped übersprungen.</translation>
     </message>
 </context>
 <context>
@@ -2742,6 +3069,14 @@
         <translation>Der Import ist aktiviert (er kann laufen, und sein Zeitplan führt ihn aus)</translation>
     </message>
     <message>
+        <source>Export, copy or keep as a template</source>
+        <translation>Exportieren, kopieren oder als Vorlage behalten</translation>
+    </message>
+    <message>
+        <source>The JSON file moves this import to another installation (Imports, Import definitions there): no source file, no API key, the names of its secrets only.</source>
+        <translation>Die JSON-Datei bringt diesen Import in eine andere Installation (dort Importe, Importdefinitionen): ohne Quelldatei, ohne API-Schlüssel, nur mit den Namen seiner Geheimnisse.</translation>
+    </message>
+    <message>
         <source>Runs by itself</source>
         <translation>Läuft von selbst</translation>
     </message>
@@ -3523,6 +3858,14 @@
     <message>
         <source>Catalogue</source>
         <translation>Katalog</translation>
+    </message>
+    <message>
+        <source>Templates</source>
+        <translation>Vorlagen</translation>
+    </message>
+    <message>
+        <source>Import definitions</source>
+        <translation>Importdefinitionen</translation>
     </message>
     <message>
         <source>Settings</source>
