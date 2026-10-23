@@ -188,7 +188,7 @@ class expImportEditor
             {
                 // the form did not show this format's options (a browser without scripts): show them, no error per field
                 $this->errors['SourceOptions'] = ezpI18n::tr( 'extension/sqliimport/edit', 'Fill in the options of %format below, then save again.', null,
-                                                              array( '%format' => $sources[$type]['label'] ) );
+                                                              array( '%format' => expImportAdmin::catalogueText( $sources[$type]['label'] ) ) );
                 $optionErrors = array();
             }
             foreach ( $optionErrors as $key => $message )
@@ -685,7 +685,7 @@ class expImportEditor
             if ( $address === '' )
                 continue;
             if ( !eZMail::validate( $address ) )
-                $this->errors['NotifyEmails'] = ezpI18n::tr( 'extension/sqliimport/edit', '%address is no e-mail address.', null, array( '%address' => $address ) );
+                $this->errors['NotifyEmails'] = ezpI18n::tr( 'extension/sqliimport/edit', '%address is not an e-mail address.', null, array( '%address' => $address ) );
             $emails[] = $address;
         }
         if ( count( $emails ) > 20 )

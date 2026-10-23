@@ -43,17 +43,17 @@ class expImportCron
         $errors = array();
         $kind = isset( $s['kind'] ) ? (string)$s['kind'] : '';
         if ( !in_array( $kind, self::KINDS, true ) )
-            $errors[] = 'unknown schedule kind ' . $kind;
+            $errors[] = expImport::tr( 'extension/sqliimport/schedule', 'unknown schedule kind %kind', array( '%kind' => $kind ) );
         try
         {
             new DateTimeZone( isset( $s['timezone'] ) && $s['timezone'] !== '' ? (string)$s['timezone'] : 'UTC' );
         }
         catch ( Exception $e )
         {
-            $errors[] = 'unknown time zone ' . $s['timezone'];
+            $errors[] = expImport::tr( 'extension/sqliimport/schedule', 'unknown time zone %zone', array( '%zone' => $s['timezone'] ) );
         }
         if ( $kind === 'interval' && ( !isset( $s['interval_minutes'] ) || (int)$s['interval_minutes'] < self::MIN_INTERVAL ) )
-            $errors[] = 'an interval is at least ' . self::MIN_INTERVAL . ' minutes';
+            $errors[] = expImport::tr( 'extension/sqliimport/schedule', 'an interval is at least %n minutes', array( '%n' => self::MIN_INTERVAL ) );
         if ( $kind === 'cron' )
         {
             try
@@ -66,7 +66,7 @@ class expImportCron
             }
         }
         if ( $kind !== 'cron' && empty( $s['run_at'] ) )
-            $errors[] = 'choose the first date and time';
+            $errors[] = expImport::tr( 'extension/sqliimport/schedule', 'choose the first date and time' );
         return $errors;
     }
 

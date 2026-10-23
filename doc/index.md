@@ -39,6 +39,18 @@ German: [ger-de/index.md](ger-de/index.md).
   empty, options serialized with NUL bytes are no longer cut on SQLite, and option text without `=` no longer
   warns on PHP 8.
 
+## Languages
+
+The pages of the extension are in American English and in German: `translations/ger-DE/translation.ts` translates
+every text of the templates, the messages of the editor, the labels and help texts of the options of every format,
+handler and transform (context `extension/sqliimport/options`), the descriptions of the catalogue
+(`extension/sqliimport/catalogue`), the words of the statuses and the schedule descriptions. An administrator whose
+locale is `ger-DE` sees the German pages; the kernel loads the file through `site.ini [RegionalSettings]
+TranslationExtensions[]=sqliimport`. `translations/untranslated/translation.ts` lists every text for a new
+language; the French and Spanish files hold the texts of 1.x. The log of a run, the messages of a source and the
+command line stay in English. `tests/unit/TranslationsTest.php` fails when a text of the code is missing in ger-DE or
+untranslated, or when a translation loses a `%placeholder`.
+
 ## Pages
 
 | Page | What it covers |

@@ -195,4 +195,20 @@ class expImport
     {
         return (int)eZUser::currentUserID();
     }
+
+    /**
+     * A text of the pages in the user's language (translations/<locale>/translation.ts); without the kernel's
+     * translator (the unit tests) the English text with its %placeholders filled in.
+     *
+     * @param string $context e.g. extension/sqliimport/options
+     * @param string $text the American English text
+     * @param array $args %name => value
+     * @return string
+     */
+    public static function tr( $context, $text, array $args = array() )
+    {
+        if ( class_exists( 'ezpI18n' ) )
+            return ezpI18n::tr( $context, $text, null, $args );
+        return $args ? strtr( $text, array_map( 'strval', $args ) ) : $text;
+    }
 }

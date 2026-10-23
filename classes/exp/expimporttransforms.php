@@ -129,15 +129,16 @@ class expImportTransforms
             $name = is_array( $step ) && isset( $step['name'] ) ? (string)$step['name'] : ( is_string( $step ) ? $step : '' );
             if ( !isset( $catalogue[$name] ) )
             {
-                $errors[] = 'unknown transform ' . ( $name === '' ? '#' . ( $i + 1 ) : "'$name'" );
+                $errors[] = $name === '' ? expImport::tr( 'extension/sqliimport/mapping', 'unknown transform #%n', array( '%n' => $i + 1 ) )
+                                         : expImport::tr( 'extension/sqliimport/mapping', "unknown transform '%name'", array( '%name' => $name ) );
                 continue;
             }
             $args = is_array( $step ) && isset( $step['args'] ) && is_array( $step['args'] ) ? $step['args'] : array();
             list( , $argErrors ) = expImportOptionSchema::validate( $catalogue[$name]['schema'], $args );
             foreach ( $argErrors as $error )
-                $errors[] = "$name: $error";
+                $errors[] = expImport::tr( 'extension/sqliimport/mapping', '%name: %error', array( '%name' => $name, '%error' => $error ) );
             if ( $name === 'regex_replace' && isset( $args['pattern'] ) && @preg_match( (string)$args['pattern'], '' ) === false )
-                $errors[] = 'regex_replace: the pattern is not a valid regular expression (delimiters included, e.g. /a+/)';
+                $errors[] = expImport::tr( 'extension/sqliimport/mapping', 'regex_replace: the pattern is not a valid regular expression (delimiters included, e.g. /a+/)' );
         }
         return $errors;
     }
