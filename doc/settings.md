@@ -63,6 +63,14 @@ The webhook / API trigger of imports ([triggers.md](triggers.md)).
 | `MaxBodyMegabytes` | `20` | The largest body a call may bring as the data of its run |
 | `ServerKeySecret` | empty | The name of a secret (at least 32 characters) used as the server key; empty: a random key in `var/<site>/storage/sqliimport/trigger.key` |
 
+## [AiSettings]
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `Enabled` | `disabled` | `enabled` offers the AI assist through expai ([ai.md](ai.md)) to users with `expai/write` |
+| `SampleValues` | `3` | Masked sample values per field (1 to 5) for an import with "Send sample values to the AI" |
+| `MaxFields` | `150` | The most source fields one request describes |
+
 ## [AdminSettings]
 
 | Setting | Default | Meaning |

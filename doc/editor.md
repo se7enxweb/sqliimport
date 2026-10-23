@@ -72,6 +72,10 @@ For a 1.x handler, choose the handler here. It reads its own source, so the step
 | Records per chunk | Between 1 and 5000 (one job of the job queue each) |
 | At most this many records per run | `0`: no limit |
 | Existing content | Create new, update existing (`update`); only create, leave existing as they are (`create_only`); only update existing (`update_only`) |
+| Send sample values to the AI | Only with the AI assist ([ai.md](ai.md)); off by default. Off: the AI gets only the names and types of the fields. On: also a few sample values per field and the values of a failed row it explains, with e-mail, phone and IBAN-like values masked first. |
+
+With the target "Rows of a data table" and the AI assist, **Suggest a data table with AI** shows the three data tables
+that fit the fields best; **Use this table** chooses one in the form (saved with the step).
 
 ## Step 3: Mapping
 
@@ -104,6 +108,15 @@ match first, then a name that contains the other. Each field is used once. A ric
 `richtext`, a date `date`, an image `image` and a checkbox `bool`. Auto-match uses no external service. It saves the
 mapping and stays on the step with the message "Auto-match filled N lines. Check them, then save."; check the lines
 before you continue.
+
+**Suggest with AI** (with the AI assist, [ai.md](ai.md)) asks the model of the installation's expai for a source
+field and transforms per attribute, from the attributes of the class and the names and types of the fields (sample
+values only when the import opts in in the processing step, and then masked). The suggestions appear in an extra
+column of the grid with a confidence badge and a short reason; suggestions that name an attribute, a field or a
+transform that does not exist are left out. **Accept** fills one line into the form, **Accept all** every line with
+a suggestion; nothing is saved until you save the step, and once a step with accepted lines is saved, the import
+needs a dry run before its next real run. **Suggest a class with AI** next to the class shows the three classes that
+fit the fields best; **Use this class** chooses one in the form.
 
 The mapping is stored even when it is not complete yet, so nothing entered is lost; the errors are listed until they
 are fixed.

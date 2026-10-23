@@ -63,3 +63,63 @@ class expDataConnections
     /** @return eZDBInterface */
     public static function db( $identifier ) { return eZDB::instance(); }
 }
+// the extension expai (Exponential Intelligence), used by the AI assist only behind class_exists()
+interface expAiProvider
+{
+    public function send( array $request );
+    public function modelName();
+    public function providerId();
+}
+class expAiProviderRegistry
+{
+    /** @return expAiProvider */
+    public function providerFor( $alias ) { throw new Exception(); }
+}
+class expAiConfig
+{
+    /** @return expAiConfig */
+    public static function instance() { return new self(); }
+    /** @return string */
+    public function effectiveModel() { return ''; }
+    /** @return bool */
+    public function mayUseModel( $alias ) { return false; }
+    /** @return expAiProviderRegistry */
+    public function registry() { return new expAiProviderRegistry(); }
+}
+class expAiGate
+{
+    /** @return string */
+    public static function switchedOff( ?expAiConfig $config = null, $siteAccess = null ) { return ''; }
+}
+class expAiDataPolicy
+{
+    /** @return expAiDataPolicy */
+    public static function forProvider( expAiConfig $config, $providerID ) { return new self(); }
+    public function assertClass( $classIdentifier, $sectionID ) {}
+}
+class expAiWebBudget
+{
+    public static function assertFits( $alias, $what = 'field', ?expAiConfig $config = null ) {}
+}
+class expAiBudget
+{
+    public function __construct( ?expAiConfig $config = null ) {}
+    /** @return array */
+    public function estimate( $alias, $inputTokens, $outputTokens, $lane = null ) { return array(); }
+    /** @return int */
+    public function estimateInputTokens( array $request ) { return 0; }
+    /** @return array|null */
+    public function refusal( $micros, $groupID = 0, $excludeJobID = 0 ) { return null; }
+}
+class expAiUsageRecorder implements expAiProvider
+{
+    public function __construct( expAiProvider $inner, array $context = array() ) {}
+    public function send( array $request ) { return array(); }
+    public function modelName() { return ''; }
+    public function providerId() { return ''; }
+}
+class expAiText
+{
+    /** @return string */
+    public static function stripReasoning( $text ) { return ''; }
+}

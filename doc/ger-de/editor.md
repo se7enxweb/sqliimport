@@ -79,6 +79,11 @@ Datei und keine Adresse.
 | Records per chunk | Zwischen 1 und 5000 (je ein Job der Job-Warteschlange) |
 | At most this many records per run | `0`: keine Grenze |
 | Existing content | Neue anlegen, vorhandene aktualisieren (`update`); nur anlegen, vorhandene unverändert lassen (`create_only`); nur vorhandene aktualisieren (`update_only`) |
+| Send sample values to the AI | Nur mit der KI-Unterstützung ([ai.md](ai.md)); standardmäßig aus. Aus: Die KI bekommt nur die Namen und Typen der Felder. An: zusätzlich einige Beispielwerte je Feld und die Werte einer fehlgeschlagenen Zeile, die sie erklärt; E-Mail-, Telefon- und IBAN-artige Werte werden vorher maskiert. |
+
+Mit dem Ziel „Rows of a data table“ und der KI-Unterstützung zeigt **Suggest a data table with AI** die drei
+Datentabellen, die am besten zu den Feldern passen; **Use this table** wählt eine im Formular (gespeichert mit dem
+Schritt).
 
 ## Schritt 3: Zuordnung (Mapping)
 
@@ -114,6 +119,16 @@ verglichen, zuerst auf Gleichheit, dann darauf, ob ein Name den anderen enthält
 Ein Rich-Text-Attribut bekommt die Umwandlung `richtext`, ein Datum `date`, ein Bild `image` und ein Kontrollkästchen
 `bool`. Auto-match verwendet keinen externen Dienst. Es speichert die Zuordnung und bleibt auf dem Schritt, mit der
 Meldung „Auto-match filled N lines. Check them, then save.“; prüfen Sie die Zeilen, bevor Sie weitergehen.
+
+**Suggest with AI** (mit der KI-Unterstützung, [ai.md](ai.md)) fragt das Modell des expai der Installation nach einem
+Quellfeld und Umwandlungen je Attribut, aus den Attributen der Klasse und den Namen und Typen der Felder
+(Beispielwerte nur, wenn der Import es im Schritt Verarbeitung wählt, und dann maskiert). Die Vorschläge erscheinen in
+einer zusätzlichen Spalte des Rasters mit einem Abzeichen für die Sicherheit und einer kurzen Begründung; Vorschläge,
+die ein Attribut, ein Feld oder eine Umwandlung nennen, die es nicht gibt, werden weggelassen. **Accept** übernimmt
+eine Zeile ins Formular, **Accept all** jede Zeile mit Vorschlag; gespeichert wird erst, wenn Sie den Schritt
+speichern, und ist ein Schritt mit angenommenen Zeilen gespeichert, braucht der Import vor dem nächsten echten Lauf
+einen Probelauf. **Suggest a class with AI** neben der Klasse zeigt die drei Klassen, die am besten zu den Feldern
+passen; **Use this class** wählt eine im Formular.
 
 Die Zuordnung wird auch dann gespeichert, wenn sie noch nicht vollständig ist, damit nichts Eingegebenes verloren
 geht; die Fehler werden aufgeführt, bis sie behoben sind.

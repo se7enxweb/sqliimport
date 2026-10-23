@@ -39,10 +39,31 @@ $sampleError = '';
 $preview = null;
 $previewError = '';
 $sqlTest = null;
+// the AI assist (expImportAi, doc/ai.md): offered for an import of the 2.x engine when [AiSettings] Enabled, expai and
+// its permissions allow it; its buttons never save: the form shows what was posted, with the suggestions
+$aiAvailable = $editor->import && !$editor->import->isLegacy()
+             && expImportAi::available( array( 'purpose' => 'mapping', 'import_id' => (int)$editor->import->attribute( 'id' ) ) );
+$aiAction = '';
+foreach ( array( 'AiSuggestButton', 'AiAcceptButton', 'AiAcceptAllButton', 'AiClassButton', 'AiUseClassButton', 'AiTableButton', 'AiUseTableButton' ) as $sq_name )
+    if ( $isPost && $http->hasPostVariable( $sq_name ) )
+        $aiAction = $sq_name;
+$aiValue = $aiAction !== '' && is_scalar( $http->postVariable( $aiAction ) ) ? (string)$http->postVariable( $aiAction ) : '';
+$aiMappingForm = null;
+$aiProcessingForm = null;
+$contentClassChoices = function ()
+{
+    $out = array();
+    foreach ( eZContentClass::fetchList( eZContentClass::VERSION_STATUS_DEFINED, true, false, array( 'name' => 'asc' ) ) as $class )
+        $out[(string)$class->attribute( 'identifier' )] = (string)$class->attribute( 'name' );
+    return $out;
+};
 if ( $isPost && $http->hasPostVariable( 'Step' ) )
 {
     $step = in_array( $http->postVariable( 'Step' ), expImportEditor::STEPS, true ) ? (string)$http->postVariable( 'Step' ) : $step;
     $ok = false;
+    if ( $aiAction !== '' && !$aiAvailable )
+        $editor->errors['Ai'] = ezpI18n::tr( 'extension/sqliimport/edit', 'The AI assist is not available: %reason', null,
+                                             array( '%reason' => expImportAi::refusal( array( 'purpose' => 'mapping' ) ) ) );
     switch ( $step )
     {
         case 'source':
@@ -55,9 +76,67 @@ if ( $isPost && $http->hasPostVariable( 'Step' ) )
             $ok = $editor->saveSource();
             break;
         case 'processing':
+            if ( in_array( $aiAction, array( 'AiTableButton', 'AiUseTableButton' ), true ) )
+            {
+                // the data table that fits the fields: suggested, or one of the suggestions chosen into the form (not saved)
+                $aiProcessingForm = $editor->processingFromPost();
+                if ( $aiAvailable && $aiAction === 'AiTableButton' )
+                    $editor->aiSuggestClass( 'datatable', expImportDataTables::tables() );
+                elseif ( $aiAvailable )
+                {
+                    $kept = $editor->aiKeptClasses( 'datatable' );
+                    $editor->aiClasses = $kept;
+                    $editor->aiAccepted = $editor->aiAcceptedPosted();
+                    if ( $kept && in_array( $aiValue, array_column( $kept['classes'], 'identifier' ), true ) )
+                    {
+                        $aiProcessingForm['options']['class'] = $aiValue;
+                        $editor->aiAccepted[] = '_table';
+                        $editor->notice = ezpI18n::tr( 'extension/sqliimport/edit', 'The data table %class is chosen in the form. Check it, then save; nothing is saved before.', null, array( '%class' => $aiValue ) );
+                    }
+                }
+                break;
+            }
             $ok = $editor->saveProcessing();
             break;
         case 'mapping':
+            if ( $aiAction !== '' )
+            {
+                // Suggest with AI, Accept, Accept all, the class suggestion: the form as posted, nothing saved
+                $aiMappingForm = $editor->mappingFromPost();
+                if ( !$aiAvailable )
+                    break;
+                if ( $aiAction === 'AiSuggestButton' )
+                {
+                    try
+                    {
+                        $sq_sample = expImportPreview::sample( $editor->import, 20 );
+                    }
+                    catch ( Exception $e )
+                    {
+                        $sq_sample = null;
+                    }
+                    $editor->aiSuggestMapping( $aiMappingForm, $sq_sample );
+                }
+                elseif ( $aiAction === 'AiAcceptButton' || $aiAction === 'AiAcceptAllButton' )
+                    $aiMappingForm = $editor->aiAccept( $aiMappingForm, $aiAction === 'AiAcceptButton' ? array( $aiValue ) : array() );
+                elseif ( $aiAction === 'AiClassButton' )
+                    $editor->aiSuggestClass( 'content', $contentClassChoices() );
+                else
+                {
+                    $kept = $editor->aiKeptClasses( 'content' );
+                    $editor->aiClasses = $kept;
+                    $editor->aiAccepted = $editor->aiAcceptedPosted();
+                    if ( $kept && in_array( $aiValue, array_column( $kept['classes'], 'identifier' ), true ) )
+                    {
+                        if ( $aiMappingForm['class'] !== $aiValue )
+                            $aiMappingForm['fields'] = array();
+                        $aiMappingForm['class'] = $aiValue;
+                        $editor->aiAccepted[] = '_class';
+                        $editor->notice = ezpI18n::tr( 'extension/sqliimport/edit', 'The class %class is chosen in the form: map its attributes, then save; nothing is saved before.', null, array( '%class' => $aiValue ) );
+                    }
+                }
+                break;
+            }
             if ( $http->hasPostVariable( 'LoadMappingButton' ) )
             {
                 // a mapping file of another import or installation replaces the lines; the page stays to show them
@@ -174,6 +253,19 @@ $failed = $isPost && $editor->errors;
 // (Auto-match and Load a mapping change the stored lines on purpose: the form shows those)
 if ( $failed && $step === 'mapping' && !$http->hasPostVariable( 'AutoMatchButton' ) && !$http->hasPostVariable( 'LoadMappingButton' ) )
     $mapping = $editor->mappingFromPost();
+// a button of the AI assist: the form as posted, with what was accepted into it (not saved)
+if ( $aiMappingForm !== null )
+    $mapping = $aiMappingForm;
+// the suggestions kept for the session: shown again when the step is opened again (for the class of the form)
+if ( $aiAvailable && $step === 'mapping' )
+{
+    if ( $editor->aiMapping === null )
+        $editor->aiMapping = $editor->aiKeptMapping( (string)$mapping['class'] );
+    if ( $editor->aiClasses === null )
+        $editor->aiClasses = $editor->aiKeptClasses( 'content' );
+}
+if ( $aiAvailable && $step === 'processing' && $editor->aiClasses === null )
+    $editor->aiClasses = $editor->aiKeptClasses( 'datatable' );
 $classes = array();
 foreach ( eZContentClass::fetchList( eZContentClass::VERSION_STATUS_DEFINED, true, false, array( 'name' => 'asc' ) ) as $class )
     $classes[] = array( 'identifier' => $class->attribute( 'identifier' ), 'name' => $class->attribute( 'name' ) );
@@ -281,7 +373,15 @@ $tpl->setVariable( 'legacy_options', $editor->import && $editor->import->isLegac
 $tpl->setVariable( 'mapping', $mapping );
 $grid = expImportEditor::gridLines( $mapping );
 foreach ( $grid as $i => $line )
+{
     $grid[$i]['error'] = isset( $editor->errors['Fields_' . $line['attribute']] ) ? (string)$editor->errors['Fields_' . $line['attribute']] : '';
+    // the AI's suggestion for the line: its confidence as a badge (high, medium, low) and its reason
+    $sq_ai = $editor->aiMapping && isset( $editor->aiMapping['lines'][$line['attribute']] ) ? $editor->aiMapping['lines'][$line['attribute']] : null;
+    $grid[$i]['ai'] = $sq_ai ? $sq_ai + array( 'percent' => (int)round( $sq_ai['confidence'] * 100 ),
+                                               'kind' => $sq_ai['confidence'] >= 0.8 ? 'is-ok' : ( $sq_ai['confidence'] >= 0.5 ? 'is-warn' : 'is-bad' ),
+                                               'accepted' => in_array( $line['attribute'], $editor->aiAccepted, true )
+                                                             || ( $line['source'] === $sq_ai['source'] && $line['transforms'] === $sq_ai['transforms'] ) ) : false;
+}
 $tpl->setVariable( 'grid', $grid );
 $translationGrid = $editor->import ? expImportEditor::translationGrid( $mapping, $languages ) : array();
 foreach ( $translationGrid as $i => $block )
@@ -344,6 +444,28 @@ if ( $failed && $step === 'source' )
 }
 if ( !isset( $p ) )
     $tpl->setVariable( 'handler_choice', $editor->import ? (string)$editor->import->attribute( 'handler' ) : 'mapping' );
+// a button of the AI assist in the processing step: the form as posted, with the data table chosen into it (not saved)
+if ( $aiProcessingForm !== null )
+{
+    $tpl->setVariable( 'target', $aiProcessingForm['target'] );
+    $tpl->setVariable( 'behaviour', $aiProcessingForm['behaviour'] );
+    $tpl->setVariable( 'options', $aiProcessingForm['options'] );
+    $tpl->setVariable( 'handler_choice', $aiProcessingForm['handler'] );
+}
+$sq_aiClasses = array();
+if ( $editor->aiClasses )
+    foreach ( $editor->aiClasses['classes'] as $sq_c )
+        $sq_aiClasses[] = $sq_c + array( 'percent' => (int)round( $sq_c['confidence'] * 100 ),
+                                         'kind' => $sq_c['confidence'] >= 0.8 ? 'is-ok' : ( $sq_c['confidence'] >= 0.5 ? 'is-warn' : 'is-bad' ) );
+$tpl->setVariable( 'ai', array(
+    'available' => (bool)$aiAvailable,
+    'samples' => $editor->import ? expImportAi::sendsSamples( $editor->import->behaviour() ) : false,
+    'mapping' => $editor->aiMapping ? array( 'count' => count( $editor->aiMapping['lines'] ), 'dropped' => (int)$editor->aiMapping['dropped'],
+                                             'samples' => !empty( $editor->aiMapping['samples'] ), 'model' => (string)$editor->aiMapping['model'] ) : false,
+    'classes' => $sq_aiClasses,
+    'classes_samples' => $editor->aiClasses && !empty( $editor->aiClasses['samples'] ),
+    'accepted' => array_values( array_unique( $editor->aiAccepted ) ),
+) );
 // the error summary links each error to its field
 $tpl->setVariable( 'error_links', expImportEditor::errorLinks( $editor->errors, $step ) );
 

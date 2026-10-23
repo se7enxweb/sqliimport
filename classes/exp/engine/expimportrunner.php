@@ -46,6 +46,9 @@ class expImportRunner
             throw new expImportException( "unknown run kind $kind" );
         if ( !in_array( $kind, array( 'dry_run', 'undo' ), true ) && !(int)$import->attribute( 'is_enabled' ) )
             throw new expImportException( 'the import is disabled' );
+        // suggestions of the AI assist that a person accepted and saved: a dry run of that version first (doc/ai.md)
+        if ( in_array( $kind, array( 'import', 'retry' ), true ) && ( $refusal = expImportAi::dryRunRefusal( $import ) ) !== '' )
+            throw new expImportException( $refusal );
         $target = $import->target();
         $userID = isset( $options['user_id'] ) ? (int)$options['user_id'] : expImport::currentUserID();
         // the robot user of the import (chosen with the policy sqliimport/settings) runs it instead of the starter

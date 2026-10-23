@@ -12,6 +12,18 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   (extension/sqliimport/options), the catalogue's descriptions (extension/sqliimport/catalogue), the messages of the
   option, mapping and schedule checks and the schedule descriptions; translations/untranslated lists every text, and
   tests/unit/TranslationsTest.php checks both against the code, the placeholders and the translator's schema.
+- Added: The AI assist through the installation's expai ([doc/ai.md](doc/ai.md)), off unless [AiSettings]
+  Enabled=enabled: "Suggest with AI" in the mapping step (a source field, transforms, a confidence and a reason per
+  attribute, accepted line by line or all at once into the form), the content class or data table that fits the
+  fields (the best three), "Explain" for a failed row and "Summarize" for a finished run. Assistive only: nothing is
+  saved without the form's save, and a version with accepted suggestions needs a dry run before the next real run.
+- Added: Data minimisation of the AI assist: by default only field names and detected types are sent; sample values
+  only with the import's option "Send sample values to the AI" (off by default), masked first (e-mail, phone and
+  IBAN-like values). Every request goes through expai's master switch, expai/write and model permissions, data
+  policy, limits, budgets, usage log and audit; answers that are not JSON Lines are rejected, suggestions naming an
+  unknown attribute, field, class or transform are dropped; answers are kept for the session; audit events
+  ai.suggest, ai.accept, ai.explain and ai.summary.
+
 - Added: The target "A data table": the records become rows of a persistent class, written by the kernel's
   expDataTableWriter (Exponential 6.0.15), with column lines and transforms, keys and the modes upsert, insert,
   update and replace; a dry run checks without writing.
