@@ -98,8 +98,21 @@ class expImportUndoHandler implements expImportHandlerInterface
         $operation = eZOperationHandler::execute( 'content', 'publish', array( 'object_id' => $objectID, 'version' => $version ) );
         if ( !is_array( $operation ) || !isset( $operation['status'] ) || (int)$operation['status'] !== eZModuleOperationInfo::STATUS_CONTINUE )
             return expImportRowResult::failed( "version $before could not be published again" );
+        // the locations the run added to this object (extra_parents_from) go again; never its main location
+        $removed = 0;
+        $main = (int)$object->mainNodeID();
+        $added = array();
+        foreach ( (array)$record->get( 'nodes_added', array() ) as $nodeID )
+            if ( (int)$nodeID !== $main && eZContentObjectTreeNode::fetch( (int)$nodeID, false, false ) )
+                $added[] = (int)$nodeID;
+        if ( $added )
+        {
+            eZContentObjectTreeNode::removeSubtrees( $added, false );
+            $removed = count( $added );
+        }
         eZContentObject::clearCache( array( $objectID ) );
-        $result = new expImportRowResult( expImportRowResult::UNDONE, "version $before published again as version $version" );
+        $result = new expImportRowResult( expImportRowResult::UNDONE, "version $before published again as version $version"
+                                                                    . ( $removed ? ", $removed location(s) the run added removed" : '' ) );
         $result->objectID = $objectID;
         $result->versionBefore = $current;
         $result->versionAfter = (int)$version;
@@ -109,6 +122,32 @@ class expImportUndoHandler implements expImportHandlerInterface
     public function close( expImportContext $context )
     {
         $this->created = array();
+    }
+
+    /**
+     * Whether the runs of a handler can be undone: not the data table target, nor a handler whose class has a static
+     * undoable() returning false.
+     *
+     * @param string $handler
+     * @return bool
+     */
+    public static function handlerUndoable( $handler )
+    {
+        if ( $handler === 'datatable' )
+            return false;
+        if ( $handler === 'mapping' )
+            return true;
+        try
+        {
+            $handlers = expImportRegistry::instance()->handlers();
+        }
+        catch ( Throwable $e )
+        {
+            return true;
+        }
+        if ( isset( $handlers[$handler]['class'] ) && method_exists( $handlers[$handler]['class'], 'undoable' ) )
+            return (bool)call_user_func( array( $handlers[$handler]['class'], 'undoable' ) );
+        return true;
     }
 
     /**
@@ -133,6 +172,10 @@ class expImportUndoHandler implements expImportHandlerInterface
                 return 'the run was undone by run #' . (int)$summary['undone_by'];
         }
         $import = $run->import();
+        // undo works on content; the rows a run wrote into a data table (the target "Rows of a data table") are no
+        // content, and a handler of a site may say so too (a static undoable() that returns false)
+        if ( $import && !self::handlerUndoable( (string)$import->attribute( 'handler' ) ) )
+            return 'the rows of this target are not content and cannot be undone; run the import again with the old data';
         $days = (int)expImport::setting( 'RunSettings', 'UndoDays', 30 );
         if ( $import )
         {

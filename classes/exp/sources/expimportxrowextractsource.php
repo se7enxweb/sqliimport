@@ -277,13 +277,19 @@ class expImportXrowextractSource extends expImportAbstractSource
     {
         $fields = array();
         $match = null;
+        // Export writes its headers as "remote-id", "short-description" (exportname, with hyphens) or "Remote ID":
+        // compared in one form, so the remote ID column is found and no run makes a second object of the same row
+        $meta = array( 'object_id', 'contentobject_id', 'class', 'class_identifier', 'object_name', 'language', 'node_id',
+                       'main_node_id', 'parent_node_id', 'section', 'section_id', 'owner', 'owner_id', 'published', 'modified',
+                       'url', 'url_alias', 'path', 'path_identification_string', 'version', 'status' );
         foreach ( $columns as $column )
         {
             $column = (string)$column;
-            if ( in_array( strtolower( $column ), array( 'remote_id', 'ezcontentobject.remote_id' ), true ) )
+            $norm = trim( strtolower( (string)preg_replace( '/[^A-Za-z0-9]+/', '_', $column ) ), '_' );
+            if ( in_array( $norm, array( 'remote_id', 'remoteid', 'ezcontentobject_remote_id', 'object_remote_id' ), true ) )
                 $match = array( 'type' => 'remote_id', 'pattern' => '{' . $column . '}' );
-            elseif ( preg_match( '/^[a-z0-9_]+$/', $column ) )
-                $fields[] = array( 'source' => $column, 'attribute' => $column );
+            elseif ( !in_array( $norm, $meta, true ) && preg_match( '/^[a-z][a-z0-9_]*$/', $norm ) )
+                $fields[] = array( 'source' => $column, 'attribute' => $norm );
         }
         return array( 'class' => $class, 'match' => $match ?: array( 'type' => 'remote_id', 'pattern' => 'xrowextract-' . $class . '-{' . ( $fields ? $fields[0]['source'] : 'id' ) . '}' ),
                       'fields' => $fields );

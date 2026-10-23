@@ -59,20 +59,46 @@ class SQLIImportUtils
     }
     
     /**
-     * Fetches handler limitation list for policies
-     * @return array
+     * The values of the policy limitation "Type" (the handler): the 2.x handlers of the catalogue (mapping, the data
+     * table target, a site's own) and the 1.x handlers of [ImportSettings] AvailableSourceHandlers[], so a role can be
+     * limited to the no-code mapping as well as to a 1.x handler.
+     *
+     * @return array list of array( id, name )
      */
     public static function fetchHandlerLimitationList()
     {
+        // the no-code mapping is always there, whatever else the catalogue can list
+        $aFinal = array( array( 'id' => 'mapping', 'name' => 'Mapping to a content class (no code) (mapping)' ) );
+        $seen = array( 'mapping' => true );
+        if ( class_exists( 'expImportRegistry' ) )
+        {
+            try
+            {
+                foreach ( expImportRegistry::instance()->handlers() as $id => $handler )
+                {
+                    if ( !empty( $handler['legacy'] ) || isset( $seen[(string)$id] ) )
+                        continue;
+                    $aFinal[] = array( 'id' => (string)$id, 'name' => (string)$handler['label'] . ' (' . $id . ')' );
+                    $seen[(string)$id] = true;
+                }
+            }
+            catch ( Throwable $e )
+            {
+                if ( class_exists( 'eZDebug' ) )
+                    eZDebug::writeWarning( 'the 2.x handlers could not be listed: ' . $e->getMessage(), __METHOD__ );
+            }
+        }
         $importINI = eZINI::instance( 'sqliimport.ini' );
-        $aHandlers = $importINI->variable( 'ImportSettings', 'AvailableSourceHandlers' );
-        $aFinal = array();
+        $aHandlers = $importINI->hasVariable( 'ImportSettings', 'AvailableSourceHandlers' ) ? (array)$importINI->variable( 'ImportSettings', 'AvailableSourceHandlers' ) : array();
         foreach( $aHandlers as $handler )
         {
+            if ( $handler === '' || isset( $seen[$handler] ) )
+                continue;
             $aFinal[] = array(
                 'id'    => $handler,
                 'name'  => $handler
             );
+            $seen[$handler] = true;
         }
         return $aFinal;
     }

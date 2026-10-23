@@ -45,6 +45,8 @@ class expImportMappingHandler implements expImportHandlerInterface
 
     public function open( expImportContext $context )
     {
+        // the editor's preview (a run without an id) starts its plan afresh; a persistent worker keeps statics
+        unset( self::$planned['0:' . (int)$context->import->attribute( 'id' )] );
         $mapping = $context->import->mappingArray();
         if ( !$mapping )
             throw new expImportException( 'the import has no mapping' );
@@ -157,6 +159,114 @@ class expImportMappingHandler implements expImportHandlerInterface
         return $result;
     }
 
+    /** @var array class/attribute => array( vat id, vat included ) of the price attributes */
+    protected static $priceDefaults = array();
+
+    /** @var array run id => remote ID => true: what a dry run would create (a later record may be placed below it) */
+    protected static $planned = array();
+
+    /** @return string the file of a dry run's planned remote IDs (its chunks run in different jobs) */
+    protected static function plannedFile( expImportContext $context )
+    {
+        $runID = (int)$context->run->attribute( 'id' );
+        $dir = $runID > 0 ? expImportSourceFiles::runDirectory( $runID ) : expImport::storageDirectory( 'preview/' . (int)$context->import->attribute( 'id' ) );
+        return $dir . '/dry-run-planned.txt';
+    }
+
+    /** @return array remote ID => true of what this dry run would create so far */
+    protected static function planned( expImportContext $context )
+    {
+        $key = (int)$context->run->attribute( 'id' ) . ':' . (int)$context->import->attribute( 'id' );
+        if ( !isset( self::$planned[$key] ) )
+        {
+            self::$planned[$key] = array();
+            $file = (int)$context->run->attribute( 'id' ) > 0 ? self::plannedFile( $context ) : '';
+            if ( $file !== '' && is_file( $file ) )
+                foreach ( (array)file( $file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES ) as $line )
+                    self::$planned[$key][$line] = true;
+        }
+        return self::$planned[$key];
+    }
+
+    /** Notes a remote ID a dry run would create. */
+    protected static function planCreated( expImportContext $context, $remoteID )
+    {
+        $remoteID = (string)$remoteID;
+        if ( $remoteID === '' || isset( self::planned( $context )[$remoteID] ) )
+            return;
+        $key = (int)$context->run->attribute( 'id' ) . ':' . (int)$context->import->attribute( 'id' );
+        self::$planned[$key][$remoteID] = true;
+        if ( (int)$context->run->attribute( 'id' ) > 0 )
+            @file_put_contents( self::plannedFile( $context ), $remoteID . "\n", FILE_APPEND | LOCK_EX );
+    }
+
+    /**
+     * The remote ID of a parent of the plan that this dry run would create, '' when there is none.
+     *
+     * @param expImportContext $context
+     * @param array $parents the plan's parents
+     * @return string
+     */
+    protected static function plannedParent( expImportContext $context, array $parents )
+    {
+        $planned = self::planned( $context );
+        foreach ( $parents as $parent )
+            if ( isset( $parent['remote_id'] ) && isset( $planned[(string)$parent['remote_id']] ) )
+                return (string)$parent['remote_id'];
+        return '';
+    }
+
+    /**
+     * The values of the price attributes (ezprice) of a class as the kernel reads them (expImportPrice): a plain
+     * number gets the attribute's default VAT type and "VAT included", and the number is written as the kernel prints
+     * it, so an unchanged price compares equal on the next run.
+     *
+     * @param array $fields language => attribute => value
+     * @param string $class
+     * @return array
+     */
+    protected static function normalizePrices( array $fields, $class )
+    {
+        $types = self::classAttributes( $class );
+        if ( !$types || !in_array( 'ezprice', $types, true ) )
+            return $fields;
+        foreach ( $fields as $language => $values )
+        {
+            foreach ( $values as $attribute => $value )
+            {
+                if ( !isset( $types[$attribute] ) || $types[$attribute] !== 'ezprice' )
+                    continue;
+                list( $vatID, $included ) = self::priceDefaults( $class, $attribute );
+                $fields[$language][$attribute] = expImportPrice::normalize( $value, $vatID, $included );
+            }
+        }
+        return $fields;
+    }
+
+    /** @return array array( VAT type id or '', VAT included ) of a price attribute of a class */
+    protected static function priceDefaults( $class, $attribute )
+    {
+        $key = $class . '/' . $attribute;
+        if ( isset( self::$priceDefaults[$key] ) )
+            return self::$priceDefaults[$key];
+        $vatID = '';
+        $included = true;
+        $contentClass = eZContentClass::fetchByIdentifier( $class );
+        if ( $contentClass instanceof eZContentClass )
+        {
+            foreach ( $contentClass->fetchAttributes() as $classAttribute )
+            {
+                if ( $classAttribute->attribute( 'identifier' ) !== $attribute )
+                    continue;
+                $id = (int)$classAttribute->attribute( 'data_float1' );
+                $vatID = $id > 0 ? (string)$id : '';
+                // 1: VAT included, 2: excluded (eZPriceType INCLUDED_VAT / EXCLUDED_VAT)
+                $included = (int)$classAttribute->attribute( 'data_int1' ) !== 2;
+            }
+        }
+        return self::$priceDefaults[$key] = array( $vatID, $included );
+    }
+
     /** @return expImportRowResult what was done with one record */
     protected function processRecord( expImportRecord $record, expImportContext $context )
     {
@@ -165,6 +275,7 @@ class expImportMappingHandler implements expImportHandlerInterface
         if ( $mapping === null )
             return expImportRowResult::skipped( "not imported: its {$this->mapping['class_from']} is " . trim( (string)$record->get( (string)$this->mapping['class_from'], '' ) ) );
         $plan = expImportMapper::apply( $mapping, $record );
+        $plan['fields'] = self::normalizePrices( $plan['fields'], (string)$mapping['class'] );
         $language = $this->mapping['language'] !== '' ? $this->mapping['language']
                   : ( $context->target['language'] !== '' ? $context->target['language'] : eZContentObject::defaultLanguage() );
 
@@ -178,7 +289,15 @@ class expImportMappingHandler implements expImportHandlerInterface
 
         $parents = $this->parentNodes( $plan['parents'] );
         if ( !$object && !$parents )
-            throw new expImportException( 'the parent of the record does not exist (yet)' );
+        {
+            // a dry run publishes nothing: a parent this dry run would create (a folder before its documents) counts
+            if ( !$context->dryRun || !self::plannedParent( $context, $plan['parents'] ) )
+                throw new expImportException( 'the parent of the record does not exist (yet)' );
+            $result = $this->dryRunResult( null, $plan, $language );
+            $result->message = 'dry run: would be created below ' . self::plannedParent( $context, $plan['parents'] ) . ', which this run would create';
+            self::planCreated( $context, $plan['remote_id'] );
+            return $result;
+        }
 
         // an object someone edited since this import last wrote it (a field whose value is not the one the import wrote):
         // the conflict rule decides; what the import wrote is kept per field across runs
@@ -217,7 +336,11 @@ class expImportMappingHandler implements expImportHandlerInterface
         }
 
         if ( $context->dryRun )
+        {
+            if ( !$object )
+                self::planCreated( $context, $plan['remote_id'] );
             return $this->dryRunResult( $object, $plan, $language );
+        }
 
         $versionBefore = $object ? (int)$object->attribute( 'current_version' ) : 0;
         $options = array( 'class_identifier' => $mapping['class'], 'language' => $language );
@@ -238,12 +361,11 @@ class expImportMappingHandler implements expImportHandlerInterface
         }
         $isNew = $content->isNew();
         $nodesAdded = array();
-        if ( $isNew )
-        {
-            $main = array_shift( $parents );
-            foreach ( $parents as $nodeID )
-                $content->addLocation( SQLILocation::fromNodeID( $nodeID ) );
-        }
+        // the first parent is the main location of a new object; the others (extra_parents_from) are added after the
+        // publish, to a new and to an existing object alike (an extra location given to the content before its first
+        // publish was never created)
+        $main = $parents ? $parents[0] : 0;
+        $extra = array_slice( $parents, 1 );
         $publisher = SQLIContentPublisher::getInstance();
         $publisher->setOptions( new SQLIContentPublishOptions( array( 'parent_node_id' => $isNew ? $main : null, 'modification_check' => true ) ) );
         $publisher->publish( $content );
@@ -254,6 +376,15 @@ class expImportMappingHandler implements expImportHandlerInterface
                 $nodesAdded[] = (int)$nodeID;
         $content->flush();
         unset( $content );
+        $extraNodes = self::addExtraLocations( $objectID, $extra );
+        if ( $extraNodes )
+        {
+            // a new location publishes a new version: the run's version is that one (undo compares it)
+            $nodesAdded = array_merge( $nodesAdded, $extraNodes );
+            $row = eZContentObject::fetch( $objectID, false );
+            $versionAfter = is_array( $row ) ? (int)$row['current_version'] : $versionAfter;
+        }
+        $nodesAdded = array_values( array_unique( $nodesAdded ) );
 
         if ( $isNew )
             $result = expImportRowResult::created( $objectID, $versionAfter );
@@ -360,6 +491,60 @@ class expImportMappingHandler implements expImportHandlerInterface
               AND ( a.data_text = '" . $db->escapeString( $value ) . "' OR a.sort_key_string = '" . $db->escapeString( mb_strtolower( $value ) ) . "' )",
             array( 'limit' => 1 ) );
         return $rows ? eZContentObject::fetch( (int)$rows[0]['id'] ) : null;
+    }
+
+    /**
+     * The parent nodes of $parents the object is not below yet, as more locations of it (the kernel's node
+     * assignment, as the location's tab adds one).
+     *
+     * @param int $objectID
+     * @param int[] $parents parent node IDs
+     * @return int[] the node IDs of the new locations
+     */
+    public static function addExtraLocations( $objectID, array $parents )
+    {
+        $object = eZContentObject::fetch( (int)$objectID );
+        if ( !$object instanceof eZContentObject || !$parents )
+            return array();
+        $missing = self::missingParents( self::currentParents( $object ), $parents );
+        if ( !$missing )
+            return array();
+        $mainNodeID = (int)$object->mainNodeID();
+        eZContentOperationCollection::addAssignment( $mainNodeID, (int)$objectID, $missing );
+        $added = array();
+        foreach ( eZContentObjectTreeNode::fetchByContentObjectID( (int)$objectID ) as $node )
+            if ( in_array( (int)$node->attribute( 'parent_node_id' ), $missing, true ) )
+                $added[] = (int)$node->attribute( 'node_id' );
+        return $added;
+    }
+
+    /** @return int[] the parent node IDs of the object's locations */
+    protected static function currentParents( eZContentObject $object )
+    {
+        $out = array();
+        foreach ( (array)$object->assignedNodes() as $node )
+            $out[] = (int)$node->attribute( 'parent_node_id' );
+        return $out;
+    }
+
+    /**
+     * The parents an object still needs a location below (pure).
+     *
+     * @param int[] $current the parent node IDs of its locations
+     * @param int[] $wanted
+     * @return int[]
+     */
+    public static function missingParents( array $current, array $wanted )
+    {
+        $current = array_map( 'intval', $current );
+        $out = array();
+        foreach ( $wanted as $id )
+        {
+            $id = (int)$id;
+            if ( $id > 0 && !in_array( $id, $current, true ) && !in_array( $id, $out, true ) )
+                $out[] = $id;
+        }
+        return $out;
     }
 
     /** @return int[] the node IDs of the parents (those that exist) */

@@ -735,6 +735,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>undo of</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>retry of</source>
         <translation type="unfinished"></translation>
     </message>

@@ -13,7 +13,7 @@
 
 <div class="a4-toolbar a4-sqliimport-toolbar">
 {include uri='design:sqliimport/parts/status.tpl' label=$run.status_label kind=$run.status_kind field='status_label'}
-<span class="a4-meta">{$run.kind_label|wash} · {$run.trigger_label|wash}{if ne( $run.user, '' )} · {$run.user|wash}{/if}{if $run.parent_run_id} · {'retry of'|i18n( 'extension/sqliimport' )} <a href={concat( '/sqliimport/run/', $run.parent_run_id )|ezurl}>#{$run.parent_run_id}</a>{/if}</span>
+<span class="a4-meta">{$run.kind_label|wash} · {$run.trigger_label|wash}{if ne( $run.user, '' )} · {$run.user|wash}{/if}{if $run.parent_run_id} · {if eq( $run.kind, 'undo' )}{'undo of'|i18n( 'extension/sqliimport' )}{else}{'retry of'|i18n( 'extension/sqliimport' )}{/if} <a href={concat( '/sqliimport/run/', $run.parent_run_id )|ezurl}>#{$run.parent_run_id}</a>{/if}</span>
 {if $can_run}
 {if $run.is_final|not}{include uri='design:sqliimport/parts/button.tpl' action='cancel' run_id=$run.id here=$here label='Cancel'|i18n( 'extension/sqliimport' ) kind='danger' icon='x-circle-fill' confirm='Cancel this run? Records already processed stay as they are.'|i18n( 'extension/sqliimport' )}{/if}
 {if $can_retry}{include uri='design:sqliimport/parts/button.tpl' action='retry' run_id=$run.id here=$here label='Retry failed rows'|i18n( 'extension/sqliimport' ) kind='primary' icon='arrow-clockwise'}{/if}

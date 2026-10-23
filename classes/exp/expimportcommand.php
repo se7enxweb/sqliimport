@@ -290,6 +290,41 @@ class expImportCommand
     }
 
     /**
+     * The siteaccess a command runs in when none is given (pure but for reading the settings files):
+     *   null   one is given (-s, --siteaccess), or sqliimport is active for every siteaccess: nothing to add
+     *   string the first siteaccess whose settings activate sqliimport (ActiveAccessExtensions[]), admin ones first
+     *   false  none activates it
+     *
+     * @param array $argv
+     * @param string $root the installation
+     * @return string|false|null
+     */
+    public static function pickSiteAccess( array $argv, $root )
+    {
+        foreach ( $argv as $arg )
+            if ( $arg === '-s' || strpos( (string)$arg, '--siteaccess' ) === 0 || preg_match( '/^-s\S/', (string)$arg ) )
+                return null;
+        $active = function ( $file, $key )
+        {
+            return is_file( $file ) && preg_match( '/^' . preg_quote( $key, '/' ) . '\[\]\s*=\s*sqliimport\s*$/m', (string)file_get_contents( $file ) );
+        };
+        if ( $active( $root . '/settings/override/site.ini.append.php', 'ActiveExtensions' ) || $active( $root . '/settings/override/site.ini.append', 'ActiveExtensions' ) )
+            return null;
+        $found = array();
+        foreach ( (array)glob( $root . '/settings/siteaccess/*', GLOB_ONLYDIR ) as $dir )
+            if ( $active( $dir . '/site.ini.append.php', 'ActiveAccessExtensions' ) || $active( $dir . '/site.ini.append.php', 'ActiveExtensions' ) )
+                $found[] = basename( $dir );
+        if ( !$found )
+            return false;
+        usort( $found, function ( $a, $b )
+        {
+            $rank = function ( $s ) { return $s === 'admin' ? 0 : ( strpos( $s, 'admin' ) !== false ? 1 : 2 ); };
+            return $rank( $a ) <=> $rank( $b ) ?: strcmp( $a, $b );
+        } );
+        return $found[0];
+    }
+
+    /**
      * The entry point of bin/php/<name>.php.
      *
      * @param string $name
@@ -320,6 +355,20 @@ class expImportCommand
             return 1;
         }
         list( $description, $spec, $help ) = $commands[$name];
+        // the extension may be active in some siteaccesses only (ActiveAccessExtensions, often the admin): without -s
+        // the default siteaccess then has no sqliimport and a run ended in "unknown job type sqliimport.run"; the
+        // first siteaccess that has it (an admin one first) is taken, and said
+        $picked = self::pickSiteAccess( isset( $GLOBALS['argv'] ) ? (array)$GLOBALS['argv'] : array(), dirname( __DIR__, 4 ) );
+        if ( is_string( $picked ) && $picked !== '' )
+        {
+            $GLOBALS['argv'][] = '--siteaccess=' . $picked;
+            fwrite( STDERR, "NOTE 7x SQLI Import is not active in the default siteaccess; using -s $picked\n" );
+        }
+        elseif ( $picked === false )
+        {
+            fwrite( STDERR, "FAIL 7x SQLI Import is active in no siteaccess (settings/override/site.ini ActiveExtensions[] or a siteaccess's ActiveAccessExtensions[]): give one with -s <siteaccess>\n" );
+            return 1;
+        }
         $this->cli = eZCLI::instance();
         $this->script = eZScript::instance( array( 'description' => "7x SQLI Import: $description\n", 'use-session' => false,
                                                    'use-modules' => true, 'use-extensions' => true ) );

@@ -735,6 +735,10 @@
         <translation>Diese Vorlage löschen? Daraus angelegte Importe bleiben.</translation>
     </message>
     <message>
+        <source>undo of</source>
+        <translation>Rückgängigmachung von</translation>
+    </message>
+    <message>
         <source>retry of</source>
         <translation>Wiederholung von</translation>
     </message>

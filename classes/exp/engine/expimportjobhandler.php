@@ -246,9 +246,12 @@ class expImportJobHandler extends expQueueHandlerBase
                 return;
             foreach ( $rows as $row )
             {
+                $nodes = expImport::decode( (string)$row->attribute( 'nodes_json' ) );
                 $data = array( 'object_id' => (int)$row->attribute( 'object_id' ), 'outcome' => $row->attribute( 'outcome' ),
                                'version_before' => (int)$row->attribute( 'version_before' ), 'version_after' => (int)$row->attribute( 'version_after' ),
-                               'remote_id' => $row->attribute( 'remote_id' ) );
+                               'remote_id' => $row->attribute( 'remote_id' ),
+                               // the locations the run added (a created object's, and the extra ones of an updated object)
+                               'nodes_added' => isset( $nodes['added'] ) ? array_values( array_map( 'intval', (array)$nodes['added'] ) ) : array() );
                 yield new expImportRecord( $row->attribute( 'row_ref' ), $index, $data, array( 'offset' => $index + 1 ) );
                 $index++;
             }

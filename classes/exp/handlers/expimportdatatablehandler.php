@@ -47,6 +47,12 @@ class expImportDataTableHandler implements expImportHandlerInterface
         return 'Rows of a data table (a persistent class)';
     }
 
+    /** @return bool false: the rows are not content, a run of this target is not undone (expImportUndoHandler) */
+    public static function undoable()
+    {
+        return false;
+    }
+
     /** @return bool whether the kernel can write data tables (Exponential 6.0.15) */
     public static function available()
     {
