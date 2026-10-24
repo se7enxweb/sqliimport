@@ -141,7 +141,7 @@ final class SQLIImportFactory
      * Starts to run the import
      * @param array( SQLIImportItem ) $aImportItems
      * @throws SQLIImportBaseException
-     * @throws ezcConfigurationNoConfigException
+     * @throws SQLIImportConfigException
      */
     public function runImport( array $aImportItems )
     {
@@ -172,10 +172,10 @@ final class SQLIImportFactory
                 $handler = $aImportItems[$i]->attribute( 'handler' );
                 $handlerSection = $handler.'-HandlerSettings';
                 if( !$this->importINI->hasSection( $handlerSection ) ) // Check INI Section
-                    throw new ezcConfigurationNoConfigException( 'Error : Handler "'.$handler.'" does not have proper config section in sqliimport.ini !' );
+                    throw new SQLIImportConfigException( 'Error : Handler "'.$handler.'" does not have proper config section in sqliimport.ini !' );
                 
                 if( !$this->importINI->hasVariable( $handlerSection, 'ClassName' ) ) // Check if ClassName is properly defined
-                    throw new ezcConfigurationNoConfigException( 'Error : ClassName not defined for "'.$handler.'" in sqliimport.ini !' );
+                    throw new SQLIImportConfigException( 'Error : ClassName not defined for "'.$handler.'" in sqliimport.ini !' );
                 
                 // Default values
                 $handlerClassName = $this->importINI->variable( $handlerSection, 'ClassName' );
