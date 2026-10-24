@@ -46,10 +46,16 @@ class TranslationsTest extends TestCase
         return $cases;
     }
 
-    /**
-     * @dataProvider locales
-     */
-    public function testFileValidatesAgainstTheTranslatorSchema( string $locale ): void
+    public function testEveryFileValidatesAgainstTheTranslatorSchema(): void
+    {
+        // a loop, not a data provider: PHPUnit 9 to 13 read the same test (12 has no @dataProvider annotations)
+        $locales = self::locales();
+        $this->assertNotEmpty( $locales, 'translations/*/translation.ts exist' );
+        foreach ( $locales as $c )
+            $this->assertFileValidatesAgainstTheTranslatorSchema( $c[0] );
+    }
+
+    protected function assertFileValidatesAgainstTheTranslatorSchema( string $locale ): void
     {
         $dom = new DOMDocument();
         $dom->preserveWhiteSpace = false;

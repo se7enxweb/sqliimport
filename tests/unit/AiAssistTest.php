@@ -149,14 +149,22 @@ class AiAssistTest extends TestCase
         );
     }
 
-    /**
-     * @dataProvider malformedAnswers
-     */
-    public function testMalformedAnswersAreRejected( $answer ): void
+    public function testMalformedAnswersAreRejected(): void
     {
-        $this->transport->answers[] = $answer;
-        $this->expectException( expImportAiException::class );
-        expImportAi::suggestMapping( $this->attributes(), $this->sample(), false, array() );
+        // a loop, not a data provider: PHPUnit 9 to 13 read the same test (12 has no @dataProvider annotations)
+        foreach ( $this->malformedAnswers() as $case => $c )
+        {
+            $this->transport->answers = array( $c[0] );
+            try
+            {
+                expImportAi::suggestMapping( $this->attributes(), $this->sample(), false, array() );
+                $this->fail( "$case: the answer was accepted" );
+            }
+            catch ( expImportAiException $e )
+            {
+                $this->addToAssertionCount( 1 );
+            }
+        }
     }
 
     public function testTooLongAnswersAreRejected(): void
