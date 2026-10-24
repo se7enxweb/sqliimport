@@ -16,7 +16,7 @@ parameters:
         - modules/sqliimport/trigger.php
         - cronjobs/sqliimport_schedule.php
     scanFiles:
-        - tests/phpstan-kernel-stubs.php
+        - phpstan/kernel.stub
     scanDirectories:
         - classes
     reportUnmatchedIgnoredErrors: false

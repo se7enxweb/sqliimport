@@ -2,6 +2,11 @@
 /**
  * Declarations of the kernel and extension types the 2.x code extends or implements, for PHPStan only (they come from
  * Exponential, ezcomponents and expqueue in an installation; this file is never loaded there).
+ *
+ * It is a .stub outside tests/ on purpose: an autoload generator or a test harness that reads the PHP files of an
+ * extension, or of its tests directory, must never find these hollow classes. Loaded once in an installation they
+ * stand in for the real eZPersistentObject, ezcBaseOptions, expSecrets ... and break everything that runs after it.
+ * Not part of the Composer archive (.gitattributes).
  */
 interface expAuditTaxonomyBranch { public function events(); }
 interface expQueueHandler { public function run( expQueueJob $job, expQueueContext $context ); }

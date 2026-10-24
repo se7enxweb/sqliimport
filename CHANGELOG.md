@@ -3,6 +3,16 @@
 Every release, newest first, in the form Added / Updated / Fixed / Removed / Renamed. The history of 1.x before 1.3.1
 is in [doc/CHANGELOG](doc/CHANGELOG).
 
+## 2.0.1
+
+### Fixed
+
+- The declarations PHPStan reads for the kernel types (`tests/phpstan-kernel-stubs.php` in 2.0.0) were a PHP file in
+  `tests/`, where the test autoload of Exponential found them: a test run of the installation then loaded a hollow
+  `ezcBaseOptions`, `eZPersistentObject`, `expDataTableCatalogue` ... instead of the real classes and stopped with a
+  fatal error. They are now `phpstan/kernel.stub`, which no autoload generator reads, and are left out of the
+  Composer archive together with `phpstan.neon`.
+
 ## 2.0.0 (2026-10-24)
 
 The first stable release of 7x SQLI Import 2. Everything is done in the administration: the six-step import editor,
