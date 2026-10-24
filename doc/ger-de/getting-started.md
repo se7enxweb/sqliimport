@@ -42,9 +42,6 @@ die Kurzfassung:
 composer require se7enxweb/sqliimport:^2.0
 ```
 
-(Bis 2.0.0 erschienen ist, wird die Linie 2.0 mit `^2.0@alpha` für die letzte Vorabversion oder `dev-2.0-dev` für den
-Entwicklungszweig installiert.)
-
 ```ini
 # settings/override/site.ini.append.php
 [ExtensionSettings]

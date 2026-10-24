@@ -3,7 +3,30 @@
 Every release, newest first, in the form Added / Updated / Fixed / Removed / Renamed. The history of 1.x before 1.3.1
 is in [doc/CHANGELOG](doc/CHANGELOG).
 
-## Unreleased (branch 2.0-dev, in testing for 2.0.0-beta.1)
+## 2.0.0 (2026-10-24)
+
+The first stable release of 7x SQLI Import 2. Everything is done in the administration: the six-step import editor,
+more than 60 formats in a catalogue (files, feeds and web pages, REST and SaaS APIs, SQL databases including SQL
+Server and Oracle, NoSQL databases, other CMS, OPML feed lists, mailboxes and office documents), the dashboard with
+charts, the Statistics page, the live run page with dry run, retry and undo, schedules, the webhook / API trigger,
+templates and demo imports, the Imports tab, and the entries in Exponential's transfer registry. The pages of 1.x
+are folded into the 2.x pages; every 1.x handler, setting and table keeps working. The entries below are the changes
+since 2.0.0-alpha.1; that release's own entries follow it.
+
+### Upgrading
+
+- From 1.x or 2.0.0-alpha.1: install 2.0.0 over it, then run `./console ext:expqueue:install-schema` and
+  `./console ext:sqliimport:install-schema` (both idempotent: they add the missing tables, columns and indexes and
+  drop nothing). On a new installation the same two commands create every table; the installation wizard does not.
+- From 1.x: `./console ext:sqliimport:migrate-1x` reports what it would do (handlers, schedules, history, roles);
+  `--apply` migrates, `--roles` gives every role with manageimports the 2.x policy manage. See
+  [doc/migration-1x.md](doc/migration-1x.md).
+- From 2.0.0-alpha.1: there are two policies, sqliimport/manage and sqliimport/run (each with the handler
+  limitation); roles made with the functions view, edit, rollback, ai or settings of 2.0.0-alpha.1 grant nothing
+  any more and need one of the two.
+- The 1.x addresses (items, scheduledlist, addimport ...) redirect to the 2.x pages; their POST forms still work.
+- Data tables, named SQL connections, the secret store, the header bell and the transfer registry need Exponential
+  6.0.15; on 6.0.14 they are left out.
 
 ### Added
 
@@ -382,6 +405,11 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
 - Updated: The addresses of the 1.x pages (items, scheduledlist, addimport, addscheduled, alterimport,
   removescheduled, purgelist) redirect a GET to the matching 2.x page with their ids and offset; a POST with the 1.x
   fields still does what it did (form token and handler limitation checked as before) and then redirects there.
+
+- Updated: The unit tests run on PHPUnit 9 to 13: the AI assist and translation tests loop over their cases instead
+  of using @dataProvider annotations, which PHPUnit 12 and later no longer read.
+- Updated: composer.json describes release 2 and suggests expai for the AI assist; the suggestion of openspout is
+  gone (spreadsheets are read without a library).
 
 ### Removed
 

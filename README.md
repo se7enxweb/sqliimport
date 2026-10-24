@@ -11,7 +11,7 @@ it. Everything is done in the administration, without PHP or the command line. I
 
 ![The Imports dashboard of the administration: the Run now toolbar, the key figures, and the imports with their last run](doc/images/gs-dashboard-top.png)
 
-> **Status: 2.0 in testing** on the branch `2.0-dev` (last pre-release 2.0.0-alpha.1). See
+> **Release 2.0.0.** What changed since 1.x and since the pre-release 2.0.0-alpha.1:
 > [CHANGELOG.md](CHANGELOG.md).
 
 ## Contents
@@ -57,14 +57,18 @@ it. Everything is done in the administration, without PHP or the command line. I
 
 ## Requirements
 
-- Exponential 6.0.14 or later, PHP 8.0 to 8.5 (`json`, `mbstring`, `dom`, `xmlreader`).
+- Exponential 6.0.14 or later, PHP 8.0 to 8.5 (`json`, `mbstring`, `dom`, `xmlreader`). The data table target,
+  named SQL connections, the secret store and the transfer registry (the Imports entries of Export, CIE and the
+  run history) need Exponential 6.0.15; on 6.0.14 they are left out and everything else works.
 - The extensions **expqueue** (the job queue, with its cron part or systemd worker) and **expui**.
-- MySQL/MariaDB, PostgreSQL, SQLite or Oracle.
+- MySQL/MariaDB, PostgreSQL, SQLite or Oracle. The installation wizard does not create the tables: on a new
+  installation, and after every upgrade, run `install-schema` (step 3 below). Until then the Imports pages say that
+  the tables are missing.
 
 ## Installation
 
 ```bash
-composer require se7enxweb/sqliimport:^2.0@alpha
+composer require se7enxweb/sqliimport:^2.0
 ```
 
 1. Activate `sqliimport` (and `expqueue`, `expui`) in `settings/override/site.ini.append.php` `[ExtensionSettings]

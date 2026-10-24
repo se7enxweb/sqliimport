@@ -38,9 +38,6 @@ German: [ger-de/getting-started.md](ger-de/getting-started.md).
 composer require se7enxweb/sqliimport:^2.0
 ```
 
-(Until 2.0.0 is released, the 2.0 line is installed with `^2.0@alpha` for the last pre-release or
-`dev-2.0-dev` for the development branch.)
-
 ```ini
 # settings/override/site.ini.append.php
 [ExtensionSettings]

@@ -1,6 +1,6 @@
 {
     "name": "se7enxweb/sqliimport",
-    "description": "7x SQLI Import for Exponential: imports content from CSV, XML, RSS and JSON sources (upload, URL or server file) through a no-code mapping or import handlers, run by the job queue in chunks with a log and a row per record, on demand or on schedules. Handlers of sqliimport 1.x keep working.",
+    "description": "7x SQLI Import for Exponential: imports content from more than 60 sources (files, feeds, web pages, APIs, SQL and NoSQL databases, other CMS, mailboxes, office documents) through a no-code mapping or import handlers, all in the administration, run by the job queue in chunks with a log and a row per record, on demand, on schedules or by a webhook. Handlers of sqliimport 1.x keep working.",
     "keywords": [ "exponential", "exponential 6", "exponential-legacy", "legacy-extension", "import", "content import", "csv", "xml", "rss", "json", "mapping", "job queue", "cronjob", "migration" ],
     "homepage": "https://github.com/se7enxweb/sqliimport",
     "support": {
@@ -41,8 +41,7 @@
         "se7enxweb/expui": "^1.0.0.14"
     },
     "suggest": {
-        "se7enxweb/expai": "Suggests mappings and explains failed rows (7x SQLI Import 2.1)",
-        "openspout/openspout": "XLSX and ODS sources (a later 2.x release)",
+        "se7enxweb/expai": "The AI assist: suggests mappings and classes, explains failed rows and summarizes runs (off unless enabled)",
         "ext-pcntl": "Lets the 1.x command line script sqlidoimport.php stop safely on SIGTERM or SIGINT",
         "ext-intl": "Slugs and name matching take accents off with Normalizer (a fixed table otherwise)",
         "ext-zip": "Spreadsheet sources (XLSX and ODS)"

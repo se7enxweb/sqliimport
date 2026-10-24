@@ -32,7 +32,7 @@ Optional (suggested in `composer.json`):
 ## Install
 
 ```bash
-composer require se7enxweb/sqliimport:^2.0@alpha
+composer require se7enxweb/sqliimport:^2.0
 ```
 
 1. Activate the extensions in `settings/override/site.ini.append.php`:
