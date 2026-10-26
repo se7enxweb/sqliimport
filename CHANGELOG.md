@@ -3,7 +3,7 @@
 Every release, newest first, in the form Added / Updated / Fixed / Removed / Renamed. The history of 1.x before 1.3.1
 is in [doc/CHANGELOG](doc/CHANGELOG).
 
-## Unreleased
+## 2.0.2 (2026-10-26)
 
 ### Fixed
 
@@ -11,7 +11,7 @@ is in [doc/CHANGELOG](doc/CHANGELOG).
   `SQLIImportConfigException`, the extension's own exception, instead of `ezcConfigurationNoConfigException` of
   `zetacomponents/configuration`. The extension does not require that component, and the kernel package is dropping
   it: without it the run stopped with "Class not found", an `Error` that `runImport()` does not catch, instead of
-  marking the import item as failed and going on with the next one.
+  marking the import item as failed and going on with the next one. From ekked's pull request #1.
 
 ## 2.0.1
 
