@@ -3,6 +3,10 @@
 Every release, newest first, in the form Added / Updated / Fixed / Removed / Renamed. The history of 1.x before 1.3.1
 is in [doc/CHANGELOG](doc/CHANGELOG).
 
+## 2.0.3 (2026-10-28)
+
+- Updated: The esl-ES and fre-FR translations are complete.
+
 ## 2.0.2 (2026-10-26)
 
 ### Fixed
