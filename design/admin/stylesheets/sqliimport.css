@@ -169,7 +169,7 @@
 .a4-sqliimport-errors li { overflow-wrap: anywhere; font-size: var(--a4-text-s); }
 .a4-sqliimport-compare .a4-icon { vertical-align: -0.1em; }
 /* a row header of a statistics table reads as a cell, not as a column header */
-.a4-sqliimport .a4-table tbody th[scope="row"] { color: var(--a4-ink); font-size: inherit; font-weight: 600; letter-spacing: normal; text-transform: none; }
+.a4-sqliimport .a4-table tbody th[scope="row"] { color: var(--a4-ink); font-size: inherit; font-weight: var(--a4-weight-strong); letter-spacing: normal; text-transform: none; }
 .a4-sqliimport-stattable thead th { white-space: normal; }
 
 /* ---- the requests and scheduled imports of 1.x (dashboard and sqliimport/schedules) ---- */
