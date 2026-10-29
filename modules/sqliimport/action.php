@@ -9,7 +9,7 @@
  *   legacy_schedule_run, legacy_schedule_enable, legacy_schedule_disable, legacy_schedule_delete (LegacyScheduleID)
  * The result is shown on the next page (a session message); RedirectURI must be a page of this module.
  *
- * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
+ * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 1998 - 2026 Exponential Foundation and 7x. All rights reserved.
  * @license GNU General Public License v2.0
  * @package sqliimport
  */

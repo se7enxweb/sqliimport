@@ -4,7 +4,7 @@
  * are due and the pending imports of 1.x, ends runs whose jobs ended without them, and purges old runs
  * (expImportScheduler::tick()). The runs are processed by the workers of the job queue (cron part expqueue).
  *
- * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
+ * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 1998 - 2026 Exponential Foundation and 7x. All rights reserved.
  * @license GNU General Public License v2.0
  * @package sqliimport
  */

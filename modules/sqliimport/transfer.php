@@ -9,7 +9,7 @@
  * The uploaded file waits in var/<site>/storage/sqliimport/transfer/ under a random name kept in the session (not
  * the file itself) until it is applied or cancelled; files older than a day are removed with the next upload.
  *
- * @copyright Copyright (C) 2024 - 2026 7x
+ * @copyright Copyright (C) 1998 - 2026 Exponential Foundation and 7x. All rights reserved.
  * @license GNU General Public License v2.0
  * @package sqliimport
  */

@@ -3,7 +3,7 @@
  * sqliimport/mapping/<import id>: the import's mapping as a JSON file, to load in the editor of another import or
  * installation ("Load a mapping"). A GET that changes nothing; who may look at imports may download it.
  *
- * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
+ * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 1998 - 2026 Exponential Foundation and 7x. All rights reserved.
  * @license GNU General Public License v2.0
  * @package sqliimport
  */

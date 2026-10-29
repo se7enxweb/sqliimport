@@ -3,7 +3,7 @@
  * sqliimport/run/<id>: one run. Its status, progress and counters, the records by outcome (filtered by (outcome)),
  * the log, and Cancel or Retry failed rows for users who may run the import.
  *
- * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
+ * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 1998 - 2026 Exponential Foundation and 7x. All rights reserved.
  * @license GNU General Public License v2.0
  * @package sqliimport
  */

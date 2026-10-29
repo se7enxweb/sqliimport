@@ -4,7 +4,7 @@
  * ./console ext:sqliimport:retry: Starts a run of the failed rows of a run.
  * The code is in classes/exp/expimportcommand.php; run with --help for the options.
  *
- * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
+ * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 1998 - 2026 Exponential Foundation and 7x. All rights reserved.
  * @license GNU General Public License v2.0
  * @package sqliimport
  * @description Starts a run of the failed rows of a run

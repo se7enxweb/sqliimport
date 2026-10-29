@@ -8,7 +8,7 @@
  * Every parameter comes as a view parameter (/(days)/7) or from the GET form (?days=7); both are checked by
  * expImportStatistics::page(). A GET that changes nothing.
  *
- * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
+ * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 1998 - 2026 Exponential Foundation and 7x. All rights reserved.
  * @license GNU General Public License v2.0
  * @package sqliimport
  */

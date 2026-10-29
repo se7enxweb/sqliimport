@@ -18,7 +18,7 @@
  * SQLIImport_Type. The 1.x functions listimports and manageimports stay and still give access (the view's
  * function expression accepts them, and expImportAdmin::can() checks the actions the same way).
  *
- * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
+ * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 1998 - 2026 Exponential Foundation and 7x. All rights reserved.
  * @license GNU General Public License v2.0
  * @package sqliimport
  */

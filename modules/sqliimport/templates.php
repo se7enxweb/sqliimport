@@ -5,7 +5,7 @@
  * from a template": the placeholders (name, identifier and what the template declares) and what the template needs
  * on this site; Create makes the import, disabled, and opens it in the editor. Every POST carries the form token.
  *
- * @copyright Copyright (C) 2024 - 2026 7x
+ * @copyright Copyright (C) 1998 - 2026 Exponential Foundation and 7x. All rights reserved.
  * @license GNU General Public License v2.0
  * @package sqliimport
  */

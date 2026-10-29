@@ -7,7 +7,7 @@
  * (a browser page of another site cannot read an answer), no session (it is released at once and nothing is written to
  * it, so there is no cookie and no form token: the caller proves itself with a signature or an API key of the import).
  *
- * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
+ * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 1998 - 2026 Exponential Foundation and 7x. All rights reserved.
  * @license GNU General Public License v2.0
  * @package sqliimport
  */

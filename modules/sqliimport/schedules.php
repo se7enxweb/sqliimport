@@ -6,7 +6,7 @@
  * was sqliimport/addscheduled); its POST (LegacyScheduleSaveButton, the field names of 1.x, checked by ezformtoken) is
  * handled here, so a value that is not valid is shown again with its message.
  *
- * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 2024 - 2026 7x
+ * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 1998 - 2026 Exponential Foundation and 7x. All rights reserved.
  * @license GNU General Public License v2.0
  * @package sqliimport
  */
