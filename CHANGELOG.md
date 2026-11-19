@@ -3,6 +3,10 @@
 Every release, newest first, in the form Added / Updated / Fixed / Removed / Renamed. The history of 1.x before 1.3.1
 is in [doc/CHANGELOG](doc/CHANGELOG).
 
+## 2.0.6 (2026-11-19)
+
+- Fixed: The tables of SQLI Import are found on MongoDB, so its pages, the scheduler and the import command no longer say they are missing.
+
 ## 2.0.5 (2026-10-29)
 
 - Updated: One copyright notice, Exponential Foundation and 7x.
