@@ -461,6 +461,11 @@ class expImportSchema
             case 'oracle':
                 $sql = "SELECT LOWER(table_name) AS name FROM user_tables WHERE table_name LIKE 'SQLIIMPORT%'";
                 break;
+            case 'mongodb':
+                // the collections themselves: eZTableList() lists only the ez* ones, so every table read as missing
+                return method_exists( $db, 'listCollectionNames' )
+                    ? array_values( array_intersect( self::tables(), array_map( 'strtolower', (array)$db->listCollectionNames() ) ) )
+                    : array();
             default:
                 return array_values( array_intersect( self::tables(), array_map( 'strtolower', array_keys( $db->eZTableList() ) ) ) );
         }
