@@ -4,7 +4,7 @@
  * (sqliimport/list, "1.x import requests"). A POST (checked by ezformtoken) still purges; then, as a GET, it goes to
  * the dashboard.
  *
- * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 1998 - 2026 Exponential Foundation and 7x. All rights reserved.
+ * @copyright Copyright (C) 2010 SQLi Agency, Jérôme Vieilledent; Copyright (C) 1998 - 2026 Exponential Foundation and 7x; All rights reserved.
  * @license GNU General Public License v2.0
  * @package sqliimport
  */
