@@ -8,7 +8,9 @@
  */
 
 /**
- * The rows of an SQL query against a MySQL or MariaDB, PostgreSQL, SQLite, Oracle or SQL Server database, or against
+ * The rows of an SQL query against a MySQL or MariaDB, PostgreSQL, SQLite, Oracle or SQL Server database, against any
+ * database of a named connection of the kernel (Setup > Data tables > Connections: also the PostgreSQL and MySQL
+ * protocol databases, Firebird, DuckDB, Db2, Informix, ODBC and Access, opened by the kernel's drivers), or against
  * this site's own database when the settings allow it. One record is one row, its fields the columns of the query.
  *
  * The source reads its data itself (origin "remote"): once per run fetch() runs the query and writes the rows into
@@ -58,6 +60,45 @@ class expImportSqlSource extends expImportJsonSource
         'BEGIN', 'DECLARE', 'FUNCTION', 'PROCEDURE', 'COMMIT', 'ROLLBACK', 'SAVEPOINT', 'HTTPURITYPE', 'DBURITYPE',
         'XDBURITYPE',
     );
+
+    /** The words of the other databases of a named connection that end the transaction, change a sequence or a setting. */
+    const STANDARD_FORBIDDEN = array( 'BEGIN', 'DECLARE', 'SET', 'RESET', 'COMMIT', 'ROLLBACK', 'SAVEPOINT', 'USE' );
+
+    /** Firebird: generators and context variables that a SELECT can change */
+    const FIREBIRD_FORBIDDEN = array( 'GEN_ID', 'RDB$SET_CONTEXT', 'RDB$GET_CONTEXT' );
+
+    /** CockroachDB: crdb_internal holds functions that change the cluster (crdb_internal.unsafe_..., force_...) */
+    const PGWIRE_FORBIDDEN = array( 'CRDB_INTERNAL' );
+
+    /** Informix: the SQL administration API (sysadmin:task(), sysadmin:admin()) runs commands on the server */
+    const INFORMIX_FORBIDDEN = array( 'SYSADMIN' );
+
+    /** Db2: the administrative procedures and routines (SYSPROC.ADMIN_CMD, SYSIBMADM, SYSPROC) */
+    const DB2_FORBIDDEN = array( 'SYSPROC', 'SYSIBMADM', 'SYSFUN' );
+
+    /**
+     * DuckDB: the words that install, load or set something, and the functions that read files, URLs, the environment
+     * or other databases, or run SQL text of their own (a table name in quotes, FROM 'file.csv', is refused apart).
+     */
+    const DUCKDB_FORBIDDEN = array( 'INSTALL', 'CHECKPOINT' );
+    const DUCKDB_FUNCTIONS = '/\b(read_[a-z0-9_]*|[a-z0-9_]*_scan|[a-z0-9_]*_attach|glob|getenv|query|query_table|sniff_csv|parquet_[a-z0-9_]*|iceberg_[a-z0-9_]*|delta_[a-z0-9_]*|duckdb_[a-z0-9_]*|which_secret|st_read[a-z0-9_]*|current_setting|load_[a-z0-9_]*|httpfs_[a-z0-9_]*)\s*\(/i';
+
+    /** The lists of forbidden words each dialect of a named connection adds to FORBIDDEN */
+    const EXTRA_FORBIDDEN = array(
+        'pgwire' => array( 'STANDARD_FORBIDDEN', 'PGWIRE_FORBIDDEN' ),
+        'duckdb' => array( 'STANDARD_FORBIDDEN', 'DUCKDB_FORBIDDEN' ),
+        'firebird' => array( 'STANDARD_FORBIDDEN', 'FIREBIRD_FORBIDDEN' ),
+        'db2' => array( 'STANDARD_FORBIDDEN', 'DB2_FORBIDDEN' ),
+        'informix' => array( 'STANDARD_FORBIDDEN', 'INFORMIX_FORBIDDEN' ),
+        'ansi' => array( 'STANDARD_FORBIDDEN' ),
+        'access' => array( 'STANDARD_FORBIDDEN' ),
+    );
+
+    /**
+     * The dialects whose block comments are not known to nest the way the query check could assume: a "/*" inside a
+     * block comment makes the query refused, so the check and the database can never disagree on where it ends.
+     */
+    const STRICT_COMMENT_DIALECTS = array( 'pgwire', 'duckdb', 'firebird', 'db2', 'informix', 'ansi', 'access' );
 
     /** The other formats whose drivers the job queue's workers note too (recordWorkerPhp(), their localDrivers()). */
     const WORKER_SOURCES = array( 'expImportMongoDbSource', 'expImportRedisSource', 'expImportCassandraSource', 'expImportAvroSource', 'expImportArrowSource' );
@@ -213,6 +254,25 @@ class expImportSqlSource extends expImportJsonSource
             if ( preg_match( '/\bNEXT\s+VALUE\s+FOR\b/i', $code ) )
                 return 'the query contains NEXT VALUE FOR, which changes a sequence';
         }
+        if ( isset( self::EXTRA_FORBIDDEN[$driver] ) )
+        {
+            foreach ( self::EXTRA_FORBIDDEN[$driver] as $list )
+                if ( preg_match( '/(?<![A-Za-z0-9_$])(' . implode( '|', array_map( function ( $w ) { return preg_quote( $w, '/' ); }, constant( 'self::' . $list ) ) ) . ')(?![A-Za-z0-9_$])/i', $code, $m ) )
+                    return 'the query contains ' . strtoupper( $m[1] ) . ', only reading is allowed';
+            if ( preg_match( '/\bNEXT\s+VALUE\s+FOR\b/i', $code ) )
+                return 'the query contains NEXT VALUE FOR, which changes a sequence';
+        }
+        if ( $driver === 'informix' && strpbrk( $code, '{}' ) !== false )
+            return 'braces are comments in Informix: { and } are not allowed outside string literals';
+        if ( $driver === 'informix' && preg_match( '/\b(task|admin|system)\s*\(/i', $code, $m ) )
+            return 'the query calls ' . $m[1] . '(): the administration API of Informix is not allowed';
+        if ( $driver === 'duckdb' )
+        {
+            if ( preg_match( self::DUCKDB_FUNCTIONS, $code, $m ) )
+                return 'the query calls ' . $m[1] . '(): DuckDB functions that read files, URLs, settings or other databases are not allowed';
+            if ( self::duckdbFileScan( $code ) )
+                return 'a quoted name or text stands where DuckDB reads a table, and DuckDB would read a file of that name: name the table without quotes';
+        }
         if ( $driver === 'oracle' )
         {
             if ( preg_match( '/\b(' . implode( '|', self::ORACLE_FORBIDDEN ) . ')\b/i', $code, $m ) )
@@ -236,12 +296,14 @@ class expImportSqlSource extends expImportJsonSource
         if ( strpos( $query, "\0" ) !== false )
             return null;
         $mysql = $driver === 'mysql';
-        $pgsql = $driver === 'pgsql';
+        // the databases of the PostgreSQL protocol quote as PostgreSQL does (dollar quoting, E'...')
+        $pgsql = $driver === 'pgsql' || $driver === 'pgwire';
         $sqlsrv = $driver === 'sqlsrv';
         $oracle = $driver === 'oracle';
-        // PostgreSQL and T-SQL nest block comments; brackets quote names in SQLite and T-SQL
-        $nested = $pgsql || $sqlsrv;
-        $brackets = $driver === 'sqlite' || $sqlsrv;
+        // PostgreSQL and T-SQL nest block comments; brackets quote names in SQLite, T-SQL and Access
+        $nested = $driver === 'pgsql' || $sqlsrv;
+        $strict = in_array( $driver, self::STRICT_COMMENT_DIALECTS, true );
+        $brackets = $driver === 'sqlite' || $sqlsrv || $driver === 'access';
         $out = '';
         $n = strlen( $query );
         $i = 0;
@@ -266,6 +328,8 @@ class expImportSqlSource extends expImportJsonSource
                 $i += 2;
                 while ( $i < $n && $depth > 0 )
                 {
+                    if ( $strict && $query[$i] === '/' && $i + 1 < $n && $query[$i + 1] === '*' )
+                        return null;
                     if ( $nested && $query[$i] === '/' && $i + 1 < $n && $query[$i + 1] === '*' )
                     {
                         $depth++;
@@ -354,6 +418,47 @@ class expImportSqlSource extends expImportJsonSource
             $i++;
         }
         return $out;
+    }
+
+    /**
+     * Whether a quoted text or name stands where DuckDB reads a table: right after FROM, JOIN, or a comma or bracket of
+     * a FROM clause. DuckDB reads a file for such a name (FROM 'data.csv', FROM "data.parquet", a replacement scan),
+     * which no word of the query would show. The code is the one of codeOf(): every literal is '' and every name "".
+     *
+     * @param string $code
+     * @return bool
+     */
+    public static function duckdbFileScan( $code )
+    {
+        preg_match_all( '/\'\'|""|[A-Za-z_][A-Za-z0-9_$]*|[0-9]+|\S/', (string)$code, $m );
+        $clause = array( 0 => '' );
+        $depth = 0;
+        $previous = '';
+        $ends = array( 'WHERE', 'GROUP', 'HAVING', 'ORDER', 'LIMIT', 'OFFSET', 'QUALIFY', 'WINDOW', 'UNION', 'EXCEPT', 'INTERSECT',
+                       'SELECT', 'ON', 'USING', 'RETURNING', 'VALUES' );
+        foreach ( $m[0] as $token )
+        {
+            $word = strtoupper( $token );
+            if ( $token === "''" || $token === '""' )
+            {
+                if ( $clause[$depth] === 'from' && in_array( $previous, array( 'FROM', 'JOIN', ',', '(' ), true ) )
+                    return true;
+            }
+            elseif ( $token === '(' )
+            {
+                // a bracket of the FROM list itself ( FROM ( a JOIN b ) ) stays in it until a SELECT starts a subquery
+                $clause[$depth + 1] = $clause[$depth] === 'from' && in_array( $previous, array( 'FROM', 'JOIN', ',', '(' ), true ) ? 'from' : '';
+                $depth++;
+            }
+            elseif ( $token === ')' )
+                $depth = max( 0, $depth - 1 );
+            elseif ( $word === 'FROM' || $word === 'JOIN' )
+                $clause[$depth] = 'from';
+            elseif ( in_array( $word, $ends, true ) )
+                $clause[$depth] = '';
+            $previous = $word;
+        }
+        return false;
     }
 
     /** @return bool whether the letter at $i starts a word (or follows the N of Oracle's nq'...') */
@@ -507,7 +612,16 @@ class expImportSqlSource extends expImportJsonSource
 
     /** The engines of a named connection, and the dialect of the query check for each */
     const CONNECTION_DIALECTS = array( 'mysql' => 'mysql', 'mariadb' => 'mysql', 'postgresql' => 'pgsql', 'pgsql' => 'pgsql',
-                                       'sqlite' => 'sqlite', 'oracle' => 'oracle', 'sqlserver' => 'sqlsrv', 'sqlsrv' => 'sqlsrv' );
+                                       'sqlite' => 'sqlite', 'oracle' => 'oracle', 'sqlserver' => 'sqlsrv', 'sqlsrv' => 'sqlsrv',
+                                       // PostgreSQL itself, as a service
+                                       'neon' => 'pgsql', 'supabase' => 'pgsql', 'aurorapostgresql' => 'pgsql',
+                                       // their own SQL on the PostgreSQL protocol
+                                       'cockroachdb' => 'pgwire', 'yugabytedb' => 'pgwire', 'spanner' => 'pgwire',
+                                       // the databases of the MySQL protocol are engine mysql with a profile; their names too
+                                       'tidb' => 'mysql', 'vitess' => 'mysql', 'singlestore' => 'mysql', 'xpand' => 'mysql', 'aurora' => 'mysql',
+                                       'firebird' => 'firebird', 'duckdb' => 'duckdb', 'db2' => 'db2', 'informix' => 'informix',
+                                       // ODBC: whatever database is behind it, quoted and commented the standard way
+                                       'odbc' => 'ansi', 'msaccess' => 'access' );
 
     /** @return bool whether named connections are there (the kernel's expDataConnections) */
     public static function connectionsAvailable()
@@ -644,7 +758,14 @@ class expImportSqlSource extends expImportJsonSource
     protected static function siteDialect()
     {
         $implementation = class_exists( 'eZINI' ) ? (string)eZINI::instance( 'site.ini' )->variable( 'DatabaseSettings', 'DatabaseImplementation' ) : '';
-        foreach ( array( 'sqlite' => 'sqlite', 'postgres' => 'postgresql', 'mysql' => 'mysql', 'oracle' => 'oracle', 'mssql' => 'sqlserver' ) as $needle => $engine )
+        $implementation = strtolower( $implementation );
+        // in this order: aurorapostgresql before aurora (MySQL), the names before the families they contain
+        foreach ( array( 'duckdb' => 'duckdb', 'sqlite' => 'sqlite', 'cockroach' => 'cockroachdb', 'crdb' => 'cockroachdb',
+                         'yugabyte' => 'yugabytedb', 'neon' => 'neon', 'supabase' => 'supabase', 'aurorapostgres' => 'aurorapostgresql',
+                         'postgres' => 'postgresql', 'firebird' => 'firebird', 'informix' => 'informix', 'db2' => 'db2',
+                         'oracle' => 'oracle', 'mssql' => 'sqlserver', 'sqlserver' => 'sqlserver', 'sqlsrv' => 'sqlserver',
+                         'mongo' => 'mongodb', 'tidb' => 'tidb', 'vitess' => 'vitess', 'planetscale' => 'vitess', 'singlestore' => 'singlestore',
+                         'memsql' => 'singlestore', 'xpand' => 'xpand', 'aurora' => 'aurora', 'mysql' => 'mysql' ) as $needle => $engine )
             if ( strpos( $implementation, $needle ) !== false )
                 return $engine;
         return '';

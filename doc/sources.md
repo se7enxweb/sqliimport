@@ -675,6 +675,20 @@ Only reading is possible, checked three times:
     packages `DBMS_...`, `UTL_...`, `OWA_...`, `HTP`, `HTF` and of `HTTPURITYPE` (also as quoted names such as
     `"DBMS_PIPE"."SEND_MESSAGE"`), database links (`table@link`), `sequence.NEXTVAL`, `COMMIT` and `ROLLBACK`.
     Oracle gives unquoted column names in capitals: name the key column that way, or use `AS "id"`.
+  - **The other engines of a named connection** (Exponential 6.0.15 and later, every engine of Setup, Data tables,
+    Connections): the connection is opened by the kernel's driver of the engine, and the query is checked in the
+    engine's dialect. Neon, Supabase and Aurora PostgreSQL are PostgreSQL; CockroachDB, YugabyteDB and Spanner
+    (PGAdapter) quote as PostgreSQL does and refuse `crdb_internal`; the databases of the MySQL protocol (TiDB,
+    Vitess, SingleStore, Xpand, Aurora MySQL) are MySQL. Firebird, IBM Db2, IBM Informix, DuckDB, ODBC and
+    Microsoft Access (ODBC, with `[bracketed names]`) are read the standard way: `'...'` strings, `"..."` names, `--`
+    and `/* ... */` comments, no backslash escapes. A `/*` inside a comment is refused, so the check never disagrees
+    with the database on where a comment ends. All of them also refuse `BEGIN`, `DECLARE`, `SET`, `RESET`, `COMMIT`,
+    `ROLLBACK`, `SAVEPOINT`, `USE` and `NEXT VALUE FOR`; Firebird `GEN_ID` and `RDB$SET_CONTEXT`; Db2 the schemas
+    `SYSPROC`, `SYSIBMADM` and `SYSFUN`; Informix `{ ... }` (comments there), `sysadmin` and the functions `task()`,
+    `admin()` and `system()`. **DuckDB** reads files, URLs and other databases from a query, so it refuses the
+    functions that do (`read_csv`, `read_parquet`, `read_json`, `read_text`, every `..._scan`, `glob`, `getenv`,
+    `query`, `query_table`, `duckdb_...`, `current_setting` ...) and a quoted name or text where a table is read
+    (`FROM 'data.csv'`, `JOIN "x.parquet"`): name DuckDB tables without quotes.
 - **The connection is read-only:** MySQL and MariaDB `SET SESSION TRANSACTION READ ONLY`, PostgreSQL
   `SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY`, SQLite opened read-only with `PRAGMA query_only`, Oracle a
   connection of its own with `SET TRANSACTION READ ONLY` that is never committed (a write in it fails with

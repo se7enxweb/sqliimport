@@ -693,6 +693,21 @@ Nur Lesen ist möglich, dreifach geprüft:
     Namen in Anführungszeichen wie `"DBMS_PIPE"."SEND_MESSAGE"`), Datenbank-Links (`tabelle@link`),
     `sequenz.NEXTVAL`, `COMMIT` und `ROLLBACK`. Oracle liefert Spaltennamen ohne Anführungszeichen in Großbuchstaben:
     Geben Sie die Schlüsselspalte so an, oder benennen Sie sie mit `AS "id"`.
+  - **Die anderen Datenbanken einer benannten Verbindung** (ab Exponential 6.0.15, jede Datenbank unter Setup, Data
+    tables, Connections): Die Verbindung öffnet der Treiber des Kernels für diese Datenbank, und die Abfrage wird in
+    ihrem Dialekt geprüft. Neon, Supabase und Aurora PostgreSQL sind PostgreSQL; CockroachDB, YugabyteDB und Spanner
+    (PGAdapter) setzen Anführungszeichen wie PostgreSQL und lehnen `crdb_internal` ab; die Datenbanken des
+    MySQL-Protokolls (TiDB, Vitess, SingleStore, Xpand, Aurora MySQL) sind MySQL. Firebird, IBM Db2, IBM Informix,
+    DuckDB, ODBC und Microsoft Access (ODBC, mit `[Namen in eckigen Klammern]`) werden nach dem Standard gelesen:
+    Zeichenketten in `'...'`, Namen in `"..."`, Kommentare mit `--` und `/* ... */`, kein Backslash-Escape. Ein `/*`
+    innerhalb eines Kommentars wird abgelehnt, damit die Prüfung nie anders als die Datenbank entscheidet, wo ein
+    Kommentar endet. Alle lehnen außerdem `BEGIN`, `DECLARE`, `SET`, `RESET`, `COMMIT`, `ROLLBACK`, `SAVEPOINT`, `USE`
+    und `NEXT VALUE FOR` ab; Firebird `GEN_ID` und `RDB$SET_CONTEXT`; Db2 die Schemas `SYSPROC`, `SYSIBMADM` und
+    `SYSFUN`; Informix `{ ... }` (dort Kommentare), `sysadmin` und die Funktionen `task()`, `admin()` und `system()`.
+    **DuckDB** liest aus einer Abfrage Dateien, URLs und andere Datenbanken; es lehnt daher die Funktionen ab, die das
+    tun (`read_csv`, `read_parquet`, `read_json`, `read_text`, jedes `..._scan`, `glob`, `getenv`, `query`,
+    `query_table`, `duckdb_...`, `current_setting` ...), und einen Namen oder Text in Anführungszeichen dort, wo eine
+    Tabelle gelesen wird (`FROM 'daten.csv'`, `JOIN "x.parquet"`): Nennen Sie DuckDB-Tabellen ohne Anführungszeichen.
 - **Die Verbindung ist schreibgeschützt:** MySQL und MariaDB `SET SESSION TRANSACTION READ ONLY`, PostgreSQL
   `SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY`, SQLite schreibgeschützt geöffnet mit `PRAGMA query_only`,
   Oracle eine eigene Verbindung mit `SET TRANSACTION READ ONLY`, die nie bestätigt (committet) wird (ein Schreibversuch
